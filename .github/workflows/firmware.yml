@@ -1,0 +1,20 @@
+name: Build ESP32 firmware
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PlatformIO
+        run: python -m pip install platformio
+      - name: Build supported profiles
+        working-directory: firmware/esp32
+        run: pio run -e esp32-benny -e esp32-classic-safe -e esp32-s3
+
