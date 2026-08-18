@@ -1,0 +1,1753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Tmbox Flodesbild</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Tmbox Flodesbild" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Tmbox Flodesbild&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;tmbox-flow-7a42&quot;&gt;
+  &lt;style&gt;
+    #tmbox-flow-7a42 {
+      color: var(--foreground);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 10px 0 18px;
+    }
+    #tmbox-flow-7a42 * { box-sizing: border-box; }
+    #tmbox-flow-7a42 .top {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    #tmbox-flow-7a42 h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -.02em;
+    }
+    #tmbox-flow-7a42 .sub {
+      margin-top: 3px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+    #tmbox-flow-7a42 .display-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    #tmbox-flow-7a42 .screen-switch {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 3px;
+      gap: 2px;
+      flex: none;
+    }
+    #tmbox-flow-7a42 button {
+      font: inherit;
+      color: inherit;
+    }
+    #tmbox-flow-7a42 .screen-switch button,
+    #tmbox-flow-7a42 .tabs button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    #tmbox-flow-7a42 .screen-switch button {
+      padding: 5px 9px;
+      font-size: 12px;
+    }
+    #tmbox-flow-7a42 .screen-switch button[aria-pressed=&quot;true&quot;] {
+      background: var(--secondary);
+      font-weight: 700;
+    }
+    #tmbox-flow-7a42 .tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 9px;
+      border-bottom: 1px solid var(--border);
+    }
+    #tmbox-flow-7a42 .tabs button {
+      white-space: nowrap;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--muted-foreground);
+    }
+    #tmbox-flow-7a42 .tabs button[aria-selected=&quot;true&quot;] {
+      color: var(--foreground);
+      background: var(--secondary);
+      font-weight: 700;
+    }
+    #tmbox-flow-7a42 .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 0 8px;
+      font-size: 11px;
+      color: var(--muted-foreground);
+    }
+    #tmbox-flow-7a42 .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    #tmbox-flow-7a42 .dot { width: 8px; height: 8px; border-radius: 50%; }
+    #tmbox-flow-7a42 .dot.local { background: var(--viz-series-1); }
+    #tmbox-flow-7a42 .dot.up { background: var(--viz-series-2); }
+    #tmbox-flow-7a42 .dot.down { background: var(--viz-series-3); }
+    #tmbox-flow-7a42 .dot.warn { background: var(--viz-series-4); }
+    #tmbox-flow-7a42 .lanes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    #tmbox-flow-7a42 .lane {
+      text-align: center;
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-size: 9px;
+      font-weight: 800;
+    }
+    #tmbox-flow-7a42 .flow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+    #tmbox-flow-7a42 .step {
+      min-height: 78px;
+      padding: 10px 11px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--viz-series-1);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--background) 92%, var(--viz-series-1) 8%);
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+    }
+    #tmbox-flow-7a42 .step[data-kind=&quot;up&quot;] {
+      border-left-color: var(--viz-series-2);
+      background: color-mix(in srgb, var(--background) 92%, var(--viz-series-2) 8%);
+    }
+    #tmbox-flow-7a42 .step[data-kind=&quot;down&quot;] {
+      border-left-color: var(--viz-series-3);
+      background: color-mix(in srgb, var(--background) 92%, var(--viz-series-3) 8%);
+    }
+    #tmbox-flow-7a42 .step[data-kind=&quot;warn&quot;] {
+      border-left-color: var(--viz-series-4);
+      background: color-mix(in srgb, var(--background) 92%, var(--viz-series-4) 8%);
+    }
+    #tmbox-flow-7a42 .step[aria-pressed=&quot;true&quot;] {
+      outline: 2px solid var(--foreground);
+      outline-offset: 1px;
+    }
+    #tmbox-flow-7a42 .step .n {
+      color: var(--muted-foreground);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    #tmbox-flow-7a42 .step .title {
+      margin-top: 3px;
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.22;
+    }
+    #tmbox-flow-7a42 .step .key {
+      margin-top: 6px;
+      font: 600 10px ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--muted-foreground);
+    }
+    #tmbox-flow-7a42 .empty { min-height: 2px; }
+    #tmbox-flow-7a42 .detail {
+      display: grid;
+      grid-template-columns: minmax(230px, .8fr) minmax(270px, 1.2fr);
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 0 0 12px;
+      padding: 10px 0 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--background);
+    }
+    #tmbox-flow-7a42 .lcd-wrap,
+    #tmbox-flow-7a42 .command {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    #tmbox-flow-7a42 .detail-label {
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      font-size: 9px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    #tmbox-flow-7a42 .lcd {
+      min-height: 94px;
+      display: block;
+      padding: 12px 14px;
+      border-radius: 7px;
+      border: 3px solid color-mix(in srgb, var(--foreground) 35%, transparent);
+      background: #07120f;
+      color: #d6fff0;
+      box-shadow: inset 0 0 18px rgba(68,255,184,.08);
+      font: 700 15px/1.38 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .025em;
+      overflow: hidden;
+    }
+    #tmbox-flow-7a42 .lcd-ruler,
+    #tmbox-flow-7a42 .lcd-line {
+      display: grid;
+      grid-template-columns: repeat(var(--lcd-cols), minmax(0, 1fr));
+      width: 100%;
+      max-width: calc(var(--lcd-cols) * 1.15em);
+      margin: 0 auto;
+    }
+    #tmbox-flow-7a42 .lcd-ruler {
+      margin-bottom: 5px;
+      color: color-mix(in srgb, #d6fff0 55%, transparent);
+      font-size: 9px;
+      line-height: 1;
+    }
+    #tmbox-flow-7a42 .lcd-cell {
+      min-width: 0;
+      text-align: center;
+      border-right: 1px solid color-mix(in srgb, #d6fff0 10%, transparent);
+    }
+    #tmbox-flow-7a42 .lcd-cell:nth-child(4n) {
+      border-right-color: color-mix(in srgb, #d6fff0 24%, transparent);
+    }
+    #tmbox-flow-7a42 .lcd-line {
+      min-height: 1.42em;
+      line-height: 1.42;
+    }
+    #tmbox-flow-7a42 .topology-key {
+      display: none;
+      grid-template-columns: auto 1fr 1fr;
+      gap: 2px 10px;
+      margin-top: 8px;
+      color: var(--muted-foreground);
+      font: 500 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    #tmbox-flow-7a42 .topology-key.is-visible { display: grid; }
+    #tmbox-flow-7a42 .topology-key .topology-head {
+      color: var(--foreground);
+      font-weight: 700;
+    }
+    #tmbox-flow-7a42 .command h3 {
+      margin: 0 0 4px;
+      font-size: 14px;
+    }
+    #tmbox-flow-7a42 .cmd {
+      margin: 8px 0 6px;
+      padding: 8px 9px;
+      border-radius: 7px;
+      background: var(--secondary);
+      font: 600 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow-wrap: anywhere;
+    }
+    #tmbox-flow-7a42 .note {
+      color: var(--muted-foreground);
+      font-size: 11px;
+      line-height: 1.42;
+    }
+    @media (max-width: 640px) {
+      #tmbox-flow-7a42 .top { align-items: flex-start; flex-direction: column; }
+      #tmbox-flow-7a42 .display-controls { justify-content: flex-start; }
+      #tmbox-flow-7a42 .flow { gap: 5px; }
+      #tmbox-flow-7a42 .step { min-height: 84px; padding: 8px 7px; }
+      #tmbox-flow-7a42 .step .title { font-size: 10px; }
+      #tmbox-flow-7a42 .step .key { font-size: 8px; }
+      #tmbox-flow-7a42 .detail { grid-template-columns: 1fr; }
+      #tmbox-flow-7a42 .lcd { font-size: 13px; }
+    }
+  &lt;/style&gt;
+
+  &lt;div class=&quot;top&quot;&gt;
+    &lt;div&gt;
+      &lt;h2&gt;TMBox — vyer och kommandoflöden&lt;/h2&gt;
+      &lt;div class=&quot;sub&quot;&gt;Tryck på ett steg för att se exakt skärmvy och meddelande.&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;display-controls&quot;&gt;
+      &lt;div class=&quot;screen-switch&quot; data-control=&quot;columns&quot; aria-label=&quot;Antal tecken per rad&quot;&gt;
+        &lt;button type=&quot;button&quot; data-cols=&quot;16&quot; aria-pressed=&quot;true&quot;&gt;16 tecken&lt;/button&gt;
+        &lt;button type=&quot;button&quot; data-cols=&quot;20&quot; aria-pressed=&quot;false&quot;&gt;20 tecken&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;screen-switch&quot; data-control=&quot;rows&quot; aria-label=&quot;Antal skärmrader&quot;&gt;
+        &lt;button type=&quot;button&quot; data-rows=&quot;2&quot; aria-pressed=&quot;false&quot;&gt;2 rader&lt;/button&gt;
+        &lt;button type=&quot;button&quot; data-rows=&quot;4&quot; aria-pressed=&quot;true&quot;&gt;4 rader&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;tabs&quot; role=&quot;tablist&quot; aria-label=&quot;Flöden&quot;&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;setup&quot; aria-selected=&quot;true&quot;&gt;Start &amp;amp; tilldelning&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;lookup&quot; aria-selected=&quot;false&quot;&gt;Tågstatus &amp;amp; åtgärder&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;trackchoice&quot; aria-selected=&quot;false&quot;&gt;Spårval &amp;amp; minne&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;departure&quot; aria-selected=&quot;false&quot;&gt;Avgång Cda → Vst&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;arrival&quot; aria-selected=&quot;false&quot;&gt;Ankomst till Cda&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;request&quot; aria-selected=&quot;false&quot;&gt;Request / reply&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;linefree&quot; aria-selected=&quot;false&quot;&gt;Linjen är ledig&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;traffic&quot; aria-selected=&quot;false&quot;&gt;Spårbild 16/20&lt;/button&gt;
+    &lt;button type=&quot;button&quot; role=&quot;tab&quot; data-flow=&quot;exceptions&quot; aria-selected=&quot;false&quot;&gt;Avbrott &amp;amp; undantag&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;legend&quot;&gt;
+    &lt;span&gt;&lt;i class=&quot;dot local&quot;&gt;&lt;/i&gt;lokalt i TMBox&lt;/span&gt;
+    &lt;span&gt;&lt;i class=&quot;dot up&quot;&gt;&lt;/i&gt;kommando till Trainmeet&lt;/span&gt;
+    &lt;span&gt;&lt;i class=&quot;dot down&quot;&gt;&lt;/i&gt;händelse från Trainmeet&lt;/span&gt;
+    &lt;span&gt;&lt;i class=&quot;dot warn&quot;&gt;&lt;/i&gt;fel eller alternativ väg&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;detail&quot; aria-live=&quot;polite&quot;&gt;
+    &lt;div class=&quot;lcd-wrap&quot;&gt;
+      &lt;div class=&quot;detail-label&quot; id=&quot;screen-label&quot;&gt;4-radersvy&lt;/div&gt;
+      &lt;div class=&quot;lcd&quot; id=&quot;lcd-view&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;topology-key&quot; id=&quot;topology-key&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;command&quot;&gt;
+      &lt;div class=&quot;detail-label&quot; id=&quot;actor-label&quot;&gt;&lt;/div&gt;
+      &lt;h3 id=&quot;detail-title&quot;&gt;&lt;/h3&gt;
+      &lt;div class=&quot;cmd&quot; id=&quot;detail-command&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;note&quot; id=&quot;detail-note&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;lanes&quot; aria-hidden=&quot;true&quot;&gt;
+    &lt;div class=&quot;lane&quot;&gt;Lokal TMBox&lt;/div&gt;
+    &lt;div class=&quot;lane&quot;&gt;Trainmeet&lt;/div&gt;
+    &lt;div class=&quot;lane&quot;&gt;Motstationens TMBox&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;flow&quot; id=&quot;flow-grid&quot;&gt;&lt;/div&gt;
+
+  &lt;script&gt;
+    (() =&gt; {
+      const root = document.getElementById(&#x27;tmbox-flow-7a42&#x27;);
+      const flows = {
+        setup: [
+          {a:0,t:&#x27;Start — visa hårdvaru-ID&#x27;,k:&#x27;lokalt&#x27;,s2:&#x27;TMBOX-7A42F1\nSTARTAR...&#x27;,s4:&#x27;TMBOX STARTAR\nID: 7A42F1\n\nSOKER WIFI...&#x27;,c:&#x27;Ingen nättrafik&#x27;,n:&#x27;Enhetens stabila ID visas alltid vid uppstart.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;Prova sparade Wi-Fi-profiler&#x27;,k:&#x27;automatisk&#x27;,s2:&#x27;SOKER WIFI...\nKLUBBHUSET&#x27;,s4:&#x27;TMBOX-7A42F1\nSOKER WIFI...\nKLUBBHUSET\nFORSOK 1/3&#x27;,c:&#x27;Wi-Fi association + DHCP&#x27;,n:&#x27;Boxen provar primärt nät, reservnät och eventuell hotspot.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;Wi-Fi saknas — installationsportal&#x27;,k:&#x27;# installera · * igen&#x27;,s2:&#x27;WIFI HITTAS EJ\n#=INSTALLATION&#x27;,s4:&#x27;WIFI HITTAS INTE\n#=INSTALLATION\n*=FORSOK IGEN\n&#x27;,c:&#x27;SoftAP: TMBOX-7A42F1 · HTTP 192.168.4.1&#x27;,n:&#x27;Telefonen väljer Wi-Fi och anger lösenord via lokal captive portal.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Wi-Fi anslutet&#x27;,k:&#x27;# fortsätt&#x27;,s2:&#x27;WIFI ANSLUTET\n#=FORTSATT&#x27;,s4:&#x27;WIFI ANSLUTET\nKLUBBHUSET\nIP: 192.168.1.84\n#=FORTSATT&#x27;,c:&#x27;Lokalt nät klart&#x27;,n:&#x27;Inga Wi-Fi-lösenord lämnar boxen.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;Sök Trainmeet&#x27;,k:&#x27;automatiskt&#x27;,s2:&#x27;SOKER\nTRAINMEET...&#x27;,s4:&#x27;TMBOX-7A42F1\nWIFI ANSLUTET\n\nSOKER TRAINMEET&#x27;,c:&#x27;1) senast kända adress · 2) mDNS _trainmeet._tcp · 3) manuell&#x27;,n:&#x27;Server-ID är permanent även om URL eller IP ändras.&#x27;,kind:&#x27;local&#x27;},
+          {a:1,t:&#x27;Servern annonserar identitet&#x27;,k:&#x27;mDNS / TLS&#x27;,s2:&#x27;SERVER HITTAD\nTRAINMEET A91C&#x27;,s4:&#x27;TRAINMEET HITTAD\nCHARLOTTENDAL\nSERVER: A91C\n#=ANSLUT&#x27;,c:&#x27;service: _trainmeet._tcp.local · server_id: TM-SERVER-A91C&#x27;,n:&#x27;Första gången bekräftar installatören rätt server. TLS-identiteten sparas.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Enheten presenterar sig&#x27;,k:&#x27;# anslut&#x27;,s2:&#x27;TRAINMEET\nANSLUTER...&#x27;,s4:&#x27;ID: TMBOX-7A42F1\nTRAINMEET A91C\n\nANSLUTER...&#x27;,c:&#x27;device.hello {device_id, hw_version, fw_version, config_version}&#x27;,n:&#x27;Utgående, autentiserad anslutning från TMBox till servern.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Ny enhet syns i administrationen&#x27;,k:&#x27;tilldela station&#x27;,s2:&#x27;VANTAR PA\nTRAFIKPLATS&#x27;,s4:&#x27;ID: TMBOX-7A42F1\nTRAINMEET ONLINE\nVANTAR PA\nTRAFIKPLATS&#x27;,c:&#x27;presence.online → admin assigns station_id=cda&#x27;,n:&#x27;Administratören matchar ID på skärmen med ID i Trainmeet.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Hämta lokal konfiguration&#x27;,k:&#x27;automatiskt&#x27;,s2:&#x27;HAMTAR KONFIG\nCDA&#x27;,s4:&#x27;TILLDELAD: CDA\nHAMTAR KONFIG\nVERSION 12\n&#x27;,c:&#x27;config.get → {station, display, buttons, features, version}&#x27;,n:&#x27;Konfigurationen sparas lokalt och används utan nätresa för varje tangent.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Bekräfta och gå till redo&#x27;,k:&#x27;# bekräfta&#x27;,s2:&#x27;CDA TILLDELAD\n#=BEKRAFTA&#x27;,s4:&#x27;ID: TMBOX-7A42F1\nTILLDELAD: CDA\nKONFIG KLAR\n#=BEKRAFTA&#x27;,c:&#x27;config.ack {device_id, config_version:12}&#x27;,n:&#x27;Efter bekräftelse öppnas prenumerationen och normalvyn visas.&#x27;,kind:&#x27;up&#x27;},
+          {a:0,t:&#x27;Redo — prenumererar&#x27;,k:&#x27;siffror · # · *&#x27;,s2:&#x27;CDA\nANGE TAGNR:&#x27;,s4:&#x27;CDA\nTMBOX REDO\nANGE TAGNUMMER\n_&#x27;,c:&#x27;subscribe station/cda + device/TMBOX-7A42F1&#x27;,n:&#x27;Tangenttryckningar, redigering, display, ljud och lampor hanteras lokalt.&#x27;,kind:&#x27;local&#x27;}
+        ],
+        lookup: [
+          {a:0,t:&#x27;Skriv valfritt tågnummer lokalt&#x27;,k:&#x27;0–9 · *=radera · #=OK&#x27;,s2:&#x27;CDA\nTAGNR: 421_&#x27;,s4:&#x27;CDA\nANGE TAGNUMMER\n421_\n*=RADERA #=OK&#x27;,c:&#x27;Ingen nättrafik under inmatningen&#x27;,n:&#x27;Siffrorna redigeras helt lokalt. Först # skickar ett komplett uppslag.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;# skickar ett komplett uppslag&#x27;,k:&#x27;#=sök&#x27;,s2:&#x27;TAG 421\nKONTROLLERAR...&#x27;,s4:&#x27;TAG 421\nKONTROLLERAR\nAKTUELL STATUS\nVANTA...&#x27;,c:&#x27;train.lookup {station_id:cda, train_number:421}&#x27;,n:&#x27;Trainmeet returnerar status, spår, riktning och allowed_actions.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Tåget står inne — actions returneras&#x27;,k:&#x27;A=begär · D=mer&#x27;,s2:&#x27;421 [1A] INNE\nA=BEGAR D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1A\nVST&gt;421&gt;[1A]\nSTAR INNE\nA=BEGAR D=MER&#x27;,c:&#x27;train.status {state:at_station, track:&quot;1A&quot;, allowed_actions:[request_clearance,show_details]}&#x27;,n:&#x27;TMBox visar bara de handlingar som servern tillåter i det aktuella tillståndet.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;D visar mer information lokalt&#x27;,k:&#x27;D=mer · *=tillbaka&#x27;,s2:&#x27;421 [1A] INNE\nFRAN VST 14:32&#x27;,s4:&#x27;TAG 421 SPAR 1A\nFRAN VST\nANKOM 14:32\n*=TILLBAKA&#x27;,c:&#x27;Ingen ny nättrafik — detaljen finns i train.status&#x27;,n:&#x27;Fullständigt stationsnamn används automatiskt när raden rymmer det.&#x27;,kind:&#x27;local&#x27;},
+          {a:1,t:&#x27;Begäran finns redan&#x27;,k:&#x27;*=avbryt · D=mer&#x27;,s2:&#x27;421 [1A] VANTAR\n*=AVBR D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1A\nTILL VST\nVANTAR PA SVAR\n*=AVBR D=MER&#x27;,c:&#x27;train.status {state:waiting_for_clearance, allowed_actions:[cancel,show_details]}&#x27;,n:&#x27;A=BEGÄR visas inte igen. * öppnar en separat bekräftelse innan avbrottet skickas.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;Tåget har fått klart&#x27;,k:&#x27;#=OK · D=mer&#x27;,s2:&#x27;421 [1A] KLART\n#=OK D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1A\nKLART TILL VST\n14:35\n#=OK D=MER&#x27;,c:&#x27;train.status {state:clearance_granted, allowed_actions:[acknowledge,show_details]}&#x27;,n:&#x27;# kvitterar statusen men lämnar aldrig ett nytt operativt klart.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;Ensidigt linjen-ledig-läge&#x27;,k:&#x27;A=meddela · D=mer&#x27;,s2:&#x27;421 [1A] &gt;VST\nA=MEDD D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1A\nMOT VST\nLINJEN AR LEDIG\nA=MEDD D=MER&#x27;,c:&#x27;train.status {mode:line_available, allowed_actions:[publish_line_available,show_details]}&#x27;,n:&#x27;A skickar ett komplett linjen-ledig-meddelande. Inget reply förväntas.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;Inkommande request kräver A eller B&#x27;,k:&#x27;A=klart · B=ej&#x27;,s2:&#x27;421 FRAN VST\nA=KLART B=EJ&#x27;,s4:&#x27;TAG 421\nFRAN VST\nBEGAR KLART\nA=KLART B=EJ&#x27;,c:&#x27;event clearance.incoming {clearance_id, train:421, from:vst, to:cda}&#x27;,n:&#x27;Här är A/B operativa. # kan inte lämna klart.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;Tågnumret hittas inte&#x27;,k:&#x27;#=OK&#x27;,s2:&#x27;TAG 4711\nHITTAS INTE #&#x27;,s4:&#x27;TAG 4711\nHITTAS INTE\nINGA ACTIONS\n#=OK&#x27;,c:&#x27;train.status {found:false, allowed_actions:[]}&#x27;,n:&#x27;Efter # återgår boxen till tågnummerinmatning.&#x27;,kind:&#x27;warn&#x27;},
+          {a:1,t:&#x27;Tåget finns men inte vid Cda&#x27;,k:&#x27;#=OK · D=mer&#x27;,s2:&#x27;TAG 428 EJ CDA\n#=OK D=MER&#x27;,s4:&#x27;TAG 428\nEJ VID CDA\nVID KUNGSFORS\n#=OK D=MER&#x27;,c:&#x27;train.status {found:true, relevant_here:false, allowed_actions:[show_details]}&#x27;,n:&#x27;Ingen lokal forcering och inga operativa A/B-actions.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Offline — visa cache utan actions&#x27;,k:&#x27;#=OK&#x27;,s2:&#x27;421 [1A] CACHE\nINGEN KONTAKT&#x27;,s4:&#x27;TAG 421 SPAR 1A\nSENAST STATUS\nINGEN KONTAKT\n#=OK&#x27;,c:&#x27;Ingen nättrafik · cached_at visas i detalj&#x27;,n:&#x27;När Trainmeet inte kan verifiera statusen är samtliga operativa actions avstängda.&#x27;,kind:&#x27;warn&#x27;}
+        ],
+        trackchoice: [
+          {a:1,t:&#x27;1. Stationens spår kommer från konfigurationen&#x27;,k:&#x27;serverstyrd lista&#x27;,s2:&#x27;CDA: 4 SPAR\n1A 1B 2A 2B&#x27;,s4:&#x27;CHARLOTTENDAL\nGILTIGA SPAR\n1A  1B\n2A  2B&#x27;,c:&#x27;config.station_tracks [{id:&quot;1A&quot;},{id:&quot;1B&quot;},{id:&quot;2A&quot;},{id:&quot;2B&quot;}]&#x27;,n:&#x27;Spår-ID är text, inte heltal. Därför fungerar 1A, 1B, 2A, 2B, 7 och andra lokala beteckningar utan specialfall i TMBox.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;2. Trainmeet föreslår spår&#x27;,k:&#x27;tidtabell + historik&#x27;,s2:&#x27;421 [1A] FORSL\nTIDTABELL: 1A&#x27;,s4:&#x27;TAG 421 MOT VST\nTIDTABELL: 1A\nFORSLAG: 1A\nSENAST: 1B&#x27;,c:&#x27;track.context {scheduled:&quot;1A&quot;, suggested:&quot;1A&quot;, last_used:&quot;1B&quot;, allowed:[&quot;1A&quot;,&quot;1B&quot;,&quot;2A&quot;,&quot;2B&quot;]}&#x27;,n:&#x27;Förslaget kontrolleras mot dagens tidtabell, riktning, spärrar och beläggning. Historik får hjälpa men skriver aldrig över tidtabellen.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;3. TKL kan ändra spår när handlingen är tillåten&#x27;,k:&#x27;B=ändra&#x27;,s2:&#x27;421 [1A] &gt;VST\nA=UPP B=ANDR C&gt;&#x27;,s4:&#x27;TAG 421 MOT VST\nSPAR 1A FORSLAG\nA=UPPSTALLT\nB=ANDRA C=MER&#x27;,c:&#x27;allowed_actions:[position_train,change_track,show_details]&#x27;,n:&#x27;B=ANDRA visas i alla tillstånd där servern tillåter byte. Det är servern som avgör följdverkan för en väntande eller redan godkänd klarering.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;4. Spårväljaren visar ett alternativ i taget&#x27;,k:&#x27;C=nästa · #=välj · *=avbryt&#x27;,s2:&#x27;SPAR 1A  1/4\nC=NAST #=VALJ *&lt;&#x27;,s4:&#x27;VALJ SPAR\n1A  (1 AV 4)\nC=NASTA #=VALJ\n*=AVBRYT&#x27;,c:&#x27;Lokal bläddring i config.station_tracks&#x27;,n:&#x27;A och B behöver inte användas som bokstäver. C går runt 1A → 1B → 2A → 2B. Det undviker konflikt mellan spårsuffix och operativa knappar.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;5. TKL väljer exempelvis 1B&#x27;,k:&#x27;#=välj&#x27;,s2:&#x27;SPAR 1B  2/4\nC=NAST #=VALJ *&lt;&#x27;,s4:&#x27;VALJ SPAR\n1B  (2 AV 4)\nC=NASTA #=VALJ\n*=AVBRYT&#x27;,c:&#x27;Ingen nättrafik förrän #&#x27;,n:&#x27;På 20 tecken kan flera alternativ visas samtidigt. På 16 tecken förblir samma en-alternativsvy entydig.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;6. Bekräfta komplett spårändring&#x27;,k:&#x27;#=spara · *=avbryt&#x27;,s2:&#x27;421 1A &gt; 1B\n#=SPARA *=AVBR&#x27;,s4:&#x27;TAG 421 MOT VST\nANDRA SPAR\n1A &gt; 1B\n#=SPARA *=AVBR&#x27;,c:&#x27;Efter # → train.track.change {train_run_id, from:&quot;1A&quot;, to:&quot;1B&quot;, revision}&#x27;,n:&#x27;# bekräftar en dataändring, aldrig KLART. Kommandot innehåller förväntad revision för att upptäcka samtidiga ändringar.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;7. Servern validerar och lagrar&#x27;,k:&#x27;#=kvittera&#x27;,s2:&#x27;421 [1B] &gt;VST\nSPAR SPARAT #&#x27;,s4:&#x27;TAG 421 MOT VST\nSPAR 1B VALT\nSERVER SPARAT\n#=OK&#x27;,c:&#x27;event train.track_changed {scheduled:&quot;1A&quot;, assigned:&quot;1B&quot;, actual:null, revision:8}&#x27;,n:&#x27;Trainmeet sparar tidtabellsspår, föreslaget spår, dagens tilldelade spår och senare faktiskt spår som separata värden.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;8. Nästa körning får ett nytt förslag&#x27;,k:&#x27;A=uppställt · B=ändra&#x27;,s2:&#x27;421 [1B] FORSL\nA=UPP B=ANDR C&gt;&#x27;,s4:&#x27;TAG 421 MOT VST\nTIDTABELL: 1A\nFORSLAG: 1B\nA=UPP B=ANDR&#x27;,c:&#x27;track.suggestion keyed by service pattern + station + direction&#x27;,n:&#x27;Historiken knyts till tåguppdrag eller trafikmönster, station och riktning — inte enbart tågnummer. TKL måste fortfarande bekräfta dagens verkliga spår.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;9. Byte under väntande begäran skapar revision&#x27;,k:&#x27;B=ändra · D=mer&#x27;,s2:&#x27;421 [1B] VANTAR\nB=ANDR D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nVANTAR PA KLART\nB=ANDRA SPAR\nD=MER&#x27;,c:&#x27;change_track → clearance.revise or cancel + new request&#x27;,n:&#x27;Spårbytet får inte ske tyst. Trainmeet uppdaterar motstationens väntande ärende eller makulerar det och skapar en ny begäran.&#x27;,kind:&#x27;warn&#x27;},
+          {a:1,t:&#x27;10. Byte efter KLART kräver nytt beslut&#x27;,k:&#x27;B=ändra · D=mer&#x27;,s2:&#x27;421 [1B] KLART\nB=ANDR D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nKLART TILL VST\nSPARBYTE KRAVER\nNYTT KLART&#x27;,c:&#x27;change_track invalidates clearance → clearance.revision_required&#x27;,n:&#x27;Ett redan lämnat KLART gäller aldrig automatiskt för ett nytt spår när spåret är operativt relevant.&#x27;,kind:&#x27;warn&#x27;},
+          {a:1,t:&#x27;11. Efter avgång låses avgångsspåret&#x27;,k:&#x27;D=mer&#x27;,s2:&#x27;421 AVGICK 1B\nSPARET AR LAST&#x27;,s4:&#x27;TAG 421\nAVGICK SPAR 1B\nAVGANGSSPAR LAST\nD=MER&#x27;,c:&#x27;origin_track immutable after train.departed&#x27;,n:&#x27;Mottagande TKL kan fortfarande ändra tågets ankomstspår. Avgångsspår och ankomstspår är skilda fält.&#x27;,kind:&#x27;warn&#x27;}
+        ],
+        departure: [
+          {a:0,t:&#x27;1. TKL startar en avgång&#x27;,k:&#x27;0–9 · #=hämta · *=avbryt&#x27;,s2:&#x27;AVGANG CDA\nTAGNR: 421_&#x27;,s4:&#x27;CHARLOTTENDAL\nNY AVGANG\nANGE TAGNUMMER\n421_  #=HAMTA&#x27;,c:&#x27;Efter # → train.lookup {station_id:cda, train_number:421}&#x27;,n:&#x27;Avgången triggas av Charlottendals TKL. Inmatningen sker lokalt och hela tågnumret skickas först med #.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;2. Planerat spår och första kommandosidan&#x27;,k:&#x27;A=uppställt · B=ändra · C=nästa&#x27;,s2:&#x27;421 [1A] &gt;VST\nA=UPP B=ANDR C&gt;&#x27;,s4:&#x27;TAG 421 MOT VST\nSPAR 1A PLANERAT\nA=UPP B=ANDR\nC=MER *=AVBR&#x27;,c:&#x27;train.status {train:421, origin:cda, destination:vst, station_track:&quot;1A&quot;, state:planned}&#x27;,n:&#x27;Trainmeet föreslår spår 1A från tidtabellen. A bekräftar att tåget verkligen är uppställt där. B öppnar spårväljaren. C visar nästa kommandosida.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;2b. Andra kommandosidan på tvåradaren&#x27;,k:&#x27;D=information · C=tillbaka&#x27;,s2:&#x27;421 [1A] &gt;VST\nD=INFO *=AVBR C&lt;&#x27;,s4:&#x27;TAG 421 MOT VST\nAVGANG 14:35\nLOKFORARE: NEJ\nC=TILLB *=AVBR&#x27;,c:&#x27;Lokal växling av kommandosida — ingen nättrafik&#x27;,n:&#x27;Kommandoraden rullar inte tecken för tecken. C växlar mellan fasta sidor så att knappbetydelserna går att läsa och inte flyttar sig medan TKL trycker.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;3. B öppnar stationens spårväljare&#x27;,k:&#x27;C=nästa · #=välj · *=avbryt&#x27;,s2:&#x27;SPAR 1A  1/4\nC=NAST #=VALJ *&lt;&#x27;,s4:&#x27;VALJ SPAR\n1A  (1 AV 4)\nC=NASTA #=VALJ\n*=AVBRYT&#x27;,c:&#x27;Lokal bläddring: 1A → 1B → 2A → 2B&#x27;,n:&#x27;Spår anges inte som fri text. Den serverstyrda listan gör alfanumeriska spår möjliga utan att A/B blandas ihop med operativa knappar.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;4. Skicka komplett spårändring&#x27;,k:&#x27;#=spara&#x27;,s2:&#x27;421 1A &gt; 1B\n#=SPARA *=AVBR&#x27;,s4:&#x27;TAG 421 MOT VST\nANDRA SPAR\n1A &gt; 1B\n#=SPARA *=AVBR&#x27;,c:&#x27;train.track.change {train:421, station:cda, old_track:&quot;1A&quot;, new_track:&quot;1B&quot;, revision:7}&#x27;,n:&#x27;Trainmeet validerar att spår 1B finns, kan användas av tåget och inte krockar med ett annat aktivt läge.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;5. Spårändringen godkänns&#x27;,k:&#x27;#=kvittera&#x27;,s2:&#x27;421 [1B] &gt;VST\nSPAR ANDRAT #&#x27;,s4:&#x27;TAG 421 MOT VST\nSPAR 1A &gt; 1B\nSPAR ANDRAT\n#=OK&#x27;,c:&#x27;event train.track_changed {train:421, old_track:&quot;1A&quot;, new_track:&quot;1B&quot;, revision:8}&#x27;,n:&#x27;Efter # återgår TKL till samma avgångsmeny, nu med spår 1B. Ett avslag visar orsaken och behåller spår 1A.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;6. Bekräfta tåget som uppställt&#x27;,k:&#x27;A=uppställt · B=ändra&#x27;,s2:&#x27;421 [1B] &gt;VST\nA=UPP B=ANDR C&gt;&#x27;,s4:&#x27;TAG 421 MOT VST\nSPAR 1B VALT\nA=UPPSTALLT\nB=ANDRA C=MER&#x27;,c:&#x27;Efter A → train.state.set {train:421, state:positioned, station_track:&quot;1B&quot;}&#x27;,n:&#x27;Det aktuella spåret följer alltid med statusändringen. A är operativt; # används bara för inmatning och kvittens.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;7. Uppställt registrerat&#x27;,k:&#x27;nästa TKL-status&#x27;,s2:&#x27;421 [1B] UPPST\nA=FORARE D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nUPPSTALLT\nFORARE PA PLATS?\nA=JA D=MER&#x27;,c:&#x27;event train.positioned {train:421, station:cda, track:&quot;1B&quot;}&#x27;,n:&#x27;Trainmeet bekräftar uppställningen. TMBox visar nästa tillåtna TKL-handling: registrera att lokföraren är på plats.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;8. TKL registrerar lokförare på plats&#x27;,k:&#x27;A=förare på plats · *=avbryt&#x27;,s2:&#x27;421 [1B] UPPST\nA=FORARE D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nLOKFORARE\nPA PLATS?\nA=JA *=AVBRYT&#x27;,c:&#x27;Efter A → train.crew_ready.set {train:421, station:cda, ready:true}&#x27;,n:&#x27;Detta är en aktiv TKL-status. Den kan senare även komma från en lokförarklient, men TMBox får inte vara beroende av en sådan integration.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;9. Trainmeet härleder klar att begära&#x27;,k:&#x27;A=begär · D=mer&#x27;,s2:&#x27;421 [1B] REDO\nA=BEGAR D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nLOKFORARE KLAR\nKLAR ATT BEGARA\nA=BEGAR D=MER&#x27;,c:&#x27;event train.ready_for_clearance derived from positioned &amp;&amp; crew_ready &amp;&amp; rules_ok&#x27;,n:&#x27;TKL behöver inte bekräfta samma sak en tredje gång. När villkoren är uppfyllda erbjuder servern A=BEGÄR.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;10. Begär utfart mot Vagnsta&#x27;,k:&#x27;A=skicka · *=avbryt&#x27;,s2:&#x27;BEGAR UT 421?\nA=SKICKA *=NEJ&#x27;,s4:&#x27;TAG 421 SPAR 1B\nCDA &gt; VST\nBEGAR UTFART?\nA=SKICKA *=AVBR&#x27;,c:&#x27;Efter A → clearance.request {train:421, from:cda, to:vst, track:&quot;1B&quot;}&#x27;,n:&#x27;Den kompletta begäran skickas först efter A. * lämnar frågan utan att ändra status.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;11. Begäran registrerad — väntar&#x27;,k:&#x27;*=avbryt · D=mer&#x27;,s2:&#x27;421 [1B] VANTAR\n*=AVBR D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nTILL VST\nBEGARAN SKICKAD\nVANTAR PA SVAR&#x27;,c:&#x27;clearance.accepted {clearance_id:CLR-421, status:waiting}&#x27;,n:&#x27;Trainmeet har tagit emot begäran och skickar den till Vagnstas TMBox.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;12. Vagnsta tar ställning&#x27;,k:&#x27;A=klart · B=ej klart&#x27;,s2:&#x27;421 FRAN CDA\nA=KLART B=EJ&#x27;,s4:&#x27;TAG 421\nFRAN CDA\nBEGAR UTFART\nA=KLART B=EJ&#x27;,c:&#x27;clearance.response {clearance_id:CLR-421, response:clear|not_clear}&#x27;,n:&#x27;Vagnsta svarar operativt med A eller B. # kan bara kvittera information.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;13. Charlottendal får KLART&#x27;,k:&#x27;#=kvittera · D=mer&#x27;,s2:&#x27;421 [1B] KLART\n#=OK D=MER&#x27;,s4:&#x27;TAG 421 SPAR 1B\nKLART TILL VST\nUTFART TILLATEN\n#=OK D=MER&#x27;,c:&#x27;event clearance.approved {clearance_id:CLR-421}&#x27;,n:&#x27;Vid EJ KLART stannar flödet i uppställt läge och en ny begäran kräver ett nytt aktivt val.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;14. Tåget avgår från valt spår&#x27;,k:&#x27;A=avgått · *=tillbaka&#x27;,s2:&#x27;[1B]&gt;421&gt;VST\nA=AVGATT *=TILLB&#x27;,s4:&#x27;TAG 421 SPAR 1B\nKLART TILL VST\nTAGET AVGATT?\nA=AVGATT *=NEJ&#x27;,c:&#x27;train.departed {train:421, from:cda, to:vst, station_track:&quot;1B&quot;}&#x27;,n:&#x27;A används när tåget faktiskt har lämnat Charlottendal. Detta är en separat händelse från att få KLART.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;15. På linjen mot Vagnsta&#x27;,k:&#x27;automatisk status&#x27;,s2:&#x27;TAG 421\nPA LINJEN &gt;VST&#x27;,s4:&#x27;TAG 421\nCDA &gt; VST\nPA LINJEN\nAVGICK SPAR 1B&#x27;,c:&#x27;event train.en_route {train:421, from:cda, to:vst}&#x27;,n:&#x27;Charlottendals spår blir ledigt och rörelsen syns i trafiköversikten.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;16. Ankomst registrerad i Vagnsta&#x27;,k:&#x27;#=OK&#x27;,s2:&#x27;TAG 421\nANKOMMIT VST&#x27;,s4:&#x27;TAG 421\nANKOMMIT VST\nRORELSE AVSLUTAD\n#=OK&#x27;,c:&#x27;event train.arrived {train:421, station:vst}&#x27;,n:&#x27;När Vagnsta registrerar ankomsten avslutas rörelsen för båda stationerna.&#x27;,kind:&#x27;down&#x27;}
+        ],
+        arrival: [
+          {a:1,t:&#x27;A. Normal ankomst — tåget aviseras&#x27;,k:&#x27;status från Trainmeet&#x27;,s2:&#x27;[2A]&lt;428&lt;VST\nANKOMMER 14:32&#x27;,s4:&#x27;TAG 428\nFRAN VST\nTILL SPAR 2A\nANKOMMER 14:32&#x27;,c:&#x27;train.status {train:428, from:vst, to:cda, station_track:&quot;2A&quot;, state:announced}&#x27;,n:&#x27;Riktning, tågnummer och destinationsspår kommer från tidtabellen. Tåget visas på högersidan eftersom det kommer från Vagnsta.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;A.1 Vagnsta begär klart till Cda&#x27;,k:&#x27;request/reply&#x27;,s2:&#x27;428 TILL CDA\nBEGAR KLART...&#x27;,s4:&#x27;TAG 428\nVST &gt; CDA\nTILL SPAR 2A\nBEGAR KLART&#x27;,c:&#x27;clearance.request {train:428, from:vst, to:cda, station_track:&quot;2A&quot;}&#x27;,n:&#x27;I request/reply-läge måste Charlottendal ta ställning innan tåget avgår från Vagnsta.&#x27;,kind:&#x27;up&#x27;},
+          {a:0,t:&#x27;A.2 Charlottendal svarar&#x27;,k:&#x27;A=klart · B=ej klart&#x27;,s2:&#x27;428 FRAN VST\nA=KLART B=EJ&#x27;,s4:&#x27;TAG 428 FRAN VST\nTILL SPAR 2A\nBEGAR KLART\nA=KLART B=EJ&#x27;,c:&#x27;clearance.response {train:428, response:clear|not_clear}&#x27;,n:&#x27;A lämnar KLART. B lämnar EJ KLART, exempelvis om spåret inte kan tas emot.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;A.3 Tåget är på linjen&#x27;,k:&#x27;automatisk status&#x27;,s2:&#x27;[2A]&lt;428&lt;VST\nPA LINJEN&#x27;,s4:&#x27;TAG 428\nVST &gt; CDA\nMOT SPAR 2A\nPA LINJEN&#x27;,c:&#x27;event train.en_route {train:428, from:vst, to:cda}&#x27;,n:&#x27;Trafikvyn fortsätter visa tåget på höger sida och på den rad som motsvarar linjespåret.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;A.4 Tåget närmar sig Charlottendal&#x27;,k:&#x27;D=mer&#x27;,s2:&#x27;[2A]&lt;428\nNARMAR SIG CDA&#x27;,s4:&#x27;TAG 428\nFRAN VAGNSTA\nNARMAR SIG\nSPAR 2A&#x27;,c:&#x27;event train.approaching {train:428, station:cda, track:&quot;2A&quot;}&#x27;,n:&#x27;Fullständiga stationsnamn visas när vald displaybredd rymmer dem.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;A.5 Bekräfta faktisk ankomst&#x27;,k:&#x27;A=ankommit · D=mer&#x27;,s2:&#x27;428 [2A] INNE?\nA=ANKOM D=MER&#x27;,s4:&#x27;TAG 428 SPAR 2A\nCHARLOTTENDAL\nTAGET AR INNE?\nA=ANKOMMIT D=MER&#x27;,c:&#x27;train.arrived {train:428, station:cda, station_track:&quot;2A&quot;}&#x27;,n:&#x27;A används först när tåget fysiskt står inne. # skulle bara kvittera frågan och får därför inte registrera ankomst.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;A.6 Ankommet och uppställt&#x27;,k:&#x27;#=OK · D=mer&#x27;,s2:&#x27;428 [2A] INNE\n#=OK D=MER&#x27;,s4:&#x27;TAG 428 SPAR 2A\nANKOMMET 14:32\nSTAR INNE\n#=OK D=MER&#x27;,c:&#x27;event train.at_station {train:428, station:cda, station_track:&quot;2A&quot;}&#x27;,n:&#x27;Linjerörelsen avslutas och tåget blir ett lokalt tåg på Charlottendal.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;B. Ankomst med ensidigt besked&#x27;,k:&#x27;#=kvittera&#x27;,s2:&#x27;428 FRAN VST\nLINJEN LEDIG&#x27;,s4:&#x27;TAG 428\nFRAN VST\nLINJEN AR LEDIG\n#=KVITTERA&#x27;,c:&#x27;event line.available {train:428, from:vst, to:cda}&#x27;,n:&#x27;Om sträckan använder linjen-ledig-läge kommer ett besked i stället för en fråga. # kvitterar bara mottagandet.&#x27;,kind:&#x27;down&#x27;},
+          {a:1,t:&#x27;C. Spårändring före ankomst&#x27;,k:&#x27;#=bekräfta visning&#x27;,s2:&#x27;428 [2A]&gt;[2B]\nSPAR ANDRAT #&#x27;,s4:&#x27;TAG 428\nFRAN VST\nSPAR 2A &gt; 2B\n#=BEKRAFTA&#x27;,c:&#x27;event train.track_changed {train:428, old_track:&quot;2A&quot;, new_track:&quot;2B&quot;}&#x27;,n:&#x27;Trainmeet validerar ändringen. # bekräftar att informationen har setts; det är inte ett nytt KLART.&#x27;,kind:&#x27;warn&#x27;},
+          {a:1,t:&#x27;D. Planerat spår är upptaget&#x27;,k:&#x27;B=ej klart · D=mer&#x27;,s2:&#x27;SPAR 2A UPPTAG\nB=EJ D=MER&#x27;,s4:&#x27;TAG 428 FRAN VST\nSPAR 2A UPPTAGET\nKAN EJ TAS EMOT\nB=EJ D=MER&#x27;,c:&#x27;conflict {type:track_occupied, train:428, station_track:&quot;2A&quot;}&#x27;,n:&#x27;TMBox erbjuder inte A=KLART när Trainmeet känner till en blockerande spårkonflikt.&#x27;,kind:&#x27;warn&#x27;},
+          {a:1,t:&#x27;E. Flera inkommande tåg&#x27;,k:&#x27;C=nästa · #=detalj&#x27;,s2:&#x27;428&lt; [2A] 1/2\nC=NASTA #=MER&#x27;,s4:&#x27;428 VST&gt;[2A]\n451 KUN&gt;[1B]\n2 INKOMMANDE\nC=NASTA #=MER&#x27;,c:&#x27;arrival.queue ordered by expected_at&#x27;,n:&#x27;Fyraradaren visar flera tåg samtidigt. Tvåradaren bläddrar med C och visar aktuell position 1/2.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;F. Kontakt bryts under ankomst&#x27;,k:&#x27;inga operativa actions&#x27;,s2:&#x27;428 [2A] CACHE\nINGEN KONTAKT&#x27;,s4:&#x27;TAG 428 MOT [2A]\nSENAST STATUS\nINGEN KONTAKT\nATERANSLUTER&#x27;,c:&#x27;Lokalt cacheläge → state.sync vid återanslutning&#x27;,n:&#x27;Boxen visar senaste kända läge men tillåter varken KLART eller ANKOMMIT innan aktuell status har verifierats.&#x27;,kind:&#x27;warn&#x27;}
+        ],
+        request: [
+          {a:0,t:&#x27;Ange hela tågnumret lokalt&#x27;,k:&#x27;0–9 · * radera&#x27;,s2:&#x27;CDA\nTAGNR: 421_&#x27;,s4:&#x27;CDA\n\nANGE TAGNUMMER\n421_&#x27;,c:&#x27;Ingen nättrafik&#x27;,n:&#x27;Inget tangenttryck skickas till servern.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;Slå upp tåget&#x27;,k:&#x27;# bekräfta&#x27;,s2:&#x27;TAG 421\nSOKER...&#x27;,s4:&#x27;TAG 421\n\nKONTROLLERAR TAG\nVANTA...&#x27;,c:&#x27;train.lookup {station_id:cda, train_number:421}&#x27;,n:&#x27;Ett komplett uppslag skickas först efter #.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Validera och bestäm motstation&#x27;,k:&#x27;serversvar&#x27;,s2:&#x27;421 &gt; VST\nA=BEGAR *=AVBR&#x27;,s4:&#x27;TAG 421\nCDA &gt; VST\nREQUEST / REPLY\nA=BEGAR *=AVBRYT&#x27;,c:&#x27;train.context {valid:true, destination:vst, mode:request_reply}&#x27;,n:&#x27;Trainmeet är sanningskälla för tåg, riktning och dubbletter.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Skicka komplett begäran&#x27;,k:&#x27;A begär&#x27;,s2:&#x27;421 &gt; VST\nBEGAR KLART...&#x27;,s4:&#x27;TAG 421\nTILL VST\n\nBEGAR KLART...&#x27;,c:&#x27;clearance.request {message_id, train:421, from:cda, to:vst}&#x27;,n:&#x27;message_id gör återförsök idempotenta — samma begäran skapas aldrig två gånger.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Registrera begäran&#x27;,k:&#x27;accepted&#x27;,s2:&#x27;421 &gt; VST\nVANTAR PA SVAR&#x27;,s4:&#x27;TAG 421\nTILL VST\nREQUEST SKICKAD\nVANTAR PA SVAR&#x27;,c:&#x27;clearance.accepted {clearance_id:CLR-90217, status:waiting}&#x27;,n:&#x27;TMBox visar vänteläge först när servern har bekräftat registreringen.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;Inkommande begäran väcker boxen&#x27;,k:&#x27;A klart · B ej klart&#x27;,s2:&#x27;421 FRAN CDA\nA=KLART B=NEJ&#x27;,s4:&#x27;TAG 421\nFRAN CDA\nA=KLART\nB=EJ KLART&#x27;,c:&#x27;event clearance.incoming {clearance_id, train, from, to}&#x27;,n:&#x27;Ljud och lampor aktiveras lokalt. Äldsta obesvarade ärendet visas först.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;Motstationen svarar komplett&#x27;,k:&#x27;A eller B&#x27;,s2:&#x27;TAG 421\nSVAR SKICKAS...&#x27;,s4:&#x27;TAG 421\nFRAN CDA\n\nSVAR SKICKAS...&#x27;,c:&#x27;clearance.response {clearance_id, response:clear|not_clear}&#x27;,n:&#x27;A och B är de enda knappar som avger operativt svar.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Lagra och distribuera svaret&#x27;,k:&#x27;serverhändelse&#x27;,s2:&#x27;TAG 421\nSVAR REGISTRERAT&#x27;,s4:&#x27;TAG 421\nCLR-90217\nSVAR REGISTRERAT\n&#x27;,c:&#x27;event clearance.approved | clearance.rejected&#x27;,n:&#x27;Samma bekräftade tillstånd skickas till båda berörda boxarna.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Begäraren får KLART eller EJ KLART&#x27;,k:&#x27;# kvittera&#x27;,s2:&#x27;TAG 421 KLART\nTILL VST&#x27;,s4:&#x27;TAG 421\n      KLART\nTILL VST\n#=KVITTERA&#x27;,c:&#x27;event ack efter # {event_id, displayed:true}&#x27;,n:&#x27;Vid avslag visas EJ KLART på motsvarande sätt. Meddelandet ligger kvar tills #.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;Svararen får lokal bekräftelse&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;TAG 421\nKLART LAMNAT&#x27;,s4:&#x27;TAG 421\nTILL CDA\nKLART LAMNAT\n#=OK&#x27;,c:&#x27;Ingen ny verksamhetstransaktion&#x27;,n:&#x27;Efter kort bekräftelse återgår boxen till normalläge.&#x27;,kind:&#x27;local&#x27;}
+        ],
+        linefree: [
+          {a:0,t:&#x27;Ange tåg eller välj aktuell linje&#x27;,k:&#x27;0–9 · * · #&#x27;,s2:&#x27;CDA\nTAGNR: 421_&#x27;,s4:&#x27;CDA\nLINJE TILL VST\nTAGNUMMER\n421_&#x27;,c:&#x27;Ingen nättrafik under inmatning&#x27;,n:&#x27;Även detta läge använder lokal redigering.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;Kontrollera sammanhanget&#x27;,k:&#x27;# bekräfta&#x27;,s2:&#x27;421 &gt; VST\nKONTROLLERAR...&#x27;,s4:&#x27;TAG 421\nCDA &gt; VST\nKONTROLLERAR\nLINJESTATUS&#x27;,c:&#x27;line.context {station_id:cda, train_number:421}&#x27;,n:&#x27;Servern svarar att denna rörelse använder enkelriktat linje-ledig-meddelande.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Servern erbjuder ensidigt besked&#x27;,k:&#x27;mode=line_available&#x27;,s2:&#x27;LINJEN LEDIG?\nA=SKICKA *=NEJ&#x27;,s4:&#x27;TAG 421\nTILL VST\nLINJEN AR LEDIG?\nA=SKICKA *=AVBR&#x27;,c:&#x27;line.context {mode:line_available, destination:vst}&#x27;,n:&#x27;Ingen request väntar och inget operativt reply krävs från motstationen.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Publicera komplett “linjen ledig”&#x27;,k:&#x27;A skicka&#x27;,s2:&#x27;LINJEN LEDIG\nSKICKAR...&#x27;,s4:&#x27;TAG 421\nTILL VST\nLINJEN AR LEDIG\nSKICKAR...&#x27;,c:&#x27;line.available.publish {message_id, train:421, from:cda, to:vst}&#x27;,n:&#x27;Meddelandet beskriver fullständigt vad som skickas, av vem och till vem.&#x27;,kind:&#x27;up&#x27;},
+          {a:1,t:&#x27;Validera, lagra och distribuera&#x27;,k:&#x27;accepted&#x27;,s2:&#x27;MEDDELANDE\nREGISTRERAT&#x27;,s4:&#x27;TAG 421\nLINJEN AR LEDIG\nREGISTRERAT\n&#x27;,c:&#x27;line.available.accepted + event line.available&#x27;,n:&#x27;Servern kan avvisa beskedet om tåget, riktningen eller tillståndet inte längre är giltigt.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Avsändaren får leveransbekräftelse&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;LINJEN LEDIG\nMEDDELAT&#x27;,s4:&#x27;TAG 421\nTILL VST\nLEDIG MEDDELAD\n#=OK&#x27;,c:&#x27;delivery state: server_registered&#x27;,n:&#x27;Detta betyder registrerat hos Trainmeet, inte att motstationen har lämnat ett reply.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;Motstationen får beskedet&#x27;,k:&#x27;# kvittera&#x27;,s2:&#x27;LINJEN LEDIG\nFRAN CDA&#x27;,s4:&#x27;TAG 421\nFRAN CDA\nLINJEN AR LEDIG\n#=KVITTERA&#x27;,c:&#x27;event line.available {message_id, train, from, to}&#x27;,n:&#x27;Boxen ljuder och blinkar. # kvitterar visningen men ändrar inte beskedets innehåll.&#x27;,kind:&#x27;down&#x27;},
+          {a:2,t:&#x27;Visningskvittens — inget reply&#x27;,k:&#x27;#&#x27;,s2:&#x27;MEDDELANDE\nKVITTERAT&#x27;,s4:&#x27;TAG 421\nLINJEN AR LEDIG\nMEDD KVITTERAT\n&#x27;,c:&#x27;event.ack {event_id, displayed:true}&#x27;,n:&#x27;Om verksamheten kräver ett faktiskt svar ska request/reply-läget användas i stället.&#x27;,kind:&#x27;up&#x27;}
+        ],
+        traffic: [
+          {a:0,t:&#x27;Cda — ankommande på dubbelspåren&#x27;,k:&#x27;D=växla IN/UT · C=nästa sida&#x27;,matrix:{page:0,labels:[[&#x27;LEKBY-1&#x27;,&#x27;VAGNSTA-1&#x27;],[&#x27;LEKBY-2&#x27;,&#x27;VAGNSTA-2&#x27;],[&#x27;KUNGSFORS&#x27;,&#x27;—&#x27;],[&#x27;—&#x27;,&#x27;—&#x27;]],pairs:[[&#x27;421&gt;[1A]&#x27;,&#x27;[2A]&lt;428&#x27;],[&#x27;TOMT&#x27;,&#x27;TOMT&#x27;],[&#x27;451&gt;[1B]&#x27;,&#x27;&#x27;],[&#x27;&#x27;,&#x27;&#x27;]]},c:&#x27;traffic.snapshot {station:Cda, view:incoming}&#x27;,n:&#x27;Rad 1–2 är dubbelspåren mot Lekby respektive Vagnsta. Rad 3 finns bara till vänster mot Kungsfors. TOMT betyder en befintlig linje utan aktuellt tåg; blankt betyder att anslutningen inte finns.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Cda — avgående på dubbelspåren&#x27;,k:&#x27;D=växla IN/UT · C=nästa sida&#x27;,matrix:{page:0,labels:[[&#x27;LEKBY-1&#x27;,&#x27;VAGNSTA-1&#x27;],[&#x27;LEKBY-2&#x27;,&#x27;VAGNSTA-2&#x27;],[&#x27;KUNGSFORS&#x27;,&#x27;—&#x27;],[&#x27;—&#x27;,&#x27;—&#x27;]],pairs:[[&#x27;421&lt;[1A]&#x27;,&#x27;[2A]&gt;428&#x27;],[&#x27;TOMT&#x27;,&#x27;TOMT&#x27;],[&#x27;451&lt;[1B]&#x27;,&#x27;&#x27;],[&#x27;&#x27;,&#x27;&#x27;]]},c:&#x27;traffic.snapshot {station:Cda, view:outgoing}&#x27;,n:&#x27;D växlar samma topologiska rader mellan ankommande och avgående. Pilen pekar bort från stationsspåret i utgående läge.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Cda — blandat aktivt trafikläge&#x27;,k:&#x27;#=detalj · C=markera/nästa&#x27;,matrix:{page:0,labels:[[&#x27;LEKBY-1&#x27;,&#x27;VAGNSTA-1&#x27;],[&#x27;LEKBY-2&#x27;,&#x27;VAGNSTA-2&#x27;],[&#x27;KUNGSFORS&#x27;,&#x27;—&#x27;],[&#x27;—&#x27;,&#x27;—&#x27;]],pairs:[[&#x27;421&gt;[1A]&#x27;,&#x27;[2A]&gt;428&#x27;],[&#x27;TOMT&#x27;,&#x27;TOMT&#x27;],[&#x27;451&lt;[1B]&#x27;,&#x27;&#x27;],[&#x27;&#x27;,&#x27;&#x27;]]},c:&#x27;traffic.train_updated {train, line_track, side, movement, station_track}&#x27;,n:&#x27;Hakparentesen visar stationsspåret, exempelvis [1A]. Själva raden identifierar linjespår 1 eller 2.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Cda — sida 2 på tvåradaren&#x27;,k:&#x27;C=nästa sida&#x27;,matrix:{page:1,labels:[[&#x27;LEKBY-1&#x27;,&#x27;VAGNSTA-1&#x27;],[&#x27;LEKBY-2&#x27;,&#x27;VAGNSTA-2&#x27;],[&#x27;KUNGSFORS&#x27;,&#x27;—&#x27;],[&#x27;—&#x27;,&#x27;—&#x27;]],pairs:[[&#x27;421&gt;[1A]&#x27;,&#x27;[2A]&lt;428&#x27;],[&#x27;TOMT&#x27;,&#x27;TOMT&#x27;],[&#x27;451&gt;[1B]&#x27;,&#x27;&#x27;],[&#x27;&#x27;,&#x27;&#x27;]]},c:&#x27;Lokal paginering — ingen nättrafik&#x27;,n:&#x27;Tvåradarens sida 1 visar dubbelspårens linjespår 1–2. Sida 2 visar Kungsfors på vänster rad och lämnar den saknade högra anslutningen blank. Fyraradaren visar alla fyra rader direkt.&#x27;,kind:&#x27;local&#x27;},
+          {a:0,t:&#x27;Valt tåg öppnas som detalj&#x27;,k:&#x27;#=detalj · *=tillbaka&#x27;,s2:&#x27;TAG 421 SPAR 1A\nVANTAR PA KLART&#x27;,s4:&#x27;TAG 421 SPAR 1A\nFRAN VANSTER\nVANTAR PA KLART\n*=TILLBAKA&#x27;,c:&#x27;Ingen ny nättrafik — detaljen byggs ur lokalt trafikläge&#x27;,n:&#x27;Översikten prioriterar exakt position. Full station, tid och klareringsstatus visas i detaljvyn.&#x27;,kind:&#x27;local&#x27;}
+        ],
+        exceptions: [
+          {a:0,t:&#x27;Tågnumret hittas inte&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;TAG 4711?\nHITTAS EJ #=OK&#x27;,s4:&#x27;TAG 4711\n\nHITTAS INTE\n#=OK&#x27;,c:&#x27;train.context {valid:false, reason:not_found}&#x27;,n:&#x27;Efter # går boxen tillbaka till lokal inmatning.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Tåget hör inte hemma här&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;TAG 421\nEJ FRAN CDA&#x27;,s4:&#x27;TAG 421\nKAN EJ KLARERAS\nFRAN CDA\n#=OK&#x27;,c:&#x27;train.context {valid:false, reason:wrong_origin}&#x27;,n:&#x27;Det finns ingen lokal forcering.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Avbryt pågående request&#x27;,k:&#x27;* avbryt&#x27;,s2:&#x27;AVBRYT BEGARAN?\n#=JA *=NEJ&#x27;,s4:&#x27;TAG 421\nAVBRYT BEGARAN?\n#=JA\n*=NEJ&#x27;,c:&#x27;Efter # → clearance.cancel {clearance_id, message_id}&#x27;,n:&#x27;* öppnar frågan; # bekräftar. Motstationens väntande vy tas bort efter serverbesked.&#x27;,kind:&#x27;up&#x27;},
+          {a:2,t:&#x27;Begäran avbruten från andra sidan&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;TAG 421\nBEGARAN AVBR&#x27;,s4:&#x27;TAG 421\nFRAN CDA\nBEGARAN AVBRUTEN\n#=OK&#x27;,c:&#x27;event clearance.cancelled&#x27;,n:&#x27;Sedan återgår boxen till nästa väntande ärende eller normalläge.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Dubblett eller redan klarerat&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;TAG 421\nVANTAR REDAN&#x27;,s4:&#x27;TAG 421\nBEGARAN FINNS\nVANTAR PA SVAR\n#=OK&#x27;,c:&#x27;command rejected: duplicate | already_clear&#x27;,n:&#x27;Vid befintlig request ansluts vyn till serverns aktuella tillstånd.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Motstationens box är offline&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;VST\nTMBOX OFFLINE&#x27;,s4:&#x27;TAG 421\nVST\nTMBOX OFFLINE\n#=OK&#x27;,c:&#x27;presence {destination_online:false}&#x27;,n:&#x27;Trainmeet kan fortfarande avgöra om annan svarskanal är tillåten.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Egen nätkontakt försvinner&#x27;,k:&#x27;# installation&#x27;,s2:&#x27;CDA\nINGEN KONTAKT&#x27;,s4:&#x27;CDA\nINGEN KONTAKT\nATERANSLUTER...\n#=INSTALLATION&#x27;,c:&#x27;Lokalt återanslutningsförsök + sparade nätprofiler&#x27;,n:&#x27;Boxen skapar aldrig ett nytt KLART lokalt.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Kontakt bryts under aktivt ärende&#x27;,k:&#x27;vänta&#x27;,s2:&#x27;TAG 421\nKONTAKT BRUTEN&#x27;,s4:&#x27;TAG 421\nBEGARAN PAGAENDE\nKONTAKT BRUTEN\nATERANSLUTER...&#x27;,c:&#x27;Inget gammalt operativt knapptryck köas för senare sändning&#x27;,n:&#x27;Användaren får fatta beslutet på nytt när verifierat tillstånd har hämtats.&#x27;,kind:&#x27;warn&#x27;},
+          {a:1,t:&#x27;Återanslut och synkronisera&#x27;,k:&#x27;automatiskt&#x27;,s2:&#x27;HAMTAR\nAKTUELL STATUS&#x27;,s4:&#x27;TRAINMEET ONLINE\nHAMTAR STATUS\nKONFIG VER 12\n&#x27;,c:&#x27;state.sync {device_id, last_event_id, config_version}&#x27;,n:&#x27;Trainmeet returnerar verkligt aktuellt tillstånd och missade händelser.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Återställ rätt vy efter sync&#x27;,k:&#x27;# vid resultat&#x27;,s2:&#x27;TAG 421 KLART\nTILL VST&#x27;,s4:&#x27;TAG 421\n      KLART\nTILL VST\n#=KVITTERA&#x27;,c:&#x27;state.snapshot + events since last_event_id&#x27;,n:&#x27;Samma synkronisering används efter omstart mitt i en klarering.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Begäran har gått ut&#x27;,k:&#x27;# ok&#x27;,s2:&#x27;TAG 421\nBEGARAN UTGATT&#x27;,s4:&#x27;TAG 421\nBEGARAN GALLER\nINTE LANGRE\n#=OK&#x27;,c:&#x27;event clearance.expired&#x27;,n:&#x27;Undantagsfall när serverdata eller klareringens giltighet har ändrats.&#x27;,kind:&#x27;warn&#x27;},
+          {a:0,t:&#x27;Flera inkommande — äldst först&#x27;,k:&#x27;A/B · C nästa&#x27;,s2:&#x27;421 FRAN CDA\nA=KLART B=NEJ&#x27;,s4:&#x27;TAG 421 FRAN CDA\nA=KLART B=EJ\n2 FLER VANTAR\nC=VISA NASTA&#x27;,c:&#x27;queue snapshot ordered by created_at&#x27;,n:&#x27;Pågående lokal tågnummerinmatning sparas och återställs efter inkommande ärende.&#x27;,kind:&#x27;down&#x27;},
+          {a:0,t:&#x27;Trainmeet kan inte nås&#x27;,k:&#x27;automatisk retry&#x27;,s2:&#x27;TRAINMEET\nEJ TILLGANGLIGT&#x27;,s4:&#x27;CDA\nWIFI ANSLUTET\nTRAINMEET\nEJ TILLGANGLIGT&#x27;,c:&#x27;Server discovery retry: saved endpoint → mDNS → setup portal&#x27;,n:&#x27;Skiljs tydligt från Wi-Fi-fel.&#x27;,kind:&#x27;warn&#x27;}
+        ]
+      };
+
+      let flowName = &#x27;setup&#x27;;
+      let rows = 4;
+      let cols = 16;
+      let selected = 0;
+      const grid = root.querySelector(&#x27;#flow-grid&#x27;);
+      const lcd = root.querySelector(&#x27;#lcd-view&#x27;);
+      const title = root.querySelector(&#x27;#detail-title&#x27;);
+      const cmd = root.querySelector(&#x27;#detail-command&#x27;);
+      const note = root.querySelector(&#x27;#detail-note&#x27;);
+      const actor = root.querySelector(&#x27;#actor-label&#x27;);
+      const screenLabel = root.querySelector(&#x27;#screen-label&#x27;);
+      const topologyKey = root.querySelector(&#x27;#topology-key&#x27;);
+      const actorNames = [&#x27;Lokal TMBox&#x27;, &#x27;Trainmeet&#x27;, &#x27;Motstationens TMBox&#x27;];
+
+      function matrixText(d) {
+        const all = d.matrix.pairs;
+        const start = rows === 2 ? d.matrix.page * 2 : 0;
+        const pairs = rows === 2 ? all.slice(start, start + 2) : all.slice(0, 4);
+        return pairs.map(pair =&gt; {
+          const left = pair[0] || &#x27;&#x27;;
+          const right = pair[1] || &#x27;&#x27;;
+          const gap = Math.max(1, cols - left.length - right.length);
+          return (left + &#x27; &#x27;.repeat(gap) + right).slice(0, cols);
+        }).join(&#x27;\n&#x27;);
+      }
+
+      function renderTopology(d) {
+        topologyKey.replaceChildren();
+        if (!d.matrix || !d.matrix.labels) {
+          topologyKey.classList.remove(&#x27;is-visible&#x27;);
+          return;
+        }
+        topologyKey.classList.add(&#x27;is-visible&#x27;);
+        const start = rows === 2 ? d.matrix.page * 2 : 0;
+        const labels = rows === 2 ? d.matrix.labels.slice(start, start + 2) : d.matrix.labels.slice(0, 4);
+        const headings = [&#x27;RAD&#x27;, &#x27;VANSTER&#x27;, &#x27;HOGER&#x27;];
+        headings.forEach(label =&gt; {
+          const el = document.createElement(&#x27;span&#x27;);
+          el.className = &#x27;topology-head&#x27;;
+          el.textContent = label;
+          topologyKey.appendChild(el);
+        });
+        labels.forEach((pair, i) =&gt; {
+          [String(start + i + 1), pair[0], pair[1]].forEach(label =&gt; {
+            const el = document.createElement(&#x27;span&#x27;);
+            el.textContent = label;
+            topologyKey.appendChild(el);
+          });
+        });
+      }
+
+      function renderLCD(text) {
+        lcd.replaceChildren();
+        lcd.style.setProperty(&#x27;--lcd-cols&#x27;, cols);
+
+        const ruler = document.createElement(&#x27;div&#x27;);
+        ruler.className = &#x27;lcd-ruler&#x27;;
+        ruler.setAttribute(&#x27;aria-hidden&#x27;, &#x27;true&#x27;);
+        for (let i = 1; i &lt;= cols; i++) {
+          const cell = document.createElement(&#x27;span&#x27;);
+          cell.className = &#x27;lcd-cell&#x27;;
+          cell.textContent = String(i % 10);
+          ruler.appendChild(cell);
+        }
+        lcd.appendChild(ruler);
+
+        const sourceLines = String(text || &#x27;&#x27;).split(&#x27;\n&#x27;);
+        const placeNames = [
+          [&#x27;LEK&#x27;, &#x27;LEKBY&#x27;],
+          [&#x27;VST&#x27;, &#x27;VAGNSTA&#x27;],
+          [&#x27;KUN&#x27;, &#x27;KUNGSFORS&#x27;],
+          [&#x27;CDA&#x27;, &#x27;CHARLOTTENDAL&#x27;]
+        ];
+        const expandNames = value =&gt; {
+          let result = value;
+          placeNames.forEach(pair =&gt; {
+            const pattern = new RegExp(&#x27;\\b&#x27; + pair[0] + &#x27;\\b&#x27;);
+            const candidate = result.replace(pattern, pair[1]);
+            if (candidate.length &lt;= cols) result = candidate;
+          });
+          return result;
+        };
+        const spoken = [];
+        for (let row = 0; row &lt; rows; row++) {
+          const raw = expandNames(sourceLines[row] || &#x27;&#x27;);
+          const exact = raw.slice(0, cols).padEnd(cols, &#x27; &#x27;);
+          spoken.push(&#x27;Rad &#x27; + (row + 1) + &#x27;: &#x27; + (raw || &#x27;tom&#x27;));
+          const line = document.createElement(&#x27;div&#x27;);
+          line.className = &#x27;lcd-line&#x27;;
+          for (const ch of exact) {
+            const cell = document.createElement(&#x27;span&#x27;);
+            cell.className = &#x27;lcd-cell&#x27;;
+            cell.textContent = ch === &#x27; &#x27; ? &#x27;\u00a0&#x27; : ch;
+            line.appendChild(cell);
+          }
+          lcd.appendChild(line);
+        }
+        lcd.setAttribute(&#x27;aria-label&#x27;, spoken.join(&#x27;. &#x27;));
+      }
+
+      function renderDetail() {
+        const d = flows[flowName][selected];
+        const text = d.matrix ? matrixText(d) : (rows === 2 ? d.s2 : d.s4);
+        renderLCD(text);
+        renderTopology(d);
+        title.textContent = d.t;
+        cmd.textContent = d.c;
+        note.textContent = d.n;
+        actor.textContent = actorNames[d.a] + &#x27; · steg &#x27; + (selected + 1);
+        screenLabel.textContent = cols + &#x27; × &#x27; + rows + &#x27; — fullständiga namn när de ryms&#x27;;
+        grid.querySelectorAll(&#x27;.step&#x27;).forEach((el, i) =&gt; el.setAttribute(&#x27;aria-pressed&#x27;, i === selected ? &#x27;true&#x27; : &#x27;false&#x27;));
+      }
+
+      function renderFlow() {
+        grid.replaceChildren();
+        flows[flowName].forEach((d, i) =&gt; {
+          for (let col = 0; col &lt; 3; col++) {
+            if (col === d.a) {
+              const b = document.createElement(&#x27;button&#x27;);
+              b.type = &#x27;button&#x27;;
+              b.className = &#x27;step&#x27;;
+              b.dataset.kind = d.kind;
+              b.setAttribute(&#x27;aria-pressed&#x27;, i === selected ? &#x27;true&#x27; : &#x27;false&#x27;);
+              b.innerHTML = &#x27;&lt;div class=&quot;n&quot;&gt;STEG &#x27; + (i + 1) + &#x27;&lt;/div&gt;&lt;div class=&quot;title&quot;&gt;&lt;/div&gt;&lt;div class=&quot;key&quot;&gt;&lt;/div&gt;&#x27;;
+              b.querySelector(&#x27;.title&#x27;).textContent = d.t;
+              b.querySelector(&#x27;.key&#x27;).textContent = d.k;
+              b.addEventListener(&#x27;click&#x27;, () =&gt; { selected = i; renderDetail(); });
+              grid.appendChild(b);
+            } else {
+              const e = document.createElement(&#x27;div&#x27;);
+              e.className = &#x27;empty&#x27;;
+              e.setAttribute(&#x27;aria-hidden&#x27;, &#x27;true&#x27;);
+              grid.appendChild(e);
+            }
+          }
+        });
+        renderDetail();
+      }
+
+      root.querySelectorAll(&#x27;.tabs button&#x27;).forEach(b =&gt; b.addEventListener(&#x27;click&#x27;, () =&gt; {
+        flowName = b.dataset.flow;
+        selected = 0;
+        root.querySelectorAll(&#x27;.tabs button&#x27;).forEach(x =&gt; x.setAttribute(&#x27;aria-selected&#x27;, x === b ? &#x27;true&#x27; : &#x27;false&#x27;));
+        renderFlow();
+      }));
+      root.querySelectorAll(&#x27;[data-control=&quot;rows&quot;] button&#x27;).forEach(b =&gt; b.addEventListener(&#x27;click&#x27;, () =&gt; {
+        rows = Number(b.dataset.rows);
+        root.querySelectorAll(&#x27;[data-control=&quot;rows&quot;] button&#x27;).forEach(x =&gt; x.setAttribute(&#x27;aria-pressed&#x27;, x === b ? &#x27;true&#x27; : &#x27;false&#x27;));
+        renderDetail();
+      }));
+      root.querySelectorAll(&#x27;[data-control=&quot;columns&quot;] button&#x27;).forEach(b =&gt; b.addEventListener(&#x27;click&#x27;, () =&gt; {
+        cols = Number(b.dataset.cols);
+        root.querySelectorAll(&#x27;[data-control=&quot;columns&quot;] button&#x27;).forEach(x =&gt; x.setAttribute(&#x27;aria-pressed&#x27;, x === b ? &#x27;true&#x27; : &#x27;false&#x27;));
+        renderDetail();
+      }));
+      renderFlow();
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>
