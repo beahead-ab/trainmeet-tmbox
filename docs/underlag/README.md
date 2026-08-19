@@ -10,6 +10,18 @@ ChatGPT/Codex-konversation och överlämnat för implementation.
   exakta 16×2/20×2/16×4/20×4-skärmbilder för varje steg i uppstart, tåguppslag,
   spårval, avgång, ankomst, request/reply och linjen-ledig.
 
+Efterföljande analys- och beslutsdokument, i läsordning:
+
+- [gap-analys.md](gap-analys.md) — djupanalys av monsterprompten mot faktisk
+  kod i `trainmeet-tambox`, `trainmeet-server` och `trainmeet-cloud`.
+- [beslut.md](beslut.md) — beslutslogg B1–B7. **Normerande** — ersätter
+  motsvarande formuleringar i monsterprompten.
+- [sparkatalog-schema-v3.md](sparkatalog-schema-v3.md) — schemaförslag för
+  spårkatalogen (gap-analysens steg 2).
+- [protokoll-v2-kontrakt.md](protokoll-v2-kontrakt.md) — MQTT-topics,
+  meddelandekuvert, revisionsregler och tillståndsmaskiner (gap-analysens
+  steg 3).
+
 Spåras även som [GitHub-issue #1](https://github.com/beahead-ab/trainmeet-tambox/issues/1),
 med en första lista över öppna frågor och avvikelser mot nuvarande arkitektur.
 Se [architecture.md](../architecture.md) för det nuvarande, implementerade

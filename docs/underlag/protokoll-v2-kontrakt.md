@@ -192,7 +192,7 @@ betyder att fältet/lagret inte finns i servern idag och måste läggas till.
 | `clearance.revised` | händelse (server-initierad, spårbyte under väntan) | → NY | → NY |
 | `clearance.approved`/`rejected`/`expired` | händelse i snapshot, ej egen topic | → NY | → NY |
 | `line.available.publish` | command | `http_server.py: tkl_line_action` — **måste verifieras** (gap-analys §3.6) | delvis, kräver granskning |
-| `event.ack` | ej separat — `interaction.mode` i snapshot ersätter kvittens-som-egen-händelse (§4.3) | — | ersatt, ingen egen topic |
+| `event.ack` | ej separat — kvittensen som bifogas varje kommando (§4.2) täcker command-triggade fall; för ensidiga meddelanden motsvaras den av `display_acknowledged`-nivån i §8.3, skickad som ett vanligt kommando (`#`), inte en egen topic | — | ersatt, ingen egen topic |
 
 `state.sync` (monsterprompt §14.1-övergången) sker implicit: retained
 assignment + config + snapshot vid varje (re)connect **är** state.sync. Ingen

@@ -8,8 +8,9 @@ i [monsterprompten](tmbox-monsterprompt-claude.md).
 ## B1. Transport: MQTT v2-topics
 
 Protokoll v2 körs över befintlig Mosquitto-stack (QoS 1, retained snapshots).
-Specens kommandon/händelser mappas till `tambox/v2/...`-topics i
-kontraktsdokumentet. Specens HTTP/WebSocket-förslag utgår.
+Specens kommandon/händelser mappas till `tmbox/v2/...`-topics i
+kontraktsdokumentet (prefixet följer namnbytet i B6). Specens
+HTTP/WebSocket-förslag utgår.
 
 ## B2. TMBox-flödet för uppställt/förare — rangerare separeras
 
