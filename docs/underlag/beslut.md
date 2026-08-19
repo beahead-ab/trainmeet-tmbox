@@ -22,11 +22,25 @@ klarering).
 Serverns befintliga `train_readiness`-flöde (rangerare färdigställer, TKL
 kvitterar) hålls därför separat och byggs inte in i TMBox v2.
 
+**Statusarna ska reggas på TrainMeet Server — inte hållas lokalt i boxen
+eller bara i MQTT-kommandoflödet.** `positioned` och förare-på-plats är
+trafikrelevant lägesinformation och måste vara beständiga på servern precis
+som befintlig `tkl_movement_states`, med samma restart-garanti: en
+Pi-omstart eller boxens reconnect får aldrig tappa TKL:s registrerade
+uppställt/förare-status. Detta skiljer dem tydligt från panelens
+interaktionsläge (`PanelRuntime` i `engine.py`), som är medvetet flyktigt
+och nollställs vid omstart — "uppställt"/"förare på plats" hör till samma
+beständighetsklass som `positioned`/`departure_status` gör idag, inte till
+den flyktiga skärmnavigeringen.
+
 Konsekvenser:
 
 - TMBox-kommandona skrivs som TKL-aktör mot `tkl_movement_states`
   (`positioned`, förare-status, vidare till klarering); ingen sammanslagning
   med rangerarflödet.
+- Servern är källan till sanning: boxen visar aldrig ett lokalt "uppställt"
+  som inte redan är bekräftat och lagrat av servern (samma
+  ack-innan-visning-princip som klareringsflödet).
 - Specens §10.4 kompletteras med en mellanskärm efter `A=FÖRARE` (identisk
   före/efter-skärm var ett spec-fel).
 - Härledd `REDO` (specens §10.5) beräknas ur TKL:s två deklarationer plus
