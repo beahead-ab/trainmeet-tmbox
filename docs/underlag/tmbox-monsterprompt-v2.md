@@ -80,7 +80,8 @@ synkront i motorn, webbsimulatorn, Swift-klienten och TKL-terminalen.
 ### 0.3 Servern — vad som byggts och testats
 
 Branch `protocol-v2` i `trainmeet-server` ([PR #1](https://github.com/beahead-ab/trainmeet-server/pull/1)),
-8 commits, 115/115 tester gröna, verifierat i webbläsare mot riktig SQLite-data.
+9 commits, 119/119 tester gröna, verifierat i webbläsare och mot en riktig
+Mosquitto-broker.
 
 | Byggt | Var |
 |---|---|
@@ -93,14 +94,19 @@ Branch `protocol-v2` i `trainmeet-server` ([PR #1](https://github.com/beahead-ab
 | Per-rörelse-revision | `operations.py` |
 | HTTP-yta `/v1/tmbox-v2/*` | `http_server.py` |
 | Webbsimulator "TMBox v2" | `web/` |
+| **MQTT v2-adapter** (`tmbox/v2/...`, hello/config/snapshot/command/ack) | `mqtt_adapter_v2.py` |
 
-**Detta är HTTP, inte MQTT.** Webbsimulatorn är enda klienten. Det finns ingen
-v2-MQTT-adapter, alltså kan den fysiska boxen inte nå något av detta.
+**Hårdvaran kan nu nå v2-lagret.** MQTT-adaptern är ren transport ovanpå de
+redan testade `v2_*`-metoderna — ingen affärslogik duplicerad. Verifierat
+end-to-end mot en riktig broker, inklusive en fullständig
+tvåstations-klareringsväxling med upptagen-kanal-avvisning. Det som saknas är
+firmware som faktiskt ansluter och pratar protokollet.
 
 ### 0.4 Vad som därmed återstår för en första riktig release
 
-Se §22 för ordningen. Kort: MQTT v2-adapter på servern, firmware v2 på boxen,
-och beslut om hur mycket rendering som ska ligga lokalt (§3.3).
+Se §22 för ordningen. Kort: namnbyte i firmware, firmware v2 enligt §3.4a, och
+frågan om TKL-pass som §22 flaggar (en fysisk box kan idag inte agera utan att
+någon redan startat ett pass via webbsimulatorn eller TKL-terminalen).
 
 ---
 
@@ -651,32 +657,44 @@ Oförändrad. Strukturerad loggning med korrelations-ID, utan hemligheter.
 Detta ersätter originalets §22 helt. Ordningen utgår från vad som faktiskt finns.
 
 **Klart:** steg 1–5 i originalet (inventering, gap-analys, beslut, protokoll­
-kontrakt, datamodell) samt serverns v2-lager.
+kontrakt, datamodell), serverns v2-lager, och **MQTT v2-adaptern**
+(`MQTTGatewayAdapterV2`, `protocol-v2`-branchen — hello/assignment/config/
+snapshot/command/ack på `tmbox/v2/...`, ren transport ovanpå de redan
+testade `v2_*`-metoderna, verifierad mot en riktig Mosquitto-broker inklusive
+en fullständig tvåstations-klareringsväxling). **Hårdvaran kan nu nå
+v2-lagret** — det som saknas är firmware som faktiskt pratar med den.
+
+**Upptäckt under implementationen, kräver beslut:** `v2_movement_command`,
+`v2_assign_track`, `v2_clearance_request` och `v2_line_publish` kräver alla
+ett aktivt TKL-pass (`start_tkl_shift`) på stationen och avvisar annars med
+`tkl_shift_not_started`. Det är en importerad förutsättning från TKL-lagret,
+inte ett medvetet TMBox-beslut. Praktiskt betyder det att en fysisk box inte
+kan användas fristående — någon måste ha startat ett pass via webbsimulatorn
+eller TKL-terminalen först. Antingen är det avsedd design (TKL "loggar in"
+en gång per dag, boxen ärver den identiteten för auditloggen), eller så
+behöver TMBox ett eget lätt sätt att sätta en aktör utan ett fullt pass.
+Detta måste avgöras innan slutpaketering (steg 9 nedan).
 
 **Kvar till första riktiga TMBox-releasen:**
 
-1. **MQTT v2-adapter på servern.** Exponera det byggda v2-lagret som
-   `config`/`snapshot`-topics enligt §3.4a. `v2_station_snapshot` finns redan
-   — det som saknas är att publicera den på MQTT i stället för att bara svara
-   på HTTP-anrop från webbsimulatorn. Utan detta kan hårdvaran inte nå något
-   av det som byggts.
-2. **Namnbyte** i firmware och protokoll: `TBX-` → `TMBOX-`, `tambox/v1` →
-   `tmbox/v2`, mDNS-tjänstnamn. Gör detta i samma veva som (1) — inga
-   driftsatta boxar betyder noll migreringskostnad.
-3. **Firmware-härdning:** de fyra anslutningsfynden i §4.2 plus mDNS-IP i §4.3.
-   Dessa är oberoende av §3.4a och kan göras parallellt med (1)–(2).
-4. **Firmware v2:** `ConfigStore`/`SnapshotStore` enligt §3.4a, lokalt
+1. **Namnbyte** i firmware och protokoll: `TBX-` → `TMBOX-`, `tambox/v1` →
+   `tmbox/v2`, mDNS-tjänstnamn. Inga driftsatta boxar betyder noll
+   migreringskostnad.
+2. **Firmware-härdning:** de fyra anslutningsfynden i §4.2 plus mDNS-IP i §4.3.
+   Oberoende av §3.4a, kan göras parallellt med (1).
+3. **Firmware v2:** `ConfigStore`/`SnapshotStore` enligt §3.4a, lokalt
    tåguppslag och spårväljare mot cachead data, rendering enligt §6, komplett
    kommando vid varje operativ knapptryckning. Native testmiljö + CI för
    `diagnostics/hardware-check`.
-5. **`#`-regelns utrullning** (§7) synkront i motor, webbsimulator, Swift och
+4. **`#`-regelns utrullning** (§7) synkront i motor, webbsimulator, Swift och
    TKL. Detta är den enda ändringen som rör alla fyra klienter samtidigt.
-6. **Spårkatalog i Cloud-admin** (§19) så katalogen går att redigera, inte bara
+5. **Spårkatalog i Cloud-admin** (§19) så katalogen går att redigera, inte bara
    valideras.
-7. **Koppla spårbyte till klareringsinvalidering** (§9.5).
-8. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
+6. **Koppla spårbyte till klareringsinvalidering** (§9.5).
+7. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
    kablage, teckenuppsättning.
-9. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
+8. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
+   Kräver att TKL-passfrågan ovan är avgjord.
 
 Senare slices, uttryckligen **inte** i första releasen: TLS + enhetsautentisering,
 OTA, Wi-Fi-reservnät, spårförslag ur historik, ljud/lampor om GPIO saknas.
