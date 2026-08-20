@@ -160,26 +160,109 @@ Konsekvens: v1:s `TrafficEngine`/`ConnectionRuntime`/`PanelRuntime` byggs **inte
 vidare ut för TMBox. De var byggda för tangent-för-tangent-A–D-protokollet. V2:s
 motsvarighet är det movement-/klareringslager som redan finns i `operations.py`.
 
-### 3.4 Öppen fråga: hur mycket renderar boxen själv?
+### 3.4 Beslut: boxen är tyst tills den har något komplett att säga
 
-Detta måste avgöras innan firmware v2 skrivs. Två hållbara modeller:
+**Fattat 2026-08-20.** Boxen håller en levande lokal kopia av sin stations data
+i RAM — dagens tidtabell och aktuell status — och pratar bara på nätet för att
+skicka ett komplett operativt kommando. Ingen rundresa per tangenttryck, ingen
+rundresa för att slå upp ett tåg eller bläddra ett spår.
 
-**A. Tunn klient (som idag).** Servern renderar exakta rader; boxen visar och
-skickar tangenter. Lättast firmware. Kostnad: en nätresa per tangenttryck (trögt
-vid inmatning), och servern måste känna till varje boxens displaygeometri.
+Den avgörande principen som gör detta säkert är en skarp gräns mellan tre
+lager, som **aldrig får blandas ihop**:
 
-**B. Lokal rendering (originalets modell).** Boxen får strukturerad snapshot och
-renderar själv. Tyngre firmware. Vinst: omedelbar lokal inmatning, och servern
-slipper känna till geometri.
+1. **Data** (tidtabell, spårkatalog, levande rörelsestatus) — cachas
+   aggressivt i RAM, uppdateras automatiskt via retained MQTT-topics. Detta är
+   fritt fram, och är precis vad som gör boxen snabb.
+2. **Formatering** (teckenbudget, pilgrammatik, `TOMT`-logik, fasta
+   kommandosidor — §6) — mekaniska regler, byggda in i firmware. Ändras
+   sällan, kräver omflashning när de ändras, men är stabila nog för det.
+3. **Affärslogik och ordalydelse** (vilka `allowed_actions` som gäller, exakt
+   skärmtext, klareringsregler) — **stannar hos servern, alltid**. Skickas
+   som data (lager 1), inte som kod. En ändrad regel eller ett ändrat ordval
+   ska nå en ansluten box direkt via samma retained config-kanal — ingen
+   omflashning, och alla fyra klienter (box, webb, Swift, TKL) förblir
+   synkade eftersom ingen av dem har hårdkodat sin egen version av sanningen.
 
-**Rekommendation: B, men avgränsad.** Lokal rendering och lokal sifferinmatning,
-inga lokala trafikbeslut. `interaction.input` i snapshoten talar om vilket fält
-som redigeras; boxen ekar siffror lokalt och skickar ett komplett kommando vid
-`#`. Det ger responsiviteten utan att flytta ut något beslut.
+Det som gjorde tangentinmatning trögt var aldrig MQTT i sig (10–30 ms på ett
+lokalt nät) — det var att varje knapptryck betalade en egen rundresa. Ett
+komplett kommando tar bort det. Att sedan hålla stationens snapshot lokalt tar
+bort väntan även för uppslag och navigering, eftersom svaret redan finns i RAM
+när frågan ställs.
 
-Kapacitet är inte begränsningen — en ESP32-S3 klarar detta med god marginal.
-Frågan är underhållskostnad, och den avgörs av hur mycket logik som dupliceras
-mellan firmware, webbsimulator, Swift och TKL.
+Kapacitet är inte begränsningen — en ESP32-S3 klarar detta med bred marginal.
+Se §3.4a för den konkreta datan boxen håller.
+
+### 3.4a Vad boxen håller i RAM
+
+Två retained MQTT-topics fyller RAM-kopian. De uppdateras oberoende av
+varandra och boxen slår aldrig ihop dem manuellt — varje mottagen payload
+ersätter föregående i sin helhet. Ingen delta-logik i firmware; enklast och
+säkrast.
+
+**`tmbox/v2/device/{id}/config`** — ändras bara vid ny driftpaket-aktivering.
+
+```json
+{
+  "config_version": 12,
+  "station": { "id": "st-cda", "code": "CDA", "name": "Charlottendal" },
+  "tracks": [
+    { "id": "track-a-1a", "display_label": "1A", "sort_order": 10 },
+    { "id": "track-a-1b", "display_label": "1B", "sort_order": 20 }
+  ],
+  "connections": [
+    { "connection_id": "connection-a-b", "other_station_code": "VST",
+      "track_type": "single", "dispatch_mode": "clearance", "display_row": 1 }
+  ],
+  "display": { "rows": 4, "cols": 20, "charset": "ascii" }
+}
+```
+
+**`tmbox/v2/device/{id}/snapshot`** — ändras vid varje operativ händelse som
+rör stationen. Detta är samma form som `v2_station_snapshot` redan returnerar
+till webbsimulatorn i `trainmeet-server` — servern behöver inte bygga något
+nytt, bara publicera det befintliga svaret på topicet i stället för att vänta
+på en HTTP-fråga.
+
+```json
+{
+  "revision": {
+    "config_version": 12,
+    "movements": { "movement-101-a": 4 },
+    "cases": { "clr-88f2": 2 }
+  },
+  "movements": [
+    {
+      "id": "movement-101-a", "train_number": "101",
+      "arrival_time": null, "departure_time": "09:20",
+      "departure": "positioned", "arrival": "none",
+      "assignedTrackId": "track-a-1a", "actualTrack": null,
+      "crewReady": true
+    }
+  ],
+  "active_clearances": [
+    { "clearance_id": "clr-88f2", "movement_id": "movement-101-a",
+      "connection_id": "connection-a-b", "status": "waiting",
+      "from_station_id": "st-cda", "to_station_id": "st-vst" }
+  ],
+  "line_messages": [],
+  "clock": { "time": "09:23", "running": true }
+}
+```
+
+Tåguppslag blir en lokal sökning i `movements[]` mot `train_number` — inget
+skickas på nätet. Spårväljaren bläddrar `config.tracks[]` lokalt. Vilka knappar
+som är giltiga (`A=BEGAR`, `B=EJ` osv.) härleds av firmware ur `movements[].
+departure`/`arrival`/`crewReady` med **exakt samma mekaniska regler** servern
+själv använder för att bygga `allowed_actions` idag — reglerna är stabila nog
+att duplicera (lager 2), men de faktiska besluten (godkänt/nekat, tilldelat
+spår) kommer aldrig från boxen.
+
+**Vad som uttryckligen inte cachas:** operativa beslut fattas aldrig lokalt.
+En knapp som ser tillåten ut enligt cachead data men vars kommando avvisas av
+servern (stale revision, spår upptaget under tiden) visar avslagsorsaken och
+väntar på nästa snapshot — den agerar aldrig på den gamla datan igen.
+Lokal navigation (vald kommandosida, markörläge, `AVBRYT BEGARAN?`-frågan) är
+ren UI-state och rör aldrig detta lager, enligt §14.4.
 
 ### 3.5 Plattform
 
@@ -497,8 +580,10 @@ med fallback; auditlogg med korrelations-ID.
 
 ## 17. Rekommenderad enhetsstruktur
 
-Oförändrad lista, men avgränsad efter §3.4-beslutet. Om modell B väljs behövs
-minst: `DeviceIdentity`, `WifiManager`, `SetupPortal`, `ServerDiscovery`,
+Oförändrad lista, konkretiserad av §3.4/§3.4a-beslutet: `ConfigStore` håller
+`config`-topicets payload, `SnapshotStore` håller `snapshot`-topicets payload —
+båda ersätts i sin helhet vid varje mottagning, ingen delta-logik. Minst:
+`DeviceIdentity`, `WifiManager`, `SetupPortal`, `ServerDiscovery`,
 `MqttClient`, `ConfigStore`, `SnapshotStore`, `KeypadInput`, `DisplayRenderer`,
 `LocalNavigationState`, `CommandBuilder`, `Watchdog`.
 
@@ -570,26 +655,28 @@ kontrakt, datamodell) samt serverns v2-lager.
 
 **Kvar till första riktiga TMBox-releasen:**
 
-1. **Avgör §3.4** — tunn klient eller lokal rendering. Allt firmware-arbete
-   hänger på detta.
-2. **MQTT v2-adapter på servern.** Exponera det byggda v2-lagret på
-   `tmbox/v2/...`-topics. Utan detta kan hårdvaran inte nå något av det som
-   byggts.
-3. **Namnbyte** i firmware och protokoll: `TBX-` → `TMBOX-`, `tambox/v1` →
-   `tmbox/v2`, mDNS-tjänstnamn. Gör detta i samma veva som (2) — inga
+1. **MQTT v2-adapter på servern.** Exponera det byggda v2-lagret som
+   `config`/`snapshot`-topics enligt §3.4a. `v2_station_snapshot` finns redan
+   — det som saknas är att publicera den på MQTT i stället för att bara svara
+   på HTTP-anrop från webbsimulatorn. Utan detta kan hårdvaran inte nå något
+   av det som byggts.
+2. **Namnbyte** i firmware och protokoll: `TBX-` → `TMBOX-`, `tambox/v1` →
+   `tmbox/v2`, mDNS-tjänstnamn. Gör detta i samma veva som (1) — inga
    driftsatta boxar betyder noll migreringskostnad.
-4. **Firmware-härdning:** de fyra anslutningsfynden i §4.2 plus mDNS-IP i §4.3.
-   Dessa överlever oavsett vad §3.4 landar i.
-5. **Firmware v2:** rendering, inmatning, tillståndsmaskiner enligt beslutet i
-   (1). Native testmiljö + CI för `diagnostics/hardware-check`.
-6. **`#`-regelns utrullning** (§7) synkront i motor, webbsimulator, Swift och
+3. **Firmware-härdning:** de fyra anslutningsfynden i §4.2 plus mDNS-IP i §4.3.
+   Dessa är oberoende av §3.4a och kan göras parallellt med (1)–(2).
+4. **Firmware v2:** `ConfigStore`/`SnapshotStore` enligt §3.4a, lokalt
+   tåguppslag och spårväljare mot cachead data, rendering enligt §6, komplett
+   kommando vid varje operativ knapptryckning. Native testmiljö + CI för
+   `diagnostics/hardware-check`.
+5. **`#`-regelns utrullning** (§7) synkront i motor, webbsimulator, Swift och
    TKL. Detta är den enda ändringen som rör alla fyra klienter samtidigt.
-7. **Spårkatalog i Cloud-admin** (§19) så katalogen går att redigera, inte bara
+6. **Spårkatalog i Cloud-admin** (§19) så katalogen går att redigera, inte bara
    valideras.
-8. **Koppla spårbyte till klareringsinvalidering** (§9.5).
-9. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
+7. **Koppla spårbyte till klareringsinvalidering** (§9.5).
+8. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
    kablage, teckenuppsättning.
-10. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
+9. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
 
 Senare slices, uttryckligen **inte** i första releasen: TLS + enhetsautentisering,
 OTA, Wi-Fi-reservnät, spårförslag ur historik, ljud/lampor om GPIO saknas.
