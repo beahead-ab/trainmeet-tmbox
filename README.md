@@ -42,5 +42,11 @@ Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/
 
 Protokoll, felåterhämtning och boxbeteende är implementerade. Den slutliga produktionsprofilen ska verifieras mot Bennys faktiska komponenter, kortmodell, I2C-adress, kablage och elektriska nivåer innan firmware laddas i de befintliga lådorna.
 
-Det gemensamma protokollet och arkitekturbesluten finns i [docs/architecture.md](docs/architecture.md).
+## Dokumentation
+
+Den fullständiga produktbeskrivningen — namngivning, arkitektur, protokoll,
+skärmflöden, tester och definition of done — finns i [docs/tmbox.md](docs/tmbox.md).
+[docs/architecture.md](docs/architecture.md) beskriver det äldre, fortfarande
+driftsatta MQTT v1-protokollet. Beslutshistoriken bakom `docs/tmbox.md` finns i
+[docs/underlag/](docs/underlag/).
 

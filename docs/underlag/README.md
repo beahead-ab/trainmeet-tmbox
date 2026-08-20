@@ -3,6 +3,10 @@
 Detta är rå-underlaget för nästa generations TMBox, sammanställt i en extern
 ChatGPT/Codex-konversation och överlämnat för implementation.
 
+Den slutgiltiga, fristående produktbeskrivningen som kom ut av detta arbete
+finns i [../tmbox.md](../tmbox.md). Filerna nedan är beslutshistoriken som
+ledde dit — läs `tmbox.md` för hur TMBox faktiskt är specificerad idag.
+
 - [tmbox-monsterprompt-claude.md](tmbox-monsterprompt-claude.md) — normativ
   implementationsspecifikation: namngivning, arkitektur, protokoll,
   tillståndsmaskiner, tester och definition of done.
