@@ -50,3 +50,10 @@ skärmflöden, tester och definition of done — finns i [docs/tmbox.md](docs/tm
 driftsatta MQTT v1-protokollet. Beslutshistoriken bakom `docs/tmbox.md` finns i
 [docs/underlag/](docs/underlag/).
 
+[**tmbox-flodesbild.html**](docs/underlag/tmbox-flodesbild.html) är en
+interaktiv referens med exakta skärmbilder för varje steg i uppstart,
+tåguppslag, spårval, avgång, ankomst, request/reply och linjen-ledig, i tre
+kolumner (lokal TMBox / Trainmeet / motstationens TMBox). GitHub visar filen
+som källkod i webbläsaren — ladda ner den och öppna lokalt för att köra den
+interaktivt.
+
