@@ -104,9 +104,9 @@ firmware som faktiskt ansluter och pratar protokollet.
 
 ### 0.4 Vad som därmed återstår för en första riktig release
 
-Se §22 för ordningen. Kort: namnbyte i firmware, firmware v2 enligt §3.4a, och
-frågan om TKL-pass som §22 flaggar (en fysisk box kan idag inte agera utan att
-någon redan startat ett pass via webbsimulatorn eller TKL-terminalen).
+Se §22 för ordningen. Kort: namnbyte i firmware och firmware v2 enligt §3.4a.
+TKL-passberoendet som tidigare fanns här är löst (§22) — en fysisk box agerar
+nu fristående, utan att någon behöver starta ett pass först.
 
 ---
 
@@ -664,16 +664,16 @@ testade `v2_*`-metoderna, verifierad mot en riktig Mosquitto-broker inklusive
 en fullständig tvåstations-klareringsväxling). **Hårdvaran kan nu nå
 v2-lagret** — det som saknas är firmware som faktiskt pratar med den.
 
-**Upptäckt under implementationen, kräver beslut:** `v2_movement_command`,
-`v2_assign_track`, `v2_clearance_request` och `v2_line_publish` kräver alla
-ett aktivt TKL-pass (`start_tkl_shift`) på stationen och avvisar annars med
-`tkl_shift_not_started`. Det är en importerad förutsättning från TKL-lagret,
-inte ett medvetet TMBox-beslut. Praktiskt betyder det att en fysisk box inte
-kan användas fristående — någon måste ha startat ett pass via webbsimulatorn
-eller TKL-terminalen först. Antingen är det avsedd design (TKL "loggar in"
-en gång per dag, boxen ärver den identiteten för auditloggen), eller så
-behöver TMBox ett eget lätt sätt att sätta en aktör utan ett fullt pass.
-Detta måste avgöras innan slutpaketering (steg 9 nedan).
+**Beslut (2026-08-20): TMBox kräver inget TKL-pass.** Upptäckten under
+implementationen var att `v2_movement_command`, `v2_assign_track`,
+`v2_clearance_request` och `v2_line_publish` alla ärvde ett krav på ett
+aktivt TKL-pass (`start_tkl_shift`) från TKL-lagret, och avvisade annars med
+`tkl_shift_not_started` — en importerad förutsättning, inte ett medvetet
+TMBox-beslut. Bedömning: "onödigt komplext och tillför ingenting". Löst med
+en `_v2_actor`-hjälpare i `http_server.py`: finns ett pass används dess
+operatör (oförändrat, TKL-terminalens auditlogg påverkas inte); finns inget
+pass är enheten själv aktören. En fysisk box fungerar nu fristående.
+Testad end-to-end i `test_v2_commands_work_without_an_active_tkl_shift`.
 
 **Kvar till första riktiga TMBox-releasen:**
 
@@ -694,7 +694,6 @@ Detta måste avgöras innan slutpaketering (steg 9 nedan).
 7. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
    kablage, teckenuppsättning.
 8. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
-   Kräver att TKL-passfrågan ovan är avgjord.
 
 Senare slices, uttryckligen **inte** i första releasen: TLS + enhetsautentisering,
 OTA, Wi-Fi-reservnät, spårförslag ur historik, ljud/lampor om GPIO saknas.
