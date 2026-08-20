@@ -12,7 +12,12 @@ ledde dit — läs `tmbox.md` för hur TMBox faktiskt är specificerad idag.
   tillståndsmaskiner, tester och definition of done.
 - [tmbox-flodesbild.html](tmbox-flodesbild.html) — interaktiv referens med
   exakta 16×2/20×2/16×4/20×4-skärmbilder för varje steg i uppstart, tåguppslag,
-  spårval, avgång, ankomst, request/reply och linjen-ledig.
+  spårval, avgång, ankomst, request/reply och linjen-ledig. Uppdaterad
+  (2026-08-20) så flödena matchar `tmbox.md`: mDNS-tjänstenamnet, borttaget
+  `server_registered`-tillstånd och event-uppspelning, ny kollisionsskärm för
+  spårval, ny skärm för tvetydigt tågnummer, `D=NÄRMAR SIG` som egen
+  TKL-åtgärd, samt de två skärmar som saknades i avgångsflödet (väntan efter
+  `A=FÖRARE`, kvittens efter `A=AVGÅTT`).
 
 Efterföljande analys- och beslutsdokument, i läsordning:
 
