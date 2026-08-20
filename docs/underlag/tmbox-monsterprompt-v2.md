@@ -675,25 +675,42 @@ operatör (oförändrat, TKL-terminalens auditlogg påverkas inte); finns inget
 pass är enheten själv aktören. En fysisk box fungerar nu fristående.
 Testad end-to-end i `test_v2_commands_work_without_an_active_tkl_shift`.
 
+**Klart (2026-08-20): Namnbyte i firmware, protokoll och GitHub-repo.**
+GitHub-repot omdöpt `beahead-ab/trainmeet-tambox` → `trainmeet-tmbox` (gamla
+URL:er omdirigeras automatiskt av GitHub). I firmware: `hardware_profile.h`
+och `platformio.ini` bytte alla `TAMBOX_*`-makron till `TMBOX_*`,
+`TrainMeetTambox.ino` döptes om och skrevs om helt till
+`TrainMeetTMBox.ino` för att prata protokoll v2 — ny identitetsformat
+`TMBOX-XXXXXX` (6 tecken, ersätter `TBX-XXXX`), `tmbox/v2/device/{id}/...`-
+topics (hello/assignment/config/snapshot/presence/command/ack) i stället för
+det gamla panelbaserade v1-protokollet, RAM-cachning av config/snapshot
+enligt §3.4/§3.4a med en minimal tågbläddrare (`C`/`*`) och ett komplett
+skrivkommando (`A` → `train.position.set`). Explicit avgränsat som
+"connectivity-and-proof-of-protocol"-skivan — den fullständiga lokala
+kommandosidan (rendering, tåguppslag, spårväljare, klarering,
+linjen-ledig) är kvar i steg 3 nedan. Wi-Fi/WiFiManager/captive-portal-
+logiken rördes medvetet inte (bara stränglitteraler bytta) eftersom
+härdningen i steg 1 nedan är ett separat arbete. Alla tre PlatformIO-miljöer
+(`esp32-benny`, `esp32-s3`, `esp32-classic-safe`) samt `diagnostics/
+hardware-check` kompilerar rent efter namnbytet. `tambox/v1` och
+`tambox_gateway`-paketnamnet i `trainmeet-server` lämnades medvetet
+orörda (B3/B6 — v1 är i drift, noll blast radius-vinst av att röra det).
+
 **Kvar till första riktiga TMBox-releasen:**
 
-1. **Namnbyte** i firmware och protokoll: `TBX-` → `TMBOX-`, `tambox/v1` →
-   `tmbox/v2`, mDNS-tjänstnamn. Inga driftsatta boxar betyder noll
-   migreringskostnad.
-2. **Firmware-härdning:** de fyra anslutningsfynden i §4.2 plus mDNS-IP i §4.3.
-   Oberoende av §3.4a, kan göras parallellt med (1).
-3. **Firmware v2:** `ConfigStore`/`SnapshotStore` enligt §3.4a, lokalt
+1. **Firmware-härdning:** de fyra anslutningsfynden i §4.2 plus mDNS-IP i §4.3.
+2. **Firmware v2:** `ConfigStore`/`SnapshotStore` enligt §3.4a, lokalt
    tåguppslag och spårväljare mot cachead data, rendering enligt §6, komplett
    kommando vid varje operativ knapptryckning. Native testmiljö + CI för
    `diagnostics/hardware-check`.
-4. **`#`-regelns utrullning** (§7) synkront i motor, webbsimulator, Swift och
+3. **`#`-regelns utrullning** (§7) synkront i motor, webbsimulator, Swift och
    TKL. Detta är den enda ändringen som rör alla fyra klienter samtidigt.
-5. **Spårkatalog i Cloud-admin** (§19) så katalogen går att redigera, inte bara
+4. **Spårkatalog i Cloud-admin** (§19) så katalogen går att redigera, inte bara
    valideras.
-6. **Koppla spårbyte till klareringsinvalidering** (§9.5).
-7. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
+5. **Koppla spårbyte till klareringsinvalidering** (§9.5).
+6. **Hårdvaruverifiering mot Bennys fysiska box** — kortmodell, I2C-adress,
    kablage, teckenuppsättning.
-8. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
+7. **Slutpaketering:** flashinstruktion, driftdokumentation, felsökningsguide.
 
 Senare slices, uttryckligen **inte** i första releasen: TLS + enhetsautentisering,
 OTA, Wi-Fi-reservnät, spårförslag ur historik, ljud/lampor om GPIO saknas.

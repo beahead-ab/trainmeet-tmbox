@@ -1,19 +1,19 @@
-# TrainMeet Tambox
+# TrainMeet TMBox
 
-Detta repo innehåller programvaran för den fysiska TrainMeet Tamboxen: ESP32, 16×2 LCD och 4×4-tangentbord. Boxen är en tunn och självläkande klient till [TrainMeet Server](https://github.com/beahead-ab/trainmeet-server) på Raspberry Pi.
+Detta repo innehåller programvaran för den fysiska TrainMeet TMBoxen: ESP32, 16×2 LCD och 4×4-tangentbord. Boxen är en tunn och självläkande klient till [TrainMeet Server](https://github.com/beahead-ab/trainmeet-server), och talar protokoll v2 (`tmbox/v2/...`).
 
 Repot innehåller inte iPhone-appen. Den utvecklas separat i [trainmeet-iphone](https://github.com/beahead-ab/trainmeet-iphone).
 
 ## Grundprincip
 
-Tamboxen fattar inga trafikbeslut. Den skickar tangenttryckningar och visar kompletta, auktoritativa skärmbilder från Raspberry Pi:n. Om Wi-Fi eller MQTT försvinner väntar boxen, återansluter och hämtar ett nytt fullständigt läge. Gamla tangenttryckningar köas inte.
+TMBoxen fattar inga trafikbeslut. Den cachar sin tilldelade stations konfiguration och aktuella läge lokalt i RAM, bläddrar i den cachen direkt utan nätverksfördröjning, och pratar bara på tråden när den skickar ett komplett kommando (inga tangenttryckningar en och en). Om Wi-Fi eller MQTT försvinner väntar boxen, återansluter och hämtar ett nytt fullständigt läge.
 
-Varje box har ett permanent id och en kort kod, exempelvis `TBX-A7K2`. Vid start visas koden på displayen. I serverns webbadmin kopplar administratören koden till en station och panel A–D. Klienten behöver inget lösenord.
+Varje box har ett permanent id och en kort kod, exempelvis `TMBOX-A7K2C3`. Vid start visas koden på displayen. I serverns webbadmin kopplar administratören koden till en station. Klienten behöver inget lösenord.
 
 ## Wi-Fi vid första start
 
 1. Boxen försöker ansluta till senast sparade Wi-Fi.
-2. Om nätet saknas skapar den tillfälligt nätverket `TrainMeet-XXXX`.
+2. Om nätet saknas skapar den tillfälligt nätverket `TrainMeet-XXXXXX`.
 3. Anslut med en telefon och välj träffens Wi-Fi i portalen.
 4. Uppgifterna lagras i ESP32:ans beständiga minne.
 5. Håll `*` i fem sekunder för att rensa Wi-Fi och börja om.

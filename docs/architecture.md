@@ -1,8 +1,8 @@
-# Tambox local-first architecture
+# TMBox local-first architecture (v1)
 
 ## Product decisions
 
-- A logical Tambox always exposes A, B, C and D. Each position is mapped to a
+- A logical TMBox always exposes A, B, C and D. Each position is mapped to a
   configured station connection or left unused.
 - Raspberry Pi is the only operational authority during a running session.
 - Swift, the local web client and ESP32 boxes are panel clients. They
@@ -14,7 +14,7 @@
   cloud access is unavailable.
 - The Pi can own a complete local configuration. TrainMeet centrally can also
   build and publish a validated release that the Pi installs for the active run.
-- The Pi also serves a local web Tambox and the simple device-assignment UI.
+- The Pi also serves a local web TMBox and the simple device-assignment UI.
 - Local clients do not use MQTT passwords. A permanent device id and Pi-owned
   panel mapping are the usability-focused boundary on the isolated meeting
   network.
@@ -29,9 +29,9 @@
   outgoing traffic can coexist. This is the next expansion after the current
   single-track vertical slice.
 
-## Tambox compatibility rule
+## TMBox compatibility rule
 
-The native and web Tambox surfaces retain the palette, case, 16×2 LCD,
+The native and web TMBox surfaces retain the palette, case, 16×2 LCD,
 character cells, keypad dimensions and key order established by the original
 TrainMeet simulator and the physical box.
 
@@ -80,7 +80,7 @@ revision and a short expiry time.
   durable write fails
 - durable identity registry, six-digit Swift/web pairing and panel assignments
 - passwordless physical-box discovery by printed code
-- Pi-hosted responsive web Tambox and physical-device mapping
+- Pi-hosted responsive web TMBox and physical-device mapping
 - one-command Mac runner and Raspberry Pi system service installer
 - ESP32 firmware with permanent device identity, captive Wi-Fi setup, mDNS
   server discovery, QoS 1 commands and automatic reconnect

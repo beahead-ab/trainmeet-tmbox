@@ -1,6 +1,6 @@
 # Koppling av display och tangentbord
 
-Det här dokumentet beskriver den fysiska Tamboxen med en klassisk ESP32,
+Det här dokumentet beskriver den fysiska TMBoxen med en klassisk ESP32,
 16x2-teckendisplay med I2C-backpack och ett passivt 4x4-matristangentbord.
 
 ## Vad vi vet och vad som måste kontrolleras
@@ -83,7 +83,7 @@ Diagnostikprogrammet skannar hela I2C-bussen och skriver hittade adresser i
 seriell monitor. Hittar det `0x3F` byggs huvudprogrammet med:
 
 ```sh
-pio run -e esp32-benny --project-option="build_flags=-D TAMBOX_HARDWARE_PROFILE=1 -D TAMBOX_LCD_ADDRESS_VALUE=0x3F"
+pio run -e esp32-benny --project-option="build_flags=-D TMBOX_HARDWARE_PROFILE=1 -D TMBOX_LCD_ADDRESS_VALUE=0x3F"
 ```
 
 ## Tangentbordets matris
@@ -175,7 +175,7 @@ Kontinuitetsmät aldrig i en spänningssatt box.
 
 - mata helst boxen från en egen stabil 5 V USB-adapter på minst 1 A
 - koppla inte DCC-, körströms- eller växelspänning direkt till ESP32
-- använd gemensam jord enbart inom Tamboxens lågvoltsdel
+- använd gemensam jord enbart inom TMBoxens lågvoltsdel
 - placera 100 nF nära ESP32 och LCD samt gärna 220-470 µF över 5 V/GND där
   matningen kommer in i lådan
 - håll SDA/SCL och tangentbordskabel borta från DCC-, motor- och reläkablar
@@ -190,7 +190,7 @@ Kontinuitetsmät aldrig i en spänningssatt box.
 - LCD: 4-polig kontakt märkt `GND / VCC / SDA / SCL`
 - keypad: 8-polig kontakt märkt `R1 R2 R3 R4 C1 C2 C3 C4`
 - nivåomvandlare: märk låg sida `3V3` och hög sida `5V`
-- etikett under lådan: boxkod `TBX-XXXX`, kortmodell och hårdvaruprofil
+- etikett under lådan: boxkod `TMBOX-XXXXXX`, kortmodell och hårdvaruprofil
 - etikett inuti locket: komplett GPIO-tabell
 
 Använd inte enbart kabelkulörer som dokumentation; färger varierar mellan
@@ -205,7 +205,7 @@ leveranser.
 5. Justera kontrast tills båda textraderna syns.
 6. Tryck alla 16 tangenter och kontrollera rätt tecken, rad och kolumn.
 7. Starta om med alla tangenter släppta och kontrollera stabil boot.
-8. Först därefter laddas `TrainMeetTambox.ino`.
+8. Först därefter laddas `TrainMeetTMBox.ino`.
 
 ## Felsökning
 

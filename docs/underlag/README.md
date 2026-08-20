@@ -22,7 +22,7 @@ Efterföljande analys- och beslutsdokument, i läsordning:
   meddelandekuvert, revisionsregler och tillståndsmaskiner (gap-analysens
   steg 3).
 
-Spåras även som [GitHub-issue #1](https://github.com/beahead-ab/trainmeet-tambox/issues/1),
+Spåras även som [GitHub-issue #1](https://github.com/beahead-ab/trainmeet-tmbox/issues/1),
 med en första lista över öppna frågor och avvikelser mot nuvarande arkitektur.
 Se [architecture.md](../architecture.md) för det nuvarande, implementerade
 protokollet (MQTT v1) som detta underlag ska vägas mot innan det omsätts i
