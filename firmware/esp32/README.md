@@ -4,14 +4,15 @@ This firmware turns a Wi-Fi capable ESP32 into a thin, local TMBox client
 speaking protocol v2. The TrainMeet Server owns every traffic decision. The
 ESP32 caches its assigned station's config and live snapshot in RAM, browses
 that cache locally for speed, and only speaks on the wire to send a complete
-command. See [`docs/underlag/tmbox-monsterprompt-v2.md`](../../docs/underlag/tmbox-monsterprompt-v2.md)
-§3.4/§3.4a for the design this implements.
+command. See [`docs/tmbox.md`](../../docs/tmbox.md) §2.4/§2.5 for the design
+this implements.
 
 This is the connectivity-and-proof-of-protocol slice: identity, discovery,
 station assignment, config/snapshot caching, a minimal movement browser and
 one real write command (uppställt). The full local command-page interaction
-(train lookup, spårväljare, klarering, linjen-ledig) is a separate, later
-pass — see §22 step 3 in the same document.
+(train lookup, spårväljare, klarering, linjen-ledig) and the four known
+Wi-Fi/connectivity hardening fixes are a separate, later pass — see the
+status note in the repo root [README.md](../../README.md).
 
 ## What happens at startup
 

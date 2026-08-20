@@ -32,7 +32,8 @@ Efterföljande analys- och beslutsdokument, i läsordning:
   steg 3).
 
 Spåras även som [GitHub-issue #1](https://github.com/beahead-ab/trainmeet-tmbox/issues/1),
-med en första lista över öppna frågor och avvikelser mot nuvarande arkitektur.
-Se [architecture.md](../architecture.md) för det nuvarande, implementerade
-protokollet (MQTT v1) som detta underlag ska vägas mot innan det omsätts i
-kod.
+med den ursprungliga listan över öppna frågor och avvikelser mot arkitekturen
+vid tidpunkten. Det här underlaget är sedan dess omsatt i kod: se
+[../tmbox.md](../tmbox.md) för den färdiga specen och
+[architecture.md](../architecture.md) för det äldre MQTT v1-protokollet som
+fortfarande betjänar Swift-appen och webbklienten.

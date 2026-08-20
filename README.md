@@ -38,9 +38,9 @@ Det finns tre hårdvaruprofiler:
 
 Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/esp32/README.md](firmware/esp32/README.md). Komplett koppling av display, tangentbord, ström och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
 
-## Hårdvarustatus
+## Status
 
-Protokoll, felåterhämtning och boxbeteende är implementerade. Den slutliga produktionsprofilen ska verifieras mot Bennys faktiska komponenter, kortmodell, I2C-adress, kablage och elektriska nivåer innan firmware laddas i de befintliga lådorna.
+Firmwaren pratar protokoll v2 på riktigt: stabil enhetsidentitet, mDNS-upptäckt, stationstilldelning och RAM-cachad config/snapshot, plus en minimal tågbläddrare och ett komplett skrivkommando. Det som ännu återstår: fyra kända Wi-Fi/anslutningshärdningar, den fullständiga lokala kommandosidan (tåguppslag, spårväljare, klarering, linjen-ledig), och verifiering mot Bennys faktiska komponenter, kortmodell, I2C-adress, kablage och elektriska nivåer innan firmware laddas i de befintliga lådorna. Se [docs/tmbox.md](docs/tmbox.md) för fullständig definition of done.
 
 ## Dokumentation
 

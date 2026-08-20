@@ -1,5 +1,12 @@
 # TMBox local-first architecture (v1)
 
+This describes the original MQTT v1 protocol (`tambox/v1/...`), still served
+by `trainmeet-server` for the Swift app and the local web client. The
+physical ESP32 firmware in this repo no longer speaks v1 — it was rewritten
+to protocol v2 (`tmbox/v2/...`); see [`docs/tmbox.md`](tmbox.md) for the
+current, canonical spec. This document stays as the reference for the parts
+of the stack that still run on v1.
+
 ## Product decisions
 
 - A logical TMBox always exposes A, B, C and D. Each position is mapped to a
@@ -82,8 +89,12 @@ revision and a short expiry time.
 - passwordless physical-box discovery by printed code
 - Pi-hosted responsive web TMBox and physical-device mapping
 - one-command Mac runner and Raspberry Pi system service installer
-- ESP32 firmware with permanent device identity, captive Wi-Fi setup, mDNS
-  server discovery, QoS 1 commands and automatic reconnect
+
+The bullet list above reflects `trainmeet-server`'s v1 gateway, still serving
+Swift and the web client. The physical ESP32 firmware has moved on: it now
+implements permanent device identity, captive Wi-Fi setup, mDNS discovery,
+QoS 1 commands and automatic reconnect against protocol **v2** instead — see
+[`docs/tmbox.md`](tmbox.md).
 
 ## Next slices
 
