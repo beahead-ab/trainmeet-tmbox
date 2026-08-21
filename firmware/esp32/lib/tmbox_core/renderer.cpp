@@ -37,6 +37,25 @@ std::string movement_mark(const StationConfig& config, const Movement& movement)
                                : departure_mark(movement.train_number, track);
 }
 
+/// An operator reads Swedish, not a protocol enum.
+std::string clearance_word(const std::string& status) {
+  if (status == "waiting") return "VANTAR";
+  if (status == "approved") return "KLART";
+  if (status == "rejected") return "EJ KLART";
+  if (status == "cancelled") return "ATERTAGEN";
+  if (status == "expired") return "UTGANGEN";
+  return transliterate(status);
+}
+
+/// The station's own code, not the id it happens to carry internally. The
+/// config knows the code for the station on the other end of a connection.
+std::string other_station_code(const StationConfig& config, const std::string& connection_id) {
+  for (const Connection& connection : config.connections) {
+    if (connection.connection_id == connection_id) return connection.other_station_code;
+  }
+  return std::string();
+}
+
 std::string movement_time(const Movement& movement) {
   return movement.is_arrival() ? movement.arrival_time : movement.departure_time;
 }
@@ -178,11 +197,12 @@ Frame render(const Geometry& geometry,
               ? static_cast<std::size_t>(view.selected_case)
               : 0;
       const Clearance& clearance = snapshot.clearances[index];
-      lines.push_back("KLARERING " + clearance.status);
+      lines.push_back("KLARERING " + clearance_word(clearance.status));
       // A settles it and B refuses it; # never leaves an operative decision.
       lines.push_back("A=KLART  B=EJ");
       if (geometry.tall()) {
-        lines.push_back("FRAN " + clearance.from_station_id);
+        const std::string from = other_station_code(config, clearance.connection_id);
+        lines.push_back("FRAN " + (from.empty() ? clearance.from_station_id : from));
         lines.push_back(std::to_string(index + 1) + " AV "
                         + std::to_string(snapshot.clearances.size()) + "  *=TILLBAKA");
       }
@@ -204,7 +224,8 @@ Frame render(const Geometry& geometry,
       // that it was shown.
       lines.push_back("A=KVITTERA");
       if (geometry.tall()) {
-        lines.push_back("FRAN " + message.from_station_id);
+        const std::string from = other_station_code(config, message.connection_id);
+        lines.push_back("FRAN " + (from.empty() ? message.from_station_id : from));
         lines.push_back("*=TILLBAKA");
       }
       break;

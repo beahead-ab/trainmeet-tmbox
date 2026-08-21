@@ -148,6 +148,28 @@ void swedish_folds_when_the_display_cannot_show_it() {
                 "en display med CGRAM ska behalla prickarna");
 }
 
+void a_case_is_shown_in_operator_language() {
+  // A protocol enum on the glass is a leak, not information: the person
+  // reading it answers with A or B, and reads Swedish doing it.
+  const StationConfig config = fixtures::charlottendal();
+  Snapshot snapshot = fixtures::two_movements();
+  snapshot.clearances = {{"clr-1", "movement-421-cda", "connection-cda-vst", "waiting",
+                          "st-vst", "st-cda"}};
+  ViewState view;
+  view.screen = Screen::ClearanceInbox;
+
+  check::equal("KLARERING VANTAR", render(GEOMETRY_16X2, view, config, snapshot)[0],
+               "status ska skrivas ut pa svenska");
+
+  // The station's code, never the id it carries internally.
+  check::equal("FRAN VST            ", render(GEOMETRY_20X4, view, config, snapshot)[2],
+               "motstationen ska visas med sin kod");
+
+  snapshot.clearances[0].status = "rejected";
+  check::equal("KLARERING EJ KLART", render(GEOMETRY_20X2, view, config, snapshot)[0].substr(0, 18),
+               "avslag ska sagas rent ut");
+}
+
 void an_empty_station_says_so() {
   const StationConfig config = fixtures::charlottendal();
   ViewState view;
@@ -167,6 +189,7 @@ int main() {
   the_meeting_clock_sits_in_the_same_place();
   four_rows_show_what_two_rows_must_be_browsed_for();
   swedish_folds_when_the_display_cannot_show_it();
+  a_case_is_shown_in_operator_language();
   an_empty_station_says_so();
   return check::report();
 }
