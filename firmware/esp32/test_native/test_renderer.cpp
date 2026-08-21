@@ -22,7 +22,8 @@ void every_frame_is_exactly_the_display() {
   const Snapshot snapshot = fixtures::two_movements();
   const Screen screens[] = {
       Screen::Identity, Screen::NoNetwork, Screen::SetupPortal, Screen::SeekingServer,
-      Screen::ServerGone, Screen::AwaitingAssignment, Screen::StationOverview,
+      Screen::ServerGone, Screen::AwaitingAssignment, Screen::LoadingStation,
+      Screen::ResettingNetwork, Screen::StationOverview,
       Screen::MovementDetail, Screen::TrackPicker, Screen::ConnectionPicker,
       Screen::TrainLookup, Screen::LookupResults, Screen::ClearanceInbox,
       Screen::LineInbox, Screen::Sending, Screen::CommandAccepted, Screen::CommandRejected,
@@ -188,6 +189,16 @@ void a_case_is_shown_in_operator_language() {
                "avslag ska sagas rent ut");
 }
 
+void a_station_without_data_yet_does_not_claim_it_is_empty() {
+  // "no trains today" and "not loaded yet" look the same on an overview with
+  // an empty snapshot, and they are not the same thing.
+  ViewState view;
+  view.screen = Screen::LoadingStation;
+  const Frame frame = render(GEOMETRY_16X2, view, StationConfig{}, Snapshot{});
+  check::equal("STATION KOPPLAD ", frame[0], "boxen ska saga att stationen ar kopplad");
+  check::equal("HAMTAR DATA...  ", frame[1], "och att data ar pa vag");
+}
+
 void a_refusal_says_what_is_wrong_not_what_it_is_called() {
   // Someone standing at a station with a train waiting needs to know what to
   // do next, not what the server's enum is named.
@@ -230,6 +241,7 @@ int main() {
   swedish_folds_when_the_display_cannot_show_it();
   a_clearance_request_names_the_neighbour();
   a_case_is_shown_in_operator_language();
+  a_station_without_data_yet_does_not_claim_it_is_empty();
   a_refusal_says_what_is_wrong_not_what_it_is_called();
   an_empty_station_says_so();
   return check::report();

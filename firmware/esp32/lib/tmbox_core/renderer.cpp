@@ -132,6 +132,15 @@ Frame render(const Geometry& geometry,
       // and shows the code the administrator has to type into the server.
       lines = {"KOPPLA BOXEN", view.device_code};
       break;
+    case Screen::LoadingStation:
+      // The station is known but its config and state have not arrived. An
+      // empty overview would claim there are no trains today, which is a
+      // different thing from not knowing yet.
+      lines = {"STATION KOPPLAD", "HAMTAR DATA..."};
+      break;
+    case Screen::ResettingNetwork:
+      lines = {"NATVERK RADERAS", view.device_code};
+      break;
     case Screen::Sending:
       lines = {"SKICKAR...", ""};
       break;

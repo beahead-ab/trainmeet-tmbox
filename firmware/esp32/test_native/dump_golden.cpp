@@ -21,6 +21,8 @@ struct Case {
 const Case CASES[] = {
     {"identity", Screen::Identity, -1},
     {"awaiting-assignment", Screen::AwaitingAssignment, -1},
+    {"loading-station", Screen::LoadingStation, -1},
+    {"resetting-network", Screen::ResettingNetwork, -1},
     {"station-overview", Screen::StationOverview, -1},
     {"movement-departure", Screen::MovementDetail, 0},
     {"movement-arrival", Screen::MovementDetail, 1},

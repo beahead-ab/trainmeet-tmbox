@@ -18,6 +18,8 @@ enum class Screen {
   SeekingServer,
   ServerGone,
   AwaitingAssignment,
+  LoadingStation,
+  ResettingNetwork,
   StationOverview,
   MovementDetail,
   TrackPicker,

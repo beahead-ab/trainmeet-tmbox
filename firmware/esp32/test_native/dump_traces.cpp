@@ -19,6 +19,8 @@ const char* screen_name(Screen screen) {
     case Screen::SeekingServer: return "SeekingServer";
     case Screen::ServerGone: return "ServerGone";
     case Screen::AwaitingAssignment: return "AwaitingAssignment";
+    case Screen::LoadingStation: return "LoadingStation";
+    case Screen::ResettingNetwork: return "ResettingNetwork";
     case Screen::StationOverview: return "StationOverview";
     case Screen::MovementDetail: return "MovementDetail";
     case Screen::TrackPicker: return "TrackPicker";
