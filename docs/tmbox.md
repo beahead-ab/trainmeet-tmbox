@@ -287,10 +287,13 @@ B=ANDRA D=MER
 Ett spårbyte under en väntande klareringsbegäran ogiltigförklarar den
 begäran.
 
-Framtida förslag på nästa körning (`track_preferences`, nycklat på
-trafikmönster) rangordnas tilldelat → tidtabell → historik →
-stationsdefault. Historik är alltid ett förslag, aldrig ett automatiskt
-beslut.
+Serverns spårförslag rangordnas tilldelat → tidtabell → stationsdefault.
+Ett förslag är alltid ett förslag, aldrig ett automatiskt beslut.
+
+Historikbaserade förslag mellan träffar (`track_preferences`) utgår. Varje
+träff är unik och delar ingenting med en annan, så historik från en tidigare
+träff kan inte betyda något för den här. Se beslut D6 i
+[trainmeet-server `docs/cloud-server.md`](https://github.com/beahead-ab/trainmeet-server/blob/main/docs/cloud-server.md).
 
 ## 9. Avgångsflöde — exempel tåg 421 Cda → Vst
 
@@ -460,7 +463,6 @@ med fixtures för alla fyra geometrier.
 | `train_track_assignments` | Tilldelat spår per rörelse |
 | `clearances`, `clearance_events` | Klareringsbegäran, svar och historik |
 | `line_available_messages` | Linjen-ledig-meddelanden |
-| `track_preferences` | Historikbaserade spårförslag (framtida) |
 | `audit_events` | Auditlogg med korrelations-id |
 
 ## 18. Administration
