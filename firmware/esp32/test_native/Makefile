@@ -4,7 +4,7 @@
 CORE := ../lib/tmbox_core
 CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -I$(CORE) -I.
 
-test: run-renderer
+test: run-renderer run-navigation
 
 run-renderer: build/test_renderer
 	./build/test_renderer
@@ -13,7 +13,14 @@ build/test_renderer: test_renderer.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(C
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
+run-navigation: build/test_navigation
+	./build/test_navigation
+
+build/test_navigation: test_navigation.cpp $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
+	@mkdir -p build
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
 clean:
 	rm -rf build
 
-.PHONY: test run-renderer clean
+.PHONY: test run-renderer run-navigation clean
