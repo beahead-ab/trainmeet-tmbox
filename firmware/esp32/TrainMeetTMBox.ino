@@ -35,6 +35,7 @@
 // asserted in CI without a board. What this file does is talk to the network
 // and the hardware; what a screen says and what a key means is decided there.
 #include "model.h"
+#include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
 
@@ -102,6 +103,7 @@ bool hasSnapshot = false;
 tmbox::StationConfig stationConfig;
 tmbox::Snapshot stationSnapshot;
 tmbox::LocalNavigationState navigation;
+tmbox::AttentionController attention;
 
 // What this box can physically show, announced in `hello` so the server knows
 // what it is formatting for.
@@ -148,6 +150,8 @@ void onMqttMessage(int messageSize);
 void handleAssignment(const String& payload);
 void handleConfig(const String& payload);
 void handleSnapshot(const String& payload);
+void signalAttention(const std::vector<tmbox::AttentionEvent>& events);
+const char* attentionName(tmbox::Attention kind);
 void handleAck(const String& payload);
 void keypadEvent(KeypadEvent key);
 void buildIdentity();
@@ -309,6 +313,7 @@ void processGateway() {
     return;
   }
 
+  signalAttention(attention.observe_link(false));
   failedMqttAttempts++;
   nextMqttAttemptAt = now + mqttRetryDelay;
   mqttRetryDelay = min(mqttRetryDelay * 2UL, MQTT_RETRY_MAX_MS);
@@ -352,6 +357,7 @@ bool connectMqtt() {
   mqttClient.subscribe(ackTopic, 1);
   publishHello();
   publishPresence("online");
+  signalAttention(attention.observe_link(true));
   showScreen(tmbox::Screen::AwaitingAssignment);
   return true;
 }
@@ -366,6 +372,7 @@ void disconnectMqtt() {
   stationConfig = tmbox::StationConfig();
   stationSnapshot = tmbox::Snapshot();
   navigation = tmbox::LocalNavigationState();
+  attention.forget();
 }
 
 void publishHello() {
@@ -536,6 +543,7 @@ void handleSnapshot(const String& payload) {
     stationSnapshot.line_messages.push_back(message);
   }
   hasSnapshot = true;
+  signalAttention(attention.observe(stationSnapshot));
   // A snapshot replaces the cache whole, so a selection that no longer exists
   // must not survive it.
   navigation.reconcile(stationConfig, stationSnapshot, millis());
@@ -674,4 +682,47 @@ String codeFromChipId(uint64_t chipId) {
     value >>= 5;
   }
   return String(code);
+}
+
+// The attention sink. The controller decides *whether*; this decides *how*,
+// and with no buzzer defined the how is "log it and carry on" — the spec's
+// graceful degradation. The serial line is not decoration: it is how a bench
+// test sees that the box reached the right decision without any hardware to
+// hear it with.
+void signalAttention(const std::vector<tmbox::AttentionEvent>& events) {
+  const tmbox::Attention loudest = tmbox::AttentionController::loudest(events);
+  if (loudest == tmbox::Attention::None) return;
+
+  Serial.print("[uppmarksamhet] ");
+  Serial.println(attentionName(loudest));
+
+  if (!TMBOX_HAS_BUZZER) return;
+
+  // One buzzer, one sound. Losing the server gets the long note because it is
+  // the one event that makes everything else on the display untrustworthy.
+  unsigned int frequency = 2000;
+  unsigned int duration = 120;
+  switch (loudest) {
+    case tmbox::Attention::ConnectionLost:     frequency = 700;  duration = 600; break;
+    case tmbox::Attention::ConnectionRestored: frequency = 1400; duration = 120; break;
+    case tmbox::Attention::IncomingRequest:    frequency = 2200; duration = 250; break;
+    case tmbox::Attention::RequestDenied:      frequency = 900;  duration = 250; break;
+    case tmbox::Attention::RequestApproved:    frequency = 2600; duration = 150; break;
+    case tmbox::Attention::IncomingTrain:      frequency = 1800; duration = 150; break;
+    case tmbox::Attention::None:               return;
+  }
+  tone(TMBOX_BUZZER_PIN, frequency, duration);
+}
+
+const char* attentionName(tmbox::Attention kind) {
+  switch (kind) {
+    case tmbox::Attention::None:               return "inget";
+    case tmbox::Attention::ConnectionLost:     return "servern borta";
+    case tmbox::Attention::IncomingRequest:    return "begaran hit";
+    case tmbox::Attention::RequestDenied:      return "var begaran nekad";
+    case tmbox::Attention::RequestApproved:    return "var begaran godkand";
+    case tmbox::Attention::IncomingTrain:      return "linjen ledig mot oss";
+    case tmbox::Attention::ConnectionRestored: return "servern tillbaka";
+  }
+  return "?";
 }
