@@ -22,6 +22,8 @@ enum class Screen {
   MovementDetail,
   TrackPicker,
   ConnectionPicker,
+  TrainLookup,
+  LookupResults,
   ClearanceInbox,
   LineInbox,
   Sending,
@@ -44,6 +46,11 @@ struct ViewState {
   int selected_case = 0;
   /// Reason text for CommandRejected.
   std::string reason;
+  /// The train number being keyed in, digit by digit.
+  std::string lookup_digits;
+  /// What the server found for it, when the number was ambiguous.
+  std::vector<LookupMatch> lookup_matches;
+  int selected_match = 0;
 };
 
 /// Turns state into exactly `rows` lines of exactly `cols` characters.

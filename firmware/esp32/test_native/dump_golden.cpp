@@ -26,6 +26,8 @@ const Case CASES[] = {
     {"movement-arrival", Screen::MovementDetail, 1},
     {"track-picker", Screen::TrackPicker, 0},
     {"connection-picker", Screen::ConnectionPicker, 0},
+    {"train-lookup", Screen::TrainLookup, -1},
+    {"lookup-results", Screen::LookupResults, -1},
     {"clearance-inbox", Screen::ClearanceInbox, 0},
     {"line-inbox", Screen::LineInbox, 0},
     {"command-accepted", Screen::CommandAccepted, -1},
@@ -62,6 +64,9 @@ int main() {
       view.device_code = "TMBOX-A7K2C3";
       view.selected_movement = item.movement;
       view.reason = "spar_upptaget";
+      view.lookup_digits = "42";
+      view.lookup_matches = {{"movement-421-cda", "421", "", "09:20", "track-cda-1b"},
+                             {"movement-428-cda", "421", "09:41", "", "track-cda-2a"}};
       const Frame frame = render(named.geometry, view, config, snapshot);
       std::cout << "\n[" << named.name << " " << item.name << "]\n";
       for (const std::string& line : frame) std::cout << "|" << line << "|\n";

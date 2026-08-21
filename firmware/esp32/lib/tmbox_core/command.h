@@ -16,6 +16,7 @@ struct Command {
   std::string clearance_id;
   std::string message_id;   // the line message being acknowledged
   std::string connection_id;
+  std::string train_number;  // the number being looked up
   bool approved = false;
   bool has_approved = false;  // whether `approved` belongs in the payload
 

@@ -23,6 +23,8 @@ const char* screen_name(Screen screen) {
     case Screen::MovementDetail: return "MovementDetail";
     case Screen::TrackPicker: return "TrackPicker";
     case Screen::ConnectionPicker: return "ConnectionPicker";
+    case Screen::TrainLookup: return "TrainLookup";
+    case Screen::LookupResults: return "LookupResults";
     case Screen::ClearanceInbox: return "ClearanceInbox";
     case Screen::LineInbox: return "LineInbox";
     case Screen::Sending: return "Sending";
@@ -60,6 +62,7 @@ void run(const char* name, const std::string& keys, Snapshot snapshot,
               << " move=" << nav.view().selected_movement
               << " track=" << nav.view().selected_track
               << " conn=" << nav.view().selected_connection
+              << " digits=" << (nav.view().lookup_digits.empty() ? "-" : nav.view().lookup_digits)
               << " case=" << nav.view().selected_case;
     if (result.outcome == Outcome::Send) {
       const Command& command = result.command;
@@ -67,6 +70,7 @@ void run(const char* name, const std::string& keys, Snapshot snapshot,
       if (!command.movement_id.empty()) std::cout << " movement=" << command.movement_id;
       if (!command.track_id.empty()) std::cout << " track_id=" << command.track_id;
       if (!command.connection_id.empty()) std::cout << " connection=" << command.connection_id;
+      if (!command.train_number.empty()) std::cout << " train=" << command.train_number;
       if (!command.clearance_id.empty()) std::cout << " clearance=" << command.clearance_id;
       if (!command.message_id.empty()) std::cout << " message=" << command.message_id;
       if (command.has_approved) std::cout << " approved=" << (command.approved ? "1" : "0");
@@ -109,6 +113,7 @@ int main() {
   // operator never saw.
   run("clearance-request-picks-the-neighbour", "CACA", plain,
       {"clearance.request"}, UNHURRIED);
+  run("digits-look-up-a-train", "421BA", plain, {}, UNHURRIED);
   run("hurried-presses-are-swallowed", "CCA", plain, {"train.position.set"}, HURRIED);
   run("hurried-clearance-answer-is-swallowed", "#A", with_cases, {}, HURRIED);
   return 0;

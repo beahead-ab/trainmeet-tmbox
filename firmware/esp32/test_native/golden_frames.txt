@@ -29,6 +29,14 @@
 |BEGAR MOT    VST|
 |A=BEGAR  C=NASTA|
 
+[16x2 train-lookup]
+|TAG          42_|
+|A=SOK  B=SUDDA  |
+
+[16x2 lookup-results]
+|421 2 TRAFFAR   |
+|C=NASTA #=VALJ  |
+
 [16x2 clearance-inbox]
 |KLARERING VANTAR|
 |A=KLART  B=EJ   |
@@ -72,6 +80,14 @@
 [20x2 connection-picker]
 |BEGAR MOT        VST|
 |A=BEGAR  C=NASTA    |
+
+[20x2 train-lookup]
+|TAG              42_|
+|A=SOK  B=SUDDA      |
+
+[20x2 lookup-results]
+|421 2 TRAFFAR       |
+|C=NASTA #=VALJ      |
 
 [20x2 clearance-inbox]
 |KLARERING VANTAR    |
@@ -129,6 +145,18 @@
 |BEGAR MOT    VST|
 |A=BEGAR  C=NASTA|
 |1 AV 2          |
+|*=TILLBAKA      |
+
+[16x4 train-lookup]
+|TAG          42_|
+|A=SOK  B=SUDDA  |
+|SIFFROR PA TANGE|
+|*=AVBRYT        |
+
+[16x4 lookup-results]
+|421 2 TRAFFAR   |
+|C=NASTA #=VALJ  |
+|AVG 09:20    1/2|
 |*=TILLBAKA      |
 
 [16x4 clearance-inbox]
@@ -195,6 +223,18 @@
 |BEGAR MOT        VST|
 |A=BEGAR  C=NASTA    |
 |1 AV 2              |
+|*=TILLBAKA          |
+
+[20x4 train-lookup]
+|TAG              42_|
+|A=SOK  B=SUDDA      |
+|SIFFROR PA TANGENT  |
+|*=AVBRYT            |
+
+[20x4 lookup-results]
+|421 2 TRAFFAR       |
+|C=NASTA #=VALJ      |
+|AVG 09:20        1/2|
 |*=TILLBAKA          |
 
 [20x4 clearance-inbox]

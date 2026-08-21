@@ -24,7 +24,7 @@ void every_frame_is_exactly_the_display() {
       Screen::Identity, Screen::NoNetwork, Screen::SetupPortal, Screen::SeekingServer,
       Screen::ServerGone, Screen::AwaitingAssignment, Screen::StationOverview,
       Screen::MovementDetail, Screen::TrackPicker, Screen::ConnectionPicker,
-      Screen::ClearanceInbox,
+      Screen::TrainLookup, Screen::LookupResults, Screen::ClearanceInbox,
       Screen::LineInbox, Screen::Sending, Screen::CommandAccepted, Screen::CommandRejected,
   };
   for (const Geometry& geometry : ALL) {

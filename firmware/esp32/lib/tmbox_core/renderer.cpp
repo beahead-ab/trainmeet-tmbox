@@ -206,6 +206,46 @@ Frame render(const Geometry& geometry,
       break;
     }
 
+    case Screen::TrainLookup: {
+      // The cursor shows there is more to type; an empty field still says so.
+      lines.push_back(spread("TAG", view.lookup_digits + "_", geometry.cols));
+      lines.push_back("A=SOK  B=SUDDA");
+      if (geometry.tall()) {
+        lines.push_back("SIFFROR PA TANGENT");
+        lines.push_back("*=AVBRYT");
+      }
+      break;
+    }
+
+    case Screen::LookupResults: {
+      if (view.lookup_matches.empty()) {
+        lines = {"INGEN TRAFF", "*=TILLBAKA"};
+        break;
+      }
+      const std::size_t index =
+          view.selected_match >= 0
+                  && static_cast<std::size_t>(view.selected_match) < view.lookup_matches.size()
+              ? static_cast<std::size_t>(view.selected_match)
+              : 0;
+      const LookupMatch& match = view.lookup_matches[index];
+      lines.push_back(match.train_number + " "
+                      + std::to_string(view.lookup_matches.size()) + " TRAFFAR");
+      // Choosing which movement to look at is not an operative decision, so
+      // `#` may carry it. Nothing here changes state.
+      lines.push_back("C=NASTA #=VALJ");
+      if (geometry.tall()) {
+        const std::string time = match.departure_time.empty() ? match.arrival_time
+                                                              : match.departure_time;
+        const std::string what = match.departure_time.empty() ? "ANK" : "AVG";
+        lines.push_back(spread(what + " " + time,
+                               std::to_string(index + 1) + "/"
+                                   + std::to_string(view.lookup_matches.size()),
+                               geometry.cols));
+        lines.push_back("*=TILLBAKA");
+      }
+      break;
+    }
+
     case Screen::ClearanceInbox: {
       if (snapshot.clearances.empty()) {
         lines = {"INGA ARENDEN", "*=TILLBAKA"};

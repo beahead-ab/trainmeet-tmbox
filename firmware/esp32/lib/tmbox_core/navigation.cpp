@@ -24,6 +24,39 @@ int next_index(int current, std::size_t count) {
 
 }  // namespace
 
+namespace {
+
+/// A train number is at most five digits; more is a slipped finger, not a
+/// number, and silently dropping the extra beats showing a number nobody has.
+constexpr std::size_t MAX_TRAIN_DIGITS = 5;
+
+int index_of_movement(const Snapshot& snapshot, const std::string& movement_id) {
+  for (std::size_t index = 0; index < snapshot.movements.size(); ++index) {
+    if (snapshot.movements[index].id == movement_id) return static_cast<int>(index);
+  }
+  return -1;
+}
+
+}  // namespace
+
+void LocalNavigationState::apply_lookup(const Snapshot& snapshot,
+                                        const std::vector<LookupMatch>& matches,
+                                        std::uint32_t now_ms) {
+  view_.lookup_matches = matches;
+  view_.selected_match = 0;
+  if (matches.size() == 1) {
+    const int index = index_of_movement(snapshot, matches.front().movement_id);
+    if (index >= 0) {
+      view_.selected_movement = index;
+      view_.lookup_digits.clear();
+      view_.lookup_matches.clear();
+      show(Screen::MovementDetail, now_ms);
+      return;
+    }
+  }
+  show(Screen::LookupResults, now_ms);
+}
+
 bool LocalNavigationState::locked(std::uint32_t now_ms) const {
   if (!ever_shown_) return false;
   return now_ms - screen_changed_at_ < INPUT_LOCK_MS;
@@ -80,7 +113,20 @@ KeyResult LocalNavigationState::press(char key,
     }
     view_.selected_movement = -1;
     view_.selected_case = 0;
+    view_.lookup_digits.clear();
+    view_.lookup_matches.clear();
     show(Screen::StationOverview, now_ms);
+    return KeyResult(Outcome::Redraw);
+  }
+
+  // A digit is always the start of a train number, wherever the operator is.
+  // Nothing else on the keypad means a digit, so nothing is taken away.
+  if (key >= '0' && key <= '9') {
+    if (view_.screen != Screen::TrainLookup) {
+      view_.lookup_digits.clear();
+      show(Screen::TrainLookup, now_ms);
+    }
+    if (view_.lookup_digits.size() < MAX_TRAIN_DIGITS) view_.lookup_digits.push_back(key);
     return KeyResult(Outcome::Redraw);
   }
 
@@ -160,6 +206,47 @@ KeyResult LocalNavigationState::press(char key,
         command.movement_id = movement.id;
         command.track_id = config.tracks[view_.selected_track].id;
         return KeyResult(Outcome::Send, command);
+      }
+      return KeyResult();
+    }
+
+    case Screen::TrainLookup: {
+      if (key == 'B') {
+        if (view_.lookup_digits.empty()) return KeyResult();
+        view_.lookup_digits.erase(view_.lookup_digits.size() - 1);
+        return KeyResult(Outcome::Redraw);
+      }
+      if (key == 'A') {
+        if (view_.lookup_digits.empty()) return KeyResult();
+        Command command;
+        command.action = "train.lookup";
+        command.train_number = view_.lookup_digits;
+        return KeyResult(Outcome::Send, command);
+      }
+      return KeyResult();
+    }
+
+    case Screen::LookupResults: {
+      if (view_.lookup_matches.empty()) return KeyResult();
+      if (key == 'C') {
+        view_.selected_match = next_index(view_.selected_match, view_.lookup_matches.size());
+        screen_changed_at_ = now_ms;
+        return KeyResult(Outcome::Redraw);
+      }
+      // Choosing which movement to look at changes nothing, so `#` may do it.
+      if (key == '#') {
+        const std::size_t index =
+            static_cast<std::size_t>(view_.selected_match) < view_.lookup_matches.size()
+                ? static_cast<std::size_t>(view_.selected_match)
+                : 0;
+        const int movement =
+            index_of_movement(snapshot, view_.lookup_matches[index].movement_id);
+        if (movement < 0) return KeyResult();
+        view_.selected_movement = movement;
+        view_.lookup_digits.clear();
+        view_.lookup_matches.clear();
+        show(Screen::MovementDetail, now_ms);
+        return KeyResult(Outcome::Redraw);
       }
       return KeyResult();
     }

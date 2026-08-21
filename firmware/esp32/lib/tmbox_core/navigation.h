@@ -49,6 +49,16 @@ class LocalNavigationState {
 
   void show(Screen screen, std::uint32_t now_ms);
 
+  /// Take the server's answer to a train.lookup.
+  ///
+  /// One match goes straight to that train - making the operator choose from
+  /// a list of one is a keypress that carries no information. Several means
+  /// the number really is ambiguous at this station today, and the box pages
+  /// through them.
+  void apply_lookup(const Snapshot& snapshot,
+                    const std::vector<LookupMatch>& matches,
+                    std::uint32_t now_ms);
+
   const ViewState& view() const { return view_; }
   ViewState& view() { return view_; }
 
