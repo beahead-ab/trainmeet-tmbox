@@ -22,8 +22,10 @@ void every_frame_is_exactly_the_display() {
   const Snapshot snapshot = fixtures::two_movements();
   const Screen screens[] = {
       Screen::Identity, Screen::NoNetwork, Screen::SetupPortal, Screen::SeekingServer,
-      Screen::ServerGone, Screen::AwaitingAssignment, Screen::StationOverview,
-      Screen::MovementDetail, Screen::TrackPicker, Screen::ClearanceInbox,
+      Screen::ServerGone, Screen::AwaitingAssignment, Screen::LoadingStation,
+      Screen::ResettingNetwork, Screen::StationOverview,
+      Screen::MovementDetail, Screen::TrackPicker, Screen::ConnectionPicker,
+      Screen::TrainLookup, Screen::LookupResults, Screen::ClearanceInbox,
       Screen::LineInbox, Screen::Sending, Screen::CommandAccepted, Screen::CommandRejected,
   };
   for (const Geometry& geometry : ALL) {
@@ -148,6 +150,76 @@ void swedish_folds_when_the_display_cannot_show_it() {
                 "en display med CGRAM ska behalla prickarna");
 }
 
+void a_clearance_request_names_the_neighbour() {
+  // A request has to say which line the train is taking, so the screen that
+  // sends it has to show the choice.
+  const StationConfig config = fixtures::charlottendal();
+  const Snapshot snapshot = fixtures::two_movements();
+  ViewState view;
+  view.screen = Screen::ConnectionPicker;
+  view.selected_movement = 0;
+  check::equal("BEGAR MOT    VST", render(GEOMETRY_16X2, view, config, snapshot)[0],
+               "grannens kod ska sta hogerstalld");
+  check::equal("A=BEGAR  C=NASTA", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "och tangenterna fa en hel rad, okapade");
+  view.selected_connection = 1;
+  check::truthy(render(GEOMETRY_16X2, view, config, snapshot)[0].find("KUN") != std::string::npos,
+                "nasta granne ska ga att valja");
+}
+
+void a_case_is_shown_in_operator_language() {
+  // A protocol enum on the glass is a leak, not information: the person
+  // reading it answers with A or B, and reads Swedish doing it.
+  const StationConfig config = fixtures::charlottendal();
+  Snapshot snapshot = fixtures::two_movements();
+  snapshot.clearances = {{"clr-1", "movement-421-cda", "connection-cda-vst", "waiting",
+                          "st-vst", "st-cda"}};
+  ViewState view;
+  view.screen = Screen::ClearanceInbox;
+
+  check::equal("KLARERING VANTAR", render(GEOMETRY_16X2, view, config, snapshot)[0],
+               "status ska skrivas ut pa svenska");
+
+  // The station's code, never the id it carries internally.
+  check::equal("FRAN VST            ", render(GEOMETRY_20X4, view, config, snapshot)[2],
+               "motstationen ska visas med sin kod");
+
+  snapshot.clearances[0].status = "rejected";
+  check::equal("KLARERING EJ KLART", render(GEOMETRY_20X2, view, config, snapshot)[0].substr(0, 18),
+               "avslag ska sagas rent ut");
+}
+
+void a_station_without_data_yet_does_not_claim_it_is_empty() {
+  // "no trains today" and "not loaded yet" look the same on an overview with
+  // an empty snapshot, and they are not the same thing.
+  ViewState view;
+  view.screen = Screen::LoadingStation;
+  const Frame frame = render(GEOMETRY_16X2, view, StationConfig{}, Snapshot{});
+  check::equal("STATION KOPPLAD ", frame[0], "boxen ska saga att stationen ar kopplad");
+  check::equal("HAMTAR DATA...  ", frame[1], "och att data ar pa vag");
+}
+
+void a_refusal_says_what_is_wrong_not_what_it_is_called() {
+  // Someone standing at a station with a train waiting needs to know what to
+  // do next, not what the server's enum is named.
+  ViewState view;
+  view.screen = Screen::CommandRejected;
+  const StationConfig config;
+  const Snapshot snapshot;
+
+  view.reason = "unknown_train_number";
+  check::equal("FINNS EJ IDAG   ", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "okant tagnummer ska sagas pa svenska");
+  view.reason = "channel_occupied";
+  check::equal("LINJEN UPPTAGEN ", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "upptagen linje ocksa");
+
+  // An unmapped reason still has to reach the display rather than vanish.
+  view.reason = "nagot_nytt";
+  check::equal("nagot_nytt      ", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "en okand orsak ska visas som den ar");
+}
+
 void an_empty_station_says_so() {
   const StationConfig config = fixtures::charlottendal();
   ViewState view;
@@ -167,6 +239,10 @@ int main() {
   the_meeting_clock_sits_in_the_same_place();
   four_rows_show_what_two_rows_must_be_browsed_for();
   swedish_folds_when_the_display_cannot_show_it();
+  a_clearance_request_names_the_neighbour();
+  a_case_is_shown_in_operator_language();
+  a_station_without_data_yet_does_not_claim_it_is_empty();
+  a_refusal_says_what_is_wrong_not_what_it_is_called();
   an_empty_station_says_so();
   return check::report();
 }

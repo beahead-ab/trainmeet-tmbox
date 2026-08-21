@@ -85,6 +85,39 @@ void the_box_never_invents_permission_for_a_track_change() {
   check::equal("track-cda-1a", chosen.command.track_id, "forsta sparet i katalogen");
 }
 
+void a_clearance_request_must_name_the_line() {
+  // Sending one without a connection is rejected by the server as
+  // unknown_connection, so the box asks rather than guesses.
+  Box box;
+  box.nav.show(Screen::MovementDetail, 0);
+  box.nav.view().selected_movement = 0;
+  box.snapshot.movements[0].allowed_actions = {"clearance.request"};
+
+  const KeyResult opened = box.press('A');
+  check::truthy(opened.outcome == Outcome::Redraw, "A ska oppna valjaren, inte skicka");
+  check::truthy(opened.command.empty(), "och inte skicka nagot pa vagen");
+  check::truthy(box.screen() == Screen::ConnectionPicker, "till forbindelsevaljaren");
+
+  const KeyResult first = box.press('A');
+  check::truthy(first.outcome == Outcome::Send, "A ska skicka nar en granne star framme");
+  check::equal("clearance.request", first.command.action, "ratt handling");
+  check::equal("connection-cda-vst", first.command.connection_id,
+               "forsta grannen ar forvald");
+
+  // C steps to the next neighbour, and the request follows the choice.
+  box.nav.show(Screen::ConnectionPicker, 0);
+  box.press('C');
+  const KeyResult second = box.press('A');
+  check::equal("connection-cda-kun", second.command.connection_id,
+               "efter C ska begaran ga mot nasta granne");
+
+  // Back from the picker returns to the train, not to the overview: the
+  // operator was in the middle of something.
+  box.nav.show(Screen::ConnectionPicker, 0);
+  box.press('*');
+  check::truthy(box.screen() == Screen::MovementDetail, "* ska ga tillbaka till taget");
+}
+
 void hash_opens_the_inbox_but_settles_nothing() {
   Box box;
   box.snapshot.clearances = {{"clr-1", "movement-421-cda", "connection-cda-vst",
@@ -119,6 +152,65 @@ void a_line_message_can_only_be_acknowledged() {
   check::equal("msg-1", acked.command.message_id, "for ratt meddelande");
   // One-sided information carries no decision, so there is nothing to refuse.
   check::truthy(box.press('B').outcome == Outcome::Ignored, "B ska inte gora nagot har");
+}
+
+void digits_start_a_train_lookup() {
+  Box box;
+  box.nav.show(Screen::StationOverview, 0);
+  check::truthy(box.press('4').outcome == Outcome::Redraw, "en siffra ska starta uppslaget");
+  check::truthy(box.screen() == Screen::TrainLookup, "och byta till uppslagsskarmen");
+  box.press('2'); box.press('1');
+  check::equal("421", box.nav.view().lookup_digits, "siffrorna ska samlas");
+
+  box.press('B');
+  check::equal("42", box.nav.view().lookup_digits, "B ska sudda sista siffran");
+  box.press('1');
+
+  const KeyResult sent = box.press('A');
+  check::truthy(sent.outcome == Outcome::Send, "A ska soka");
+  check::equal("train.lookup", sent.command.action, "ratt handling");
+  check::equal("421", sent.command.train_number, "med det inslagna numret");
+}
+
+void a_lookup_never_asks_for_a_choice_of_one() {
+  // Making someone pick from a list with one entry is a keypress that carries
+  // no information.
+  Box box;
+  box.nav.show(Screen::TrainLookup, 0);
+  std::vector<LookupMatch> single = {{"movement-428-cda", "428", "09:41", "", "track-cda-2a"}};
+  box.nav.apply_lookup(box.snapshot, single, LATER);
+  check::truthy(box.screen() == Screen::MovementDetail, "en traff ska ga rakt till taget");
+  check::truthy(box.nav.view().selected_movement == 1, "till ratt rorelse");
+  check::truthy(box.nav.view().lookup_digits.empty(), "och lamna faltet tomt");
+}
+
+void an_ambiguous_number_is_paged_through() {
+  Box box;
+  box.nav.show(Screen::TrainLookup, 0);
+  std::vector<LookupMatch> both = {
+      {"movement-421-cda", "421", "", "09:20", "track-cda-1b"},
+      {"movement-428-cda", "421", "09:41", "", "track-cda-2a"}};
+  box.nav.apply_lookup(box.snapshot, both, LATER);
+  check::truthy(box.screen() == Screen::LookupResults, "tva traffar ska listas");
+  // The lock bites on this screen change too, so let it lapse before pressing.
+  box.now += LocalNavigationState::INPUT_LOCK_MS;
+
+  box.press('C');
+  check::truthy(box.nav.view().selected_match == 1, "C ska bladdra");
+
+  // `#` picks which movement to look at. That changes nothing, so it may.
+  const KeyResult picked = box.press('#');
+  check::truthy(picked.outcome == Outcome::Redraw, "# ska valja");
+  check::truthy(picked.command.empty(), "utan att skicka nagot");
+  check::truthy(box.screen() == Screen::MovementDetail, "och oppna taget");
+  check::truthy(box.nav.view().selected_movement == 1, "det valda");
+}
+
+void a_train_number_stops_at_five_digits() {
+  Box box;
+  box.nav.show(Screen::StationOverview, 0);
+  for (const char digit : std::string("1234567")) box.press(digit);
+  check::equal("12345", box.nav.view().lookup_digits, "extra siffror ska tappas tyst");
 }
 
 void input_is_locked_briefly_after_a_screen_change() {
@@ -173,8 +265,13 @@ int main() {
   star_goes_back_from_anywhere();
   a_sends_only_what_the_server_allows();
   the_box_never_invents_permission_for_a_track_change();
+  a_clearance_request_must_name_the_line();
   hash_opens_the_inbox_but_settles_nothing();
   a_line_message_can_only_be_acknowledged();
+  digits_start_a_train_lookup();
+  a_lookup_never_asks_for_a_choice_of_one();
+  an_ambiguous_number_is_paged_through();
+  a_train_number_stops_at_five_digits();
   input_is_locked_briefly_after_a_screen_change();
   a_vanished_train_drops_to_the_overview();
   an_emptied_inbox_does_not_strand_the_operator();

@@ -31,6 +31,13 @@
 
 #include "hardware_profile.h"
 
+// The screens and the state machine live in lib/tmbox_core, built and
+// asserted in CI without a board. What this file does is talk to the network
+// and the hardware; what a screen says and what a key means is decided there.
+#include "model.h"
+#include "navigation.h"
+#include "renderer.h"
+
 constexpr char FIRMWARE_VERSION[] = "0.3.0";
 constexpr char DISCOVERY_SERVICE[] = "tmbox";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
@@ -42,7 +49,10 @@ constexpr unsigned long MQTT_RETRY_MIN_MS = 1000;
 constexpr unsigned long MQTT_RETRY_MAX_MS = 8000;
 constexpr unsigned long DEVICE_CODE_SCREEN_MS = 3000;
 constexpr unsigned long ACK_MESSAGE_MS = 1500;
-constexpr uint8_t MAX_CACHED_MOVEMENTS = 8;
+// A guard against a malformed payload rather than a working limit: a real
+// station can have seventy movements in a day, and the cache is a vector now
+// rather than the fixed array this number was sized for.
+constexpr size_t MAX_CACHED_MOVEMENTS = 96;
 
 const byte ROWS = 4;
 const byte COLS = 4;
@@ -89,16 +99,13 @@ String configPublicationId;
 bool hasConfig = false;
 bool hasSnapshot = false;
 
-struct MovementCache {
-  String id;
-  String trainNumber;
-  String departure;
-  String arrival;
-  bool crewReady;
-};
-MovementCache movements[MAX_CACHED_MOVEMENTS];
-uint8_t movementCount = 0;
-int8_t selectedMovement = -1;  // -1 = station overview
+tmbox::StationConfig stationConfig;
+tmbox::Snapshot stationSnapshot;
+tmbox::LocalNavigationState navigation;
+
+// What this box can physically show, announced in `hello` so the server knows
+// what it is formatting for.
+const tmbox::Geometry displayGeometry(TMBOX_LCD_ROWS, TMBOX_LCD_COLUMNS, false);
 
 bool portalActive = false;
 bool saveParametersRequested = false;
@@ -113,10 +120,16 @@ unsigned long nextMqttAttemptAt = 0;
 unsigned long mqttRetryDelay = MQTT_RETRY_MIN_MS;
 unsigned int failedMqttAttempts = 0;
 unsigned long ackMessageUntil = 0;
-String currentLine1;
-String currentLine2;
+// Which action is in flight, so its acknowledgement can be read correctly,
+// and the screen to come back to when the flash is over.
+String pendingAction;
+tmbox::Screen flashReturnScreen = tmbox::Screen::StationOverview;
+// What is on the glass right now, so an unchanged line is not rewritten.
+static const uint8_t MAX_DISPLAY_ROWS = 4;
+String drawnLines[MAX_DISPLAY_ROWS];
 
-void showFrame(const String& line1, const String& line2);
+void drawScreen();
+void showScreen(tmbox::Screen screen);
 void showNetworkState();
 void beginSavedWiFiAttempt();
 void startSetupPortal();
@@ -130,18 +143,15 @@ bool connectMqtt();
 void disconnectMqtt();
 void publishHello();
 void publishPresence(const char* status);
-void sendPositionCommand(const MovementCache& movement);
+void sendCommand(const tmbox::Command& command);
 void onMqttMessage(int messageSize);
 void handleAssignment(const String& payload);
 void handleConfig(const String& payload);
 void handleSnapshot(const String& payload);
 void handleAck(const String& payload);
-void cycleMovement();
-void renderCurrentView();
 void keypadEvent(KeypadEvent key);
 void buildIdentity();
 String codeFromChipId(uint64_t chipId);
-String normalizedLine(const String& value);
 
 void setup() {
   Serial.begin(115200);
@@ -155,7 +165,7 @@ void setup() {
   configuredGatewayHost = preferences.getString("gateway", "");
   buildIdentity();
   bootAt = millis();
-  showFrame("TRAINMEET TMBOX", deviceCode);
+  showScreen(tmbox::Screen::Identity);
 
   static char gatewayBuffer[64];
   configuredGatewayHost.toCharArray(gatewayBuffer, sizeof(gatewayBuffer));
@@ -194,18 +204,22 @@ void loop() {
 
   if (ackMessageUntil != 0 && millis() >= ackMessageUntil) {
     ackMessageUntil = 0;
-    renderCurrentView();
+    navigation.show(flashReturnScreen, millis());
+    drawScreen();
   }
 
   char key = keypad.getKey();
-  if (key && mqttClient.connected() && !assignedStationId.isEmpty() && hasConfig && hasSnapshot) {
-    if (key == 'C') {
-      cycleMovement();
-    } else if (key == '*') {
-      selectedMovement = -1;
-      renderCurrentView();
-    } else if (key == 'A' && selectedMovement >= 0 && selectedMovement < movementCount) {
-      sendPositionCommand(movements[selectedMovement]);
+  // No write is accepted until a fresh, authoritative config and snapshot have
+  // arrived: acting on a stale cache is how a box sends a decision about a
+  // train that is no longer there.
+  if (key && ackMessageUntil == 0 && mqttClient.connected()
+      && !assignedStationId.isEmpty() && hasConfig && hasSnapshot) {
+    const tmbox::KeyResult result =
+        navigation.press(key, millis(), stationConfig, stationSnapshot);
+    if (result.outcome == tmbox::Outcome::Redraw) {
+      drawScreen();
+    } else if (result.outcome == tmbox::Outcome::Send) {
+      sendCommand(result.command);
     }
   }
 
@@ -262,7 +276,7 @@ void startSetupPortal() {
   WiFi.mode(WIFI_AP_STA);
   wifiManager.startConfigPortal(accessPointName.c_str());
   portalActive = true;
-  showFrame("INSTALLERA WIFI", accessPointName);
+  showScreen(tmbox::Screen::SetupPortal);
 }
 
 void stopSetupPortal() {
@@ -282,7 +296,7 @@ void processGateway() {
   if (gatewayHost.isEmpty()) {
     if (now < nextDiscoveryAt) return;
     if (!discoverGateway()) {
-      showFrame("SOKER SERVER", deviceCode);
+      showScreen(tmbox::Screen::SeekingServer);
       nextDiscoveryAt = now + DISCOVERY_RETRY_MS;
       return;
     }
@@ -298,7 +312,7 @@ void processGateway() {
   failedMqttAttempts++;
   nextMqttAttemptAt = now + mqttRetryDelay;
   mqttRetryDelay = min(mqttRetryDelay * 2UL, MQTT_RETRY_MAX_MS);
-  showFrame("SERVER BORTA", "FORSOKER IGEN");
+  showScreen(tmbox::Screen::ServerGone);
   if (failedMqttAttempts >= 3 && configuredGatewayHost.isEmpty()) {
     gatewayHost = "";
     failedMqttAttempts = 0;
@@ -327,7 +341,7 @@ bool discoverGateway() {
 }
 
 bool connectMqtt() {
-  showFrame("HITTAT SERVER", "ANSLUTER...");
+  showScreen(tmbox::Screen::SeekingServer);
   if (!mqttClient.connect(gatewayHost.c_str(), gatewayPort)) {
     return false;
   }
@@ -338,7 +352,7 @@ bool connectMqtt() {
   mqttClient.subscribe(ackTopic, 1);
   publishHello();
   publishPresence("online");
-  showFrame("SERVER ANSLUTEN", "VANTAR TILLDELN.");
+  showScreen(tmbox::Screen::AwaitingAssignment);
   return true;
 }
 
@@ -349,8 +363,9 @@ void disconnectMqtt() {
   assignedStationId = "";
   hasConfig = false;
   hasSnapshot = false;
-  movementCount = 0;
-  selectedMovement = -1;
+  stationConfig = tmbox::StationConfig();
+  stationSnapshot = tmbox::Snapshot();
+  navigation = tmbox::LocalNavigationState();
 }
 
 void publishHello() {
@@ -358,6 +373,12 @@ void publishHello() {
   document["device_code"] = deviceCode;
   document["model"] = TMBOX_MODEL_NAME;
   document["firmware_version"] = FIRMWARE_VERSION;
+  // §5: the box says what it can render so the server formats for it rather
+  // than assuming the smallest display we support.
+  JsonObject display = document["display"].to<JsonObject>();
+  display["rows"] = displayGeometry.rows;
+  display["cols"] = displayGeometry.cols;
+  display["charset"] = displayGeometry.supports_swedish ? "cgram" : "ascii";
   String payload;
   serializeJson(document, payload);
   mqttClient.beginMessage(helloTopic.c_str(), payload.length(), false, 1);
@@ -377,24 +398,35 @@ void publishPresence(const char* status) {
   mqttClient.endMessage();
 }
 
-void sendPositionCommand(const MovementCache& movement) {
-  // The single proof-of-protocol write command for this slice: a complete,
-  // idempotent train.position.set. The full command-page flow (uppställt ->
-  // förare -> begär -> ...) is the next pass (§22 step 3), not this one.
+void sendCommand(const tmbox::Command& command) {
+  // One id per command, reused on replay, so a reconnect cannot turn one
+  // decision into two.
   JsonDocument document;
   document["protocol_version"] = 2;
   document["message_id"] = deviceId + "-" + String((uint32_t)esp_random(), HEX);
   document["device_id"] = deviceId;
   document["station_id"] = assignedStationId;
-  document["action"] = "train.position.set";
+  document["action"] = command.action.c_str();
   JsonObject payloadObject = document["payload"].to<JsonObject>();
-  payloadObject["movement_id"] = movement.id;
+  // Every id the state machine put on the command travels. A field it sets
+  // and nobody packs is a command that will be refused on arrival.
+  if (!command.movement_id.empty()) payloadObject["movement_id"] = command.movement_id.c_str();
+  if (!command.track_id.empty()) payloadObject["track_id"] = command.track_id.c_str();
+  if (!command.connection_id.empty()) payloadObject["connection_id"] = command.connection_id.c_str();
+  if (!command.clearance_id.empty()) payloadObject["clearance_id"] = command.clearance_id.c_str();
+  if (!command.message_id.empty()) payloadObject["message_id"] = command.message_id.c_str();
+  if (!command.train_number.empty()) payloadObject["train_number"] = command.train_number.c_str();
+  if (command.has_approved) payloadObject["approved"] = command.approved;
+
   String payload;
   serializeJson(document, payload);
   mqttClient.beginMessage(commandTopic.c_str(), payload.length(), false, 1);
   mqttClient.print(payload);
   mqttClient.endMessage();
-  showFrame("SKICKAR...", "TAG " + movement.trainNumber);
+
+  pendingAction = command.action.c_str();
+  flashReturnScreen = navigation.view().screen;
+  showScreen(tmbox::Screen::Sending);
 }
 
 void onMqttMessage(int messageSize) {
@@ -424,53 +456,127 @@ void handleAssignment(const String& payload) {
     assignedStationId = "";
     hasConfig = false;
     hasSnapshot = false;
-    showFrame("KOPPLA BOXEN", deviceCode);
+    showScreen(tmbox::Screen::AwaitingAssignment);
     return;
   }
   assignedStationId = document["station_id"] | "";
-  showFrame("STATION KOPPLAD", "HAMTAR DATA...");
+  showScreen(tmbox::Screen::LoadingStation);
 }
 
 void handleConfig(const String& payload) {
   JsonDocument document;
   if (deserializeJson(document, payload)) return;
   configPublicationId = document["config_version"] | "";
-  stationCode = document["station"]["code"] | "";
-  stationName = document["station"]["name"] | "";
+  stationConfig = tmbox::StationConfig();
+  stationConfig.station_id = document["station"]["id"] | "";
+  stationConfig.code = document["station"]["code"] | "";
+  stationConfig.name = document["station"]["name"] | "";
+  // The pickers are built from these; without them a track change or a
+  // clearance request has nothing to offer and nothing to name.
+  for (JsonObject item : document["tracks"].as<JsonArray>()) {
+    tmbox::Track track;
+    track.id = item["id"] | "";
+    track.display_label = item["display_label"] | "";
+    stationConfig.tracks.push_back(track);
+  }
+  for (JsonObject item : document["connections"].as<JsonArray>()) {
+    tmbox::Connection connection;
+    connection.connection_id = item["connection_id"] | "";
+    connection.other_station_code = item["other_station_code"] | "";
+    connection.track_type = item["track_type"] | "";
+    stationConfig.connections.push_back(connection);
+  }
   hasConfig = true;
-  renderCurrentView();
+  drawScreen();
 }
 
 void handleSnapshot(const String& payload) {
   JsonDocument document;
   if (deserializeJson(document, payload)) return;
-  movementCount = 0;
+  stationSnapshot = tmbox::Snapshot();
+  stationSnapshot.station_id = document["station_id"] | "";
+  stationSnapshot.clock.time = document["clock"]["time"] | "";
+  stationSnapshot.clock.running = document["clock"]["running"] | false;
   for (JsonObject item : document["movements"].as<JsonArray>()) {
-    if (movementCount >= MAX_CACHED_MOVEMENTS) break;
-    MovementCache& slot = movements[movementCount];
-    slot.id = item["id"] | "";
-    slot.trainNumber = item["train_number"] | "";
-    slot.departure = item["departure"] | "none";
-    slot.arrival = item["arrival"] | "none";
-    slot.crewReady = item["crewReady"] | false;
-    movementCount++;
+    if (stationSnapshot.movements.size() >= MAX_CACHED_MOVEMENTS) break;
+    tmbox::Movement movement;
+    movement.id = item["id"] | "";
+    movement.train_number = item["train_number"] | "";
+    movement.arrival_time = item["arrival_time"] | "";
+    movement.departure_time = item["departure_time"] | "";
+    movement.departure = item["departure"] | "none";
+    movement.arrival = item["arrival"] | "none";
+    movement.assigned_track_id = item["assignedTrackId"] | "";
+    movement.crew_ready = item["crewReady"] | false;
+    // What the box may offer is the server's answer, never the box's guess.
+    for (JsonVariant action : item["allowed_actions"].as<JsonArray>()) {
+      // A null in the array would hand std::string a null pointer, which is
+      // undefined behaviour rather than an empty action.
+      const char* name = action.as<const char*>();
+      if (name != nullptr && name[0] != '\0') movement.allowed_actions.push_back(name);
+    }
+    stationSnapshot.movements.push_back(movement);
+  }
+  for (JsonObject item : document["active_clearances"].as<JsonArray>()) {
+    tmbox::Clearance clearance;
+    clearance.clearance_id = item["clearance_id"] | "";
+    clearance.movement_id = item["movement_id"] | "";
+    clearance.connection_id = item["connection_id"] | "";
+    clearance.status = item["status"] | "";
+    clearance.from_station_id = item["from_station_id"] | "";
+    clearance.to_station_id = item["to_station_id"] | "";
+    stationSnapshot.clearances.push_back(clearance);
+  }
+  for (JsonObject item : document["line_messages"].as<JsonArray>()) {
+    tmbox::LineMessage message;
+    message.message_id = item["message_id"] | "";
+    message.connection_id = item["connection_id"] | "";
+    message.status = item["status"] | "";
+    message.from_station_id = item["from_station_id"] | "";
+    stationSnapshot.line_messages.push_back(message);
   }
   hasSnapshot = true;
-  if (selectedMovement >= movementCount) {
-    selectedMovement = -1;
+  // A snapshot replaces the cache whole, so a selection that no longer exists
+  // must not survive it.
+  navigation.reconcile(stationConfig, stationSnapshot, millis());
+  if (navigation.view().screen == tmbox::Screen::LoadingStation
+      || navigation.view().screen == tmbox::Screen::AwaitingAssignment) {
+    navigation.show(tmbox::Screen::StationOverview, millis());
   }
-  renderCurrentView();
+  drawScreen();
 }
 
 void handleAck(const String& payload) {
   JsonDocument document;
   if (deserializeJson(document, payload)) return;
   const String status = document["status"] | "";
-  if (status == "accepted") {
-    showFrame("KOMMANDO OK", "");
+  const bool refused = status != "accepted" && status != "duplicate";
+
+  // A lookup answers rather than changes anything, so it lands on a screen
+  // instead of flashing past the operator.
+  if (!refused && pendingAction == "train.lookup") {
+    std::vector<tmbox::LookupMatch> matches;
+    for (JsonObject item : document["result"]["matches"].as<JsonArray>()) {
+      tmbox::LookupMatch match;
+      match.movement_id = item["movement_id"] | "";
+      match.train_number = item["train_number"] | "";
+      match.arrival_time = item["arrival_time"] | "";
+      match.departure_time = item["departure_time"] | "";
+      match.track_id = item["track_id"] | "";
+      matches.push_back(match);
+    }
+    pendingAction = "";
+    navigation.apply_lookup(stationSnapshot, matches, millis());
+    drawScreen();
+    return;
+  }
+  pendingAction = "";
+
+  if (refused) {
+    navigation.view().reason = String(document["reason"] | "").c_str();
+    showScreen(tmbox::Screen::CommandRejected);
   } else {
-    const String reason = document["reason"] | "";
-    showFrame("KOMMANDO NEKAT", reason);
+    showScreen(tmbox::Screen::CommandAccepted);
   }
   // A fresh snapshot always follows an accepted command and redraws the
   // real view; this is only a brief flash so a rejection reason is visible
@@ -478,26 +584,7 @@ void handleAck(const String& payload) {
   ackMessageUntil = millis() + ACK_MESSAGE_MS;
 }
 
-void cycleMovement() {
-  if (movementCount == 0) return;
-  selectedMovement = (selectedMovement + 1) % movementCount;
-  renderCurrentView();
-}
 
-void renderCurrentView() {
-  if (ackMessageUntil != 0) return;  // let the ack flash finish first
-  if (!hasConfig || !hasSnapshot) return;
-  if (selectedMovement < 0 || selectedMovement >= movementCount) {
-    const String label = stationCode.isEmpty() ? "TMBOX" : stationCode;
-    const String status = movementCount == 0
-      ? String("INGA TAG IDAG")
-      : String(movementCount) + " TAG  C=BLADDRA";
-    showFrame(label, status);
-    return;
-  }
-  const MovementCache& movement = movements[selectedMovement];
-  showFrame("TAG " + movement.trainNumber, movement.departure + "  A=UPP");
-}
 
 void processSavedParameters() {
   if (!saveParametersRequested || gatewayParameter == nullptr) return;
@@ -517,7 +604,7 @@ void keypadEvent(KeypadEvent key) {
 
 void resetNetworkConfiguration() {
   resetNetworkRequested = false;
-  showFrame("NATVERK RADERAS", deviceCode);
+  showScreen(tmbox::Screen::ResettingNetwork);
   disconnectMqtt();
   preferences.remove("gateway");
   configuredGatewayHost = "";
@@ -529,26 +616,27 @@ void resetNetworkConfiguration() {
 
 void showNetworkState() {
   if (millis() - bootAt < DEVICE_CODE_SCREEN_MS) return;
-  showFrame("NAT SAKNAS", "FORSOKER IGEN");
+  showScreen(tmbox::Screen::NoNetwork);
 }
 
-void showFrame(const String& line1, const String& line2) {
-  const String nextLine1 = normalizedLine(line1);
-  const String nextLine2 = normalizedLine(line2);
-  if (nextLine1 == currentLine1 && nextLine2 == currentLine2) return;
-  currentLine1 = nextLine1;
-  currentLine2 = nextLine2;
-  lcd.setCursor(0, 0);
-  lcd.print(currentLine1);
-  lcd.setCursor(0, 1);
-  lcd.print(currentLine2);
+void drawScreen() {
+  const tmbox::Frame frame =
+      tmbox::render(displayGeometry, navigation.view(), stationConfig, stationSnapshot);
+  for (uint8_t row = 0; row < displayGeometry.rows; ++row) {
+    // Only write a line that actually changed. An I2C display is slow enough
+    // that redrawing an unchanged frame is visible as a flicker.
+    if (row < MAX_DISPLAY_ROWS && drawnLines[row] == frame[row].c_str()) continue;
+    if (row < MAX_DISPLAY_ROWS) drawnLines[row] = frame[row].c_str();
+    lcd.setCursor(0, row);
+    lcd.print(frame[row].c_str());
+  }
 }
 
-String normalizedLine(const String& value) {
-  String result = value.substring(0, TMBOX_LCD_COLUMNS);
-  while (result.length() < TMBOX_LCD_COLUMNS) result += ' ';
-  return result;
+void showScreen(tmbox::Screen screen) {
+  navigation.show(screen, millis());
+  drawScreen();
 }
+
 
 void buildIdentity() {
   const uint64_t chipId = ESP.getEfuseMac();

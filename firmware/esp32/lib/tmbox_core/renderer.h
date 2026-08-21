@@ -18,9 +18,14 @@ enum class Screen {
   SeekingServer,
   ServerGone,
   AwaitingAssignment,
+  LoadingStation,
+  ResettingNetwork,
   StationOverview,
   MovementDetail,
   TrackPicker,
+  ConnectionPicker,
+  TrainLookup,
+  LookupResults,
   ClearanceInbox,
   LineInbox,
   Sending,
@@ -37,10 +42,17 @@ struct ViewState {
   int selected_movement = -1;
   /// Index into the config's tracks, when the track picker is open.
   int selected_track = 0;
+  /// Index into the config's connections, when clearance is being requested.
+  int selected_connection = 0;
   /// Index into the snapshot's open cases, when an inbox is open.
   int selected_case = 0;
   /// Reason text for CommandRejected.
   std::string reason;
+  /// The train number being keyed in, digit by digit.
+  std::string lookup_digits;
+  /// What the server found for it, when the number was ambiguous.
+  std::vector<LookupMatch> lookup_matches;
+  int selected_match = 0;
 };
 
 /// Turns state into exactly `rows` lines of exactly `cols` characters.

@@ -24,6 +24,16 @@ struct Movement {
   bool is_arrival() const { return departure_time.empty(); }
 };
 
+/// One movement the server found for a train number. A number can have
+/// several at one station on one day - an arrival and a later departure.
+struct LookupMatch {
+  std::string movement_id;
+  std::string train_number;
+  std::string arrival_time;
+  std::string departure_time;
+  std::string track_id;
+};
+
 struct Clearance {
   std::string clearance_id;
   std::string movement_id;
