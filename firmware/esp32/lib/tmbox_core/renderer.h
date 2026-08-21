@@ -21,6 +21,7 @@ enum class Screen {
   StationOverview,
   MovementDetail,
   TrackPicker,
+  ConnectionPicker,
   ClearanceInbox,
   LineInbox,
   Sending,
@@ -37,6 +38,8 @@ struct ViewState {
   int selected_movement = -1;
   /// Index into the config's tracks, when the track picker is open.
   int selected_track = 0;
+  /// Index into the config's connections, when clearance is being requested.
+  int selected_connection = 0;
   /// Index into the snapshot's open cases, when an inbox is open.
   int selected_case = 0;
   /// Reason text for CommandRejected.

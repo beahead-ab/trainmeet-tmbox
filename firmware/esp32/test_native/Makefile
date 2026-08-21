@@ -20,13 +20,20 @@ build/test_navigation: test_navigation.cpp $(CORE)/navigation.cpp $(CORE)/render
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-golden: build/dump_golden
+golden: build/dump_golden build/dump_traces
 	./build/dump_golden > golden_frames.txt
+	./build/dump_traces > golden_traces.txt
 	@echo "golden_frames.txt uppdaterad"
 
 # CI kontrollerar att den incheckade filen fortfarande ar vad renderaren ger.
-check-golden: build/dump_golden
-	./build/dump_golden | diff -u golden_frames.txt - && echo "gyllene rutor oforandrade"
+check-golden: build/dump_golden build/dump_traces
+	./build/dump_golden | diff -u golden_frames.txt -
+	./build/dump_traces | diff -u golden_traces.txt -
+	@echo "gyllene rutor och spar oforandrade"
+
+build/dump_traces: dump_traces.cpp $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
+	@mkdir -p build
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
 build/dump_golden: dump_golden.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
 	@mkdir -p build

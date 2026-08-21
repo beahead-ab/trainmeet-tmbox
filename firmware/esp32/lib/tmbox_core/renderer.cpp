@@ -56,6 +56,16 @@ std::string other_station_code(const StationConfig& config, const std::string& c
   return std::string();
 }
 
+/// Label left, choice hard right - the same shape the movement screen uses,
+/// so the eye finds the value in the same place on every screen and the key
+/// hints get a whole line of their own instead of being cut mid-word.
+std::string spread(const std::string& left, const std::string& right, std::uint8_t cols) {
+  if (cols > left.size() + right.size()) {
+    return left + std::string(cols - left.size() - right.size(), ' ') + right;
+  }
+  return left + " " + right;
+}
+
 std::string movement_time(const Movement& movement) {
   return movement.is_arrival() ? movement.arrival_time : movement.departure_time;
 }
@@ -111,14 +121,7 @@ Frame render(const Geometry& geometry,
       const std::string clock = clock_text(snapshot);
       // The clock sits hard right so it lands in the same place on every
       // geometry; an operator learns where to look once.
-      std::string head = label;
-      if (geometry.cols > label.size() + clock.size()) {
-        head.append(geometry.cols - label.size() - clock.size(), ' ');
-      } else {
-        head.append(1, ' ');
-      }
-      head += clock;
-      lines.push_back(head);
+      lines.push_back(spread(label, clock, geometry.cols));
       lines.push_back(snapshot.movements.empty()
                           ? "INGA TAG IDAG"
                           : std::to_string(snapshot.movements.size()) + " TAG  C=BLADDRA");
@@ -142,14 +145,7 @@ Frame render(const Geometry& geometry,
       const Movement& movement = snapshot.movements[view.selected_movement];
       const std::string mark = movement_mark(config, movement);
       const std::string time = movement_time(movement);
-      std::string head = mark;
-      if (geometry.cols > mark.size() + time.size()) {
-        head.append(geometry.cols - mark.size() - time.size(), ' ');
-      } else {
-        head.append(1, ' ');
-      }
-      head += time;
-      lines.push_back(head);
+      lines.push_back(spread(mark, time, geometry.cols));
 
       const Primary primary = primary_action_for(movement);
       std::string actions;
@@ -169,8 +165,8 @@ Frame render(const Geometry& geometry,
     }
 
     case Screen::TrackPicker: {
-      lines.push_back("VALJ SPAR");
       if (config.tracks.empty()) {
+        lines.push_back("VALJ SPAR");
         lines.push_back("INGA SPAR");
         break;
       }
@@ -178,10 +174,33 @@ Frame render(const Geometry& geometry,
           view.selected_track >= 0 && static_cast<std::size_t>(view.selected_track) < config.tracks.size()
               ? static_cast<std::size_t>(view.selected_track)
               : 0;
-      lines.push_back(config.tracks[index].display_label + "   A=VALJ  C=NASTA");
+      lines.push_back(spread("VALJ SPAR", config.tracks[index].display_label, geometry.cols));
+      lines.push_back("A=VALJ  C=NASTA");
       if (geometry.tall()) {
         lines.push_back(std::to_string(index + 1) + " AV "
                         + std::to_string(config.tracks.size()));
+        lines.push_back("*=TILLBAKA");
+      }
+      break;
+    }
+
+    case Screen::ConnectionPicker: {
+      if (config.connections.empty()) {
+        lines.push_back("BEGAR MOT");
+        lines.push_back("INGEN GRANNE");
+        break;
+      }
+      const std::size_t index =
+          view.selected_connection >= 0
+                  && static_cast<std::size_t>(view.selected_connection) < config.connections.size()
+              ? static_cast<std::size_t>(view.selected_connection)
+              : 0;
+      lines.push_back(spread("BEGAR MOT",
+                             config.connections[index].other_station_code, geometry.cols));
+      lines.push_back("A=BEGAR  C=NASTA");
+      if (geometry.tall()) {
+        lines.push_back(std::to_string(index + 1) + " AV "
+                        + std::to_string(config.connections.size()));
         lines.push_back("*=TILLBAKA");
       }
       break;

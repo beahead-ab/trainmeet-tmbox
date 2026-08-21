@@ -23,7 +23,8 @@ void every_frame_is_exactly_the_display() {
   const Screen screens[] = {
       Screen::Identity, Screen::NoNetwork, Screen::SetupPortal, Screen::SeekingServer,
       Screen::ServerGone, Screen::AwaitingAssignment, Screen::StationOverview,
-      Screen::MovementDetail, Screen::TrackPicker, Screen::ClearanceInbox,
+      Screen::MovementDetail, Screen::TrackPicker, Screen::ConnectionPicker,
+      Screen::ClearanceInbox,
       Screen::LineInbox, Screen::Sending, Screen::CommandAccepted, Screen::CommandRejected,
   };
   for (const Geometry& geometry : ALL) {
@@ -148,6 +149,23 @@ void swedish_folds_when_the_display_cannot_show_it() {
                 "en display med CGRAM ska behalla prickarna");
 }
 
+void a_clearance_request_names_the_neighbour() {
+  // A request has to say which line the train is taking, so the screen that
+  // sends it has to show the choice.
+  const StationConfig config = fixtures::charlottendal();
+  const Snapshot snapshot = fixtures::two_movements();
+  ViewState view;
+  view.screen = Screen::ConnectionPicker;
+  view.selected_movement = 0;
+  check::equal("BEGAR MOT    VST", render(GEOMETRY_16X2, view, config, snapshot)[0],
+               "grannens kod ska sta hogerstalld");
+  check::equal("A=BEGAR  C=NASTA", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "och tangenterna fa en hel rad, okapade");
+  view.selected_connection = 1;
+  check::truthy(render(GEOMETRY_16X2, view, config, snapshot)[0].find("KUN") != std::string::npos,
+                "nasta granne ska ga att valja");
+}
+
 void a_case_is_shown_in_operator_language() {
   // A protocol enum on the glass is a leak, not information: the person
   // reading it answers with A or B, and reads Swedish doing it.
@@ -189,6 +207,7 @@ int main() {
   the_meeting_clock_sits_in_the_same_place();
   four_rows_show_what_two_rows_must_be_browsed_for();
   swedish_folds_when_the_display_cannot_show_it();
+  a_clearance_request_names_the_neighbour();
   a_case_is_shown_in_operator_language();
   an_empty_station_says_so();
   return check::report();

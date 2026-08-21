@@ -85,6 +85,39 @@ void the_box_never_invents_permission_for_a_track_change() {
   check::equal("track-cda-1a", chosen.command.track_id, "forsta sparet i katalogen");
 }
 
+void a_clearance_request_must_name_the_line() {
+  // Sending one without a connection is rejected by the server as
+  // unknown_connection, so the box asks rather than guesses.
+  Box box;
+  box.nav.show(Screen::MovementDetail, 0);
+  box.nav.view().selected_movement = 0;
+  box.snapshot.movements[0].allowed_actions = {"clearance.request"};
+
+  const KeyResult opened = box.press('A');
+  check::truthy(opened.outcome == Outcome::Redraw, "A ska oppna valjaren, inte skicka");
+  check::truthy(opened.command.empty(), "och inte skicka nagot pa vagen");
+  check::truthy(box.screen() == Screen::ConnectionPicker, "till forbindelsevaljaren");
+
+  const KeyResult first = box.press('A');
+  check::truthy(first.outcome == Outcome::Send, "A ska skicka nar en granne star framme");
+  check::equal("clearance.request", first.command.action, "ratt handling");
+  check::equal("connection-cda-vst", first.command.connection_id,
+               "forsta grannen ar forvald");
+
+  // C steps to the next neighbour, and the request follows the choice.
+  box.nav.show(Screen::ConnectionPicker, 0);
+  box.press('C');
+  const KeyResult second = box.press('A');
+  check::equal("connection-cda-kun", second.command.connection_id,
+               "efter C ska begaran ga mot nasta granne");
+
+  // Back from the picker returns to the train, not to the overview: the
+  // operator was in the middle of something.
+  box.nav.show(Screen::ConnectionPicker, 0);
+  box.press('*');
+  check::truthy(box.screen() == Screen::MovementDetail, "* ska ga tillbaka till taget");
+}
+
 void hash_opens_the_inbox_but_settles_nothing() {
   Box box;
   box.snapshot.clearances = {{"clr-1", "movement-421-cda", "connection-cda-vst",
@@ -173,6 +206,7 @@ int main() {
   star_goes_back_from_anywhere();
   a_sends_only_what_the_server_allows();
   the_box_never_invents_permission_for_a_track_change();
+  a_clearance_request_must_name_the_line();
   hash_opens_the_inbox_but_settles_nothing();
   a_line_message_can_only_be_acknowledged();
   input_is_locked_briefly_after_a_screen_change();

@@ -25,6 +25,7 @@ const Case CASES[] = {
     {"movement-departure", Screen::MovementDetail, 0},
     {"movement-arrival", Screen::MovementDetail, 1},
     {"track-picker", Screen::TrackPicker, 0},
+    {"connection-picker", Screen::ConnectionPicker, 0},
     {"clearance-inbox", Screen::ClearanceInbox, 0},
     {"line-inbox", Screen::LineInbox, 0},
     {"command-accepted", Screen::CommandAccepted, -1},

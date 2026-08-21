@@ -60,6 +60,9 @@ void LocalNavigationState::reconcile(const StationConfig& config,
   if (view_.selected_track >= static_cast<int>(config.tracks.size())) {
     view_.selected_track = 0;
   }
+  if (view_.selected_connection >= static_cast<int>(config.connections.size())) {
+    view_.selected_connection = 0;
+  }
 }
 
 KeyResult LocalNavigationState::press(char key,
@@ -71,7 +74,7 @@ KeyResult LocalNavigationState::press(char key,
   // `*` always means back, from anywhere. An operator who is lost should never
   // have to work out where they are first.
   if (key == '*') {
-    if (view_.screen == Screen::TrackPicker) {
+    if (view_.screen == Screen::TrackPicker || view_.screen == Screen::ConnectionPicker) {
       show(Screen::MovementDetail, now_ms);
       return KeyResult(Outcome::Redraw);
     }
@@ -119,6 +122,15 @@ KeyResult LocalNavigationState::press(char key,
       if (key == 'A') {
         const std::string action = primary_action(movement);
         if (action.empty()) return KeyResult();
+        if (action == "clearance.request") {
+          // A request has to name the line the train is taking. The box does
+          // not guess it: the operator picks the neighbour, the same way a
+          // track change picks the track.
+          if (config.connections.empty()) return KeyResult();
+          view_.selected_connection = 0;
+          show(Screen::ConnectionPicker, now_ms);
+          return KeyResult(Outcome::Redraw);
+        }
         Command command;
         command.action = action;
         command.movement_id = movement.id;
@@ -147,6 +159,27 @@ KeyResult LocalNavigationState::press(char key,
         command.action = "train.track.change";
         command.movement_id = movement.id;
         command.track_id = config.tracks[view_.selected_track].id;
+        return KeyResult(Outcome::Send, command);
+      }
+      return KeyResult();
+    }
+
+    case Screen::ConnectionPicker: {
+      if (config.connections.empty()) return KeyResult();
+      if (key == 'C') {
+        view_.selected_connection =
+            next_index(view_.selected_connection, config.connections.size());
+        screen_changed_at_ = now_ms;
+        return KeyResult(Outcome::Redraw);
+      }
+      if (key == 'A' && view_.selected_movement >= 0
+          && static_cast<std::size_t>(view_.selected_movement) < snapshot.movements.size()) {
+        const Movement& movement = snapshot.movements[view_.selected_movement];
+        if (!movement.allows("clearance.request")) return KeyResult();
+        Command command;
+        command.action = "clearance.request";
+        command.movement_id = movement.id;
+        command.connection_id = config.connections[view_.selected_connection].connection_id;
         return KeyResult(Outcome::Send, command);
       }
       return KeyResult();
