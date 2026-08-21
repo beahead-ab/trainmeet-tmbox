@@ -9,6 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The renderer and its state machines are plain C++17 with no
+      # dependencies, so they run before anything is downloaded - and keep
+      # running on a day the PlatformIO registry is unreachable.
+      - name: Test renderer and state machines without hardware
+        run: make -C firmware/esp32/test_native test
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
