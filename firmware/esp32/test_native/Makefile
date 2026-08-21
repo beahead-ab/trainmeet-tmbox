@@ -1,56 +1,36 @@
-# The core is plain C++17 with no dependencies, so the renderer and its state
+# The core is plain C++ with no dependencies, so the renderer and its state
 # machines can be built and asserted anywhere - no toolchain download, no
 # package registry, no board attached.
 CORE := ../lib/tmbox_core
 CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -I$(CORE) -I.
+CORE_SRC := $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
 
 test: run-renderer run-navigation run-firmware-calls check-golden
 
 run-renderer: build/test_renderer
 	./build/test_renderer
 
-build/test_renderer: test_renderer.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
 run-navigation: build/test_navigation
 	./build/test_navigation
-
-build/test_navigation: test_navigation.cpp $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $^ -o $@
 
 run-firmware-calls: build/test_firmware_calls
 	./build/test_firmware_calls
 
-build/test_firmware_calls: test_firmware_calls.cpp $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
+# Rewrites the files every other implementation of these screens is held to.
 golden: build/dump_golden build/dump_traces
 	./build/dump_golden > golden_frames.txt
 	./build/dump_traces > golden_traces.txt
-	@echo "golden_frames.txt uppdaterad"
+	@echo "golden_frames.txt och golden_traces.txt uppdaterade"
 
-# CI kontrollerar att den incheckade filen fortfarande ar vad renderaren ger.
-check-run-firmware-calls: build/test_firmware_calls
-	./build/test_firmware_calls
-
-build/test_firmware_calls: test_firmware_calls.cpp $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-# CI kontrollerar att de incheckade filerna fortfarande ar vad karnan ger.
+# Fails when the committed files stop being what the core produces.
 check-golden: build/dump_golden build/dump_traces
 	./build/dump_golden | diff -u golden_frames.txt -
 	./build/dump_traces | diff -u golden_traces.txt -
 	@echo "gyllene rutor och spar oforandrade"
 
-build/dump_traces: dump_traces.cpp $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-build/dump_golden: dump_golden.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp
+# One pattern rule rather than four near-identical ones: a duplicate target is
+# silent, and a silent duplicate is how check-golden stopped running once.
+build/%: %.cpp $(CORE_SRC)
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
