@@ -188,6 +188,27 @@ void a_case_is_shown_in_operator_language() {
                "avslag ska sagas rent ut");
 }
 
+void a_refusal_says_what_is_wrong_not_what_it_is_called() {
+  // Someone standing at a station with a train waiting needs to know what to
+  // do next, not what the server's enum is named.
+  ViewState view;
+  view.screen = Screen::CommandRejected;
+  const StationConfig config;
+  const Snapshot snapshot;
+
+  view.reason = "unknown_train_number";
+  check::equal("FINNS EJ IDAG   ", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "okant tagnummer ska sagas pa svenska");
+  view.reason = "channel_occupied";
+  check::equal("LINJEN UPPTAGEN ", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "upptagen linje ocksa");
+
+  // An unmapped reason still has to reach the display rather than vanish.
+  view.reason = "nagot_nytt";
+  check::equal("nagot_nytt      ", render(GEOMETRY_16X2, view, config, snapshot)[1],
+               "en okand orsak ska visas som den ar");
+}
+
 void an_empty_station_says_so() {
   const StationConfig config = fixtures::charlottendal();
   ViewState view;
@@ -209,6 +230,7 @@ int main() {
   swedish_folds_when_the_display_cannot_show_it();
   a_clearance_request_names_the_neighbour();
   a_case_is_shown_in_operator_language();
+  a_refusal_says_what_is_wrong_not_what_it_is_called();
   an_empty_station_says_so();
   return check::report();
 }

@@ -63,7 +63,7 @@ int main() {
       view.screen = item.screen;
       view.device_code = "TMBOX-A7K2C3";
       view.selected_movement = item.movement;
-      view.reason = "spar_upptaget";
+      view.reason = "unknown_train_number";
       view.lookup_digits = "42";
       view.lookup_matches = {{"movement-421-cda", "421", "", "09:20", "track-cda-1b"},
                              {"movement-428-cda", "421", "09:41", "", "track-cda-2a"}};

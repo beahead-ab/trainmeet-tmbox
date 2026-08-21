@@ -44,7 +44,33 @@ std::string clearance_word(const std::string& status) {
   if (status == "rejected") return "EJ KLART";
   if (status == "cancelled") return "ATERTAGEN";
   if (status == "expired") return "UTGANGEN";
-  return transliterate(status);
+  return status;
+}
+
+/// Why a command was refused, in words the person holding the box reads.
+///
+/// The server answers with a protocol reason. Putting that on the glass is a
+/// leak, not information: someone standing at a station with a train waiting
+/// needs to know what to do next, not what the enum is called.
+std::string rejection_word(const std::string& reason) {
+  if (reason == "unknown_train_number") return "FINNS EJ IDAG";
+  if (reason == "missing_train_number") return "SAKNAR NUMMER";
+  if (reason == "unknown_movement") return "TAGET FINNS EJ";
+  if (reason == "unknown_track") return "SPARET FINNS EJ";
+  if (reason == "unknown_connection") return "INGEN SADAN LINJE";
+  if (reason == "channel_occupied") return "LINJEN UPPTAGEN";
+  if (reason == "clearance_not_pending") return "REDAN AVGJORD";
+  if (reason == "already_acknowledged") return "REDAN KVITTERAD";
+  if (reason == "unknown_clearance" || reason == "unknown_message") return "ARENDET AR BORTA";
+  if (reason == "not_receiver") return "EJ ER FRAGA";
+  if (reason == "not_sender") return "EJ ER BEGARAN";
+  if (reason == "not_assigned") return "BOXEN EJ KOPPLAD";
+  if (reason == "station_mismatch") return "FEL STATION";
+  if (reason == "stale_revision" || reason == "invalid_revision") return "LAGET HAR ANDRATS";
+  if (reason == "no_active_configuration") return "INGEN TRAFF";
+  if (reason == "unsupported_protocol") return "FEL PROTOKOLL";
+  if (reason == "unknown_action") return "OKANT KOMMANDO";
+  return reason;
 }
 
 /// The station's own code, not the id it happens to carry internally. The
@@ -113,7 +139,7 @@ Frame render(const Geometry& geometry,
       lines = {"KOMMANDO OK", ""};
       break;
     case Screen::CommandRejected:
-      lines = {"KOMMANDO NEKAT", view.reason};
+      lines = {"KOMMANDO NEKAT", rejection_word(view.reason)};
       break;
 
     case Screen::StationOverview: {
