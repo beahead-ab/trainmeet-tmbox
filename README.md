@@ -40,7 +40,47 @@ Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/
 
 ## Status
 
-Firmwaren pratar protokoll v2 på riktigt: stabil enhetsidentitet, mDNS-upptäckt, stationstilldelning och RAM-cachad config/snapshot, plus en minimal tågbläddrare och ett komplett skrivkommando. Det som ännu återstår: fyra kända Wi-Fi/anslutningshärdningar, den fullständiga lokala kommandosidan (tåguppslag, spårväljare, klarering, linjen-ledig), och verifiering mot Bennys faktiska komponenter, kortmodell, I2C-adress, kablage och elektriska nivåer innan firmware laddas i de befintliga lådorna. Se [docs/tmbox.md](docs/tmbox.md) för fullständig definition of done.
+Firmwaren pratar protokoll v2 på riktigt: stabil enhetsidentitet,
+mDNS-upptäckt, stationstilldelning och RAM-cachad config/snapshot.
+
+**Kommandosidan är komplett.** Kärnan i
+[`firmware/esp32/lib/tmbox_core/`](firmware/esp32/lib/tmbox_core/) bär hela
+den lokala logiken, testad i CI utan hårdvara:
+
+| Del | Vad den gör |
+|---|---|
+| Navigation | 19 skärmar, bläddring i stationsöversikt och rörelsedetalj, §5 inmatningslås på 500 ms |
+| Tåguppslag | fyra siffror knappas in, servern svarar med träffar, träffarna bläddras |
+| Spårväljare | välj spår ur stationens katalog; servern avgör om det är ledigt |
+| Anslutningsväljare | klareringsbegäran namnger sin sträcka — boxen gissar aldrig |
+| Klarering | inkorg, godkänn på `A`, neka på `B`, aldrig på `#` |
+| Linjen ledig | inkorg och kvittering |
+| Uppmärksamhet | vad som förtjänar en signal, och framför allt vad som inte gör det |
+
+Tre guldfiler binder varje annan implementation till den här:
+`golden_frames.txt` (60 rutor i alla fyra geometrier), `golden_traces.txt`
+(12 tangentsekvenser) och `golden_attention.txt` (tre händelseförlopp).
+Simulatorn under server.trainmeet.app speglar alla tre, och serverns testsvit
+faller om de skiljer sig.
+
+### Vad som återstår — och allt hänger på hårdvaran
+
+Ingenting av det som är kvar går att avgöra härifrån:
+
+- **Bennys svar på hårdvarufrågorna.** Kortmodell, knappsatsens GPIO-karta,
+  I2C-adress, kablage och elektriska nivåer. Frågorna är formulerade och
+  märkta med vilka som är blockerande.
+- **Summer och GPIO.** `AttentionController` avgör redan *vad* som förtjänar
+  uppmärksamhet. `TMBOX_BUZZER_PIN` är osatt tills fråga 5.2 är besvarad;
+  utan den loggar boxen sitt beslut på serieporten och kör vidare. Frekvens-
+  och längdtabellen finns och matchar simulatorns toner.
+- **Fysisk verifiering.** Ingen firmware har körts på en riktig låda. Fyra
+  kända Wi-Fi- och anslutningshärdningar väntar på att kunna provas mot
+  hårdvara i stället för mot en fixtur.
+- **Å, Ä, Ö.** Kärnan translittererar (`SPAR`, `BEGAR`) tills displayens
+  teckenuppsättning är bekräftad.
+
+Se [docs/tmbox.md](docs/tmbox.md) för fullständig definition of done.
 
 ## Ändringar ska synas i simulatorn
 
