@@ -5,3 +5,7 @@
 *.elf
 *.map
 
+
+# Python-cache från versionsverktygets tester
+__pycache__/
+*.pyc

@@ -82,6 +82,18 @@ Ingenting av det som är kvar går att avgöra härifrån:
 
 Se [docs/tmbox.md](docs/tmbox.md) för fullständig definition of done.
 
+## Versionsnummer
+
+`VERSION` i rotens enda auktoritativa fil, och den sätts automatiskt vid varje
+merge till main. `FIRMWARE_VERSION` i skissen härleds ur den, så numret en box
+rapporterar i sitt `hello` och numret i repot är samma sak — det var två
+oberoende påståenden förut, vilket är precis den sorts glidning som gör att
+man inte kan avgöra vilken firmware som faktiskt ligger i lådan.
+
+Firmwaren står kvar under 1.0 med flit. Ingen version av den har körts på
+riktig hårdvara. Den dagen en box gör det och fungerar är 1.0.0 rimligt; att
+kalla den 1.0 innan dess vore att påstå något vi inte vet.
+
 ## Ändringar ska synas i simulatorn
 
 Varje funktionell ändring i TMBox ska slå igenom i simulatorn på
