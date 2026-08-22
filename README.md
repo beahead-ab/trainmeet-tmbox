@@ -51,23 +51,25 @@ utan en enda box.
 
 Det är inte en hederssak utan mekaniskt tvingat. Skärmarna och
 tillståndsmaskinen bor i [`firmware/esp32/lib/tmbox_core/`](firmware/esp32/lib/tmbox_core/)
-och publicerar två filer:
+och publicerar tre filer:
 
 | Fil | Vad den håller fast |
 |---|---|
 | `golden_frames.txt` | varje skärm, tecken för tecken, i 16×2, 20×2, 16×4 och 20×4 |
 | `golden_traces.txt` | vad varje tangentsekvens gör: skärmbyten och kommandon |
+| `golden_attention.txt` | vad som förtjänar en signal — och framför allt vad som inte gör det |
 
-Simulatorns `tmbox-render.js` och `tmbox-nav.js` i trainmeet-server måste
-reproducera båda exakt. Gör de inte det faller serverns testsvit.
+Simulatorns `tmbox-render.js`, `tmbox-nav.js` och `tmbox-attention.js` i
+trainmeet-server måste reproducera alla tre exakt. Gör de inte det faller
+serverns testsvit.
 
 **Arbetsgången när en skärm eller en tangent ändras:**
 
 1. Ändra i `lib/tmbox_core/` och kör `make -C firmware/esp32/test_native test`
 2. `make -C firmware/esp32/test_native golden` skriver om de gyllene filerna
-3. Kopiera båda till `tests/` i trainmeet-server
-4. Spegla ändringen i `tmbox-render.js` respektive `tmbox-nav.js`
-5. Kör serverns svit — den säger vilken ruta som flyttade sig om något skiljer
+3. Kopiera de gyllene filerna till `tests/` i trainmeet-server
+4. Spegla ändringen i `tmbox-render.js`, `tmbox-nav.js` eller `tmbox-attention.js`
+5. Kör serverns svit — den säger vilken ruta, spår eller signal som flyttade sig
 
 Ordningen är inte godtycklig: firmwaren är originalet, simulatorn speglar.
 

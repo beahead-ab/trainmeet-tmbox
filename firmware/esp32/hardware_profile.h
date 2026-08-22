@@ -46,3 +46,16 @@ constexpr uint8_t TMBOX_COL_PINS[4] = {26, 25, 33, 32};
 constexpr uint8_t TMBOX_LCD_ADDRESS = TMBOX_LCD_ADDRESS_VALUE;
 constexpr uint8_t TMBOX_LCD_COLUMNS = 16;
 constexpr uint8_t TMBOX_LCD_ROWS = 2;
+
+// Attention output. Benny's answer 5.2 decides whether a free GPIO exists for
+// a buzzer; until it does, TMBOX_BUZZER_PIN stays unset and the attention
+// controller still runs — it just has nothing to drive. Every decision about
+// *what* deserves a sound is already made and tested; only the wire is
+// missing. Define TMBOX_BUZZER_PIN_VALUE in the build to light it up.
+#ifdef TMBOX_BUZZER_PIN_VALUE
+constexpr int TMBOX_BUZZER_PIN = TMBOX_BUZZER_PIN_VALUE;
+constexpr bool TMBOX_HAS_BUZZER = true;
+#else
+constexpr int TMBOX_BUZZER_PIN = -1;
+constexpr bool TMBOX_HAS_BUZZER = false;
+#endif

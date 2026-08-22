@@ -444,9 +444,18 @@ mottagning, ingen delta-logik. Övriga komponenter: `DeviceIdentity`,
 `WifiManager`, `SetupPortal`, `ServerDiscovery`, `MqttClient`, `KeypadInput`,
 `DisplayRenderer`, `LocalNavigationState`, `CommandBuilder`, `Watchdog`.
 
-`AttentionController` (ljud/lampor) kräver GPIO som ännu inte finns
-definierat i hårdvaruprofilen och läggs till med graceful degradering när
-den hårdvaran finns.
+`AttentionController` avgör *vad* som förtjänar uppmärksamhet; hårdvaru-
+profilen avgör *hur*. Policyn är byggd och testad: bara en förändring är en
+nyhet, den första ögonblicksbilden efter start eller omtilldelning är aldrig
+en nyhet, och det tågklareraren själv orsakat är inte en nyhet för hen — den
+sista regeln behöver ingen egen spärr, eftersom servern bara låter mottagaren
+svara på en klarering (`not_receiver`) och bara avsändaren återkalla den
+(`not_sender`). Riktningen på en rad säger alltså redan vem som flyttade den.
+
+Utgången är det som saknas: `TMBOX_BUZZER_PIN` är osatt tills Bennys svar 5.2
+säger om det finns en ledig GPIO. Utan den loggar boxen sitt beslut på
+serieporten och fortsätter — graceful degradering. Signalerna går redan att
+höra i simulatorn under server.trainmeet.app.
 
 Renderaren ska gå att testa med rena fixtures utan fysisk display — en
 native testmiljö kör renderare och tillståndsmaskiner i CI utan hårdvara,

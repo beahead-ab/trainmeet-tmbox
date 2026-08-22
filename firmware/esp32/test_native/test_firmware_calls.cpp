@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "check.h"
+#include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
 
@@ -16,6 +17,25 @@ namespace {
 
 /// Mirrors the geometry the firmware builds from its hardware profile.
 const Geometry FIRMWARE_GEOMETRY(2, 16, false);
+
+void the_attention_call_sites_still_compile() {
+  Snapshot snapshot;
+  AttentionController attention;
+
+  // connectMqtt / the retry path
+  std::vector<AttentionEvent> events = attention.observe_link(true);
+  events = attention.observe_link(false);
+
+  // handleSnapshot
+  events = attention.observe(snapshot);
+
+  // signalAttention
+  const Attention loudest = AttentionController::loudest(events);
+  check::truthy(loudest == Attention::None, "en tom ogonblicksbild ger ingen signal");
+
+  // disconnectMqtt / omtilldelning
+  attention.forget();
+}
 
 void the_firmware_call_sites_still_compile() {
   StationConfig config;
@@ -114,5 +134,6 @@ void the_firmware_call_sites_still_compile() {
 
 int main() {
   the_firmware_call_sites_still_compile();
+  the_attention_call_sites_still_compile();
   return check::report();
 }
