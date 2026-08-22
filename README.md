@@ -80,7 +80,9 @@ Ingenting av det som är kvar går att avgöra härifrån:
 - **Å, Ä, Ö.** Kärnan translittererar (`SPAR`, `BEGAR`) tills displayens
   teckenuppsättning är bekräftad.
 
-Se [docs/tmbox.md](docs/tmbox.md) för fullständig definition of done.
+Bänktestlistan för det som kräver en människa och fysisk utrustning finns i
+[docs/BANKTEST.md](docs/BANKTEST.md). Se [docs/tmbox.md](docs/tmbox.md) för
+fullständig definition of done.
 
 ## Versionsnummer
 
