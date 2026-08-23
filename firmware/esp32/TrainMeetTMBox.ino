@@ -39,7 +39,7 @@
 #include "navigation.h"
 #include "renderer.h"
 
-constexpr char FIRMWARE_VERSION[] = "0.3.0";
+constexpr char FIRMWARE_VERSION[] = "0.3.1";
 constexpr char DISCOVERY_SERVICE[] = "tmbox";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
 constexpr unsigned long SAVED_WIFI_WINDOW_MS = 15000;
