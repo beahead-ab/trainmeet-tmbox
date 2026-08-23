@@ -1,7 +1,14 @@
 # TMBox djupanalys: monsterprompten mot verkligheten (2026-08-19)
 
+> **Historik — implementera inte härifrån.**
+> Det här dokumentet ledde fram till [`docs/tmbox.md`](../tmbox.md), som är den
+> gällande produktbeskrivningen, och till [`beslut.md`](beslut.md), som är
+> normerande där de två säger emot varandra. Det bevaras för att visa *varför*
+> besluten ser ut som de gör. Filen `tmbox-flodesbild.html` som nämns nedan är
+> borttagen; motsvarigheten idag är [`tmbox-scenarier.html`](tmbox-scenarier.html).
+
 Analysen ställer [tmbox-monsterprompt-claude.md](tmbox-monsterprompt-claude.md)
-och [tmbox-flodesbild.html](tmbox-flodesbild.html) mot faktisk kod i tre repon:
+och `tmbox-flodesbild.html` mot faktisk kod i tre repon:
 
 | Repo | Innehåll som granskats |
 |---|---|

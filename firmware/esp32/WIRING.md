@@ -1,28 +1,19 @@
 # Koppling av display och tangentbord
 
-Det här dokumentet beskriver den fysiska TMBoxen med en klassisk ESP32,
-16x2-teckendisplay med I2C-backpack och ett passivt 4x4-matristangentbord.
+Det här dokumentet beskrev kopplingen för en klassisk ESP32 innan TMBox v2
+fastställdes.
 
-## Vad vi vet och vad som måste kontrolleras
-
-Bekräftat från TrainMeet-koden och bilden på Bennys box:
-
-- displayen är 16 tecken bred och 2 rader hög
-- tangentbordet är 4x4 med ordningen `1 2 3 A / 4 5 6 B / 7 8 9 C / * 0 # D`
-- den tidigare sketchen använder LCD-adress `0x27`
-- den tidigare sketchen använder GPIO 13/12/14/27 för rader och
-  26/25/33/32 för kolumner
-
-Inte bekräftat förrän lådan öppnas:
-
-- exakt ESP32-kort och vilken märkning som står på modulen
-- ordningen på tangentbordets åtta ledare
-- om LCD-backpacket drivs med 3,3 V eller 5 V
-- om det redan sitter en I2C-nivåomvandlare i lådan
-- om I2C-adressen verkligen är `0x27` på alla byggda boxar
-
-Använd därför GPIO-numren på kortets silkscreen, inte pinnens fysiska nummer i
-en bild från ett annat fabrikat.
+> **Gällande koppling står i
+> [docs/TMBOX-V2-HARDWARE.md](../../docs/TMBOX-V2-HARDWARE.md).** Där finns
+> ESP32-S3-kortet, pinntabellen, I2C-nivåanpassningen, summern,
+> statuslysdioden, provisioneringsknappen, stycklistan och kopplingsschemat.
+>
+> De boxar som redan är byggda är varken det ena eller det andra — de är
+> ESP8266 och beskrivs i
+> [docs/TMBOX-V1-LEGACY.md](../../docs/TMBOX-V1-LEGACY.md). De rörs inte.
+>
+> Resten av den här filen står kvar för de två ESP32-profilerna som behålls
+> för uppstart av lösa kort.
 
 ## Rekommenderad uppbyggnad
 

@@ -32,9 +32,18 @@ pio run -e esp32-benny -t upload
 
 Det finns tre hårdvaruprofiler:
 
-- `esp32-benny` följer de pin-val som identifierats i Bennys befintliga kod.
-- `esp32-classic-safe` undviker boot-strapping-pinnen GPIO12 vid ny kabeldragning.
-- `esp32-s3` är profilen för en framtida ESP32-S3-baserad box.
+- **`esp32-s3` är TMBox v2** och byggmålet som gäller. ESP32-S3-DevKitC-1-N8R2,
+  20×4-display på `0x27` bakom en nivåomvandlare, passiv 4×4-matris direkt på
+  GPIO, summer och statuslysdiod. Fullständig specifikation i
+  [docs/TMBOX-V2-HARDWARE.md](docs/TMBOX-V2-HARDWARE.md).
+- `esp32-benny` och `esp32-classic-safe` beskriver klassisk ESP32 och behålls
+  för den som ska få igång ett kort som råkar finnas. De är inte produkten.
+
+> **TMBox v1 Legacy.** De boxar Benny och Lars Eriksson redan byggt är ESP8266
+> (ESP-12F) nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller
+> sin befintliga firmware och rörs inte; den här koden portas inte till dem.
+> Hårdvaran är dokumenterad i
+> [docs/TMBOX-V1-LEGACY.md](docs/TMBOX-V1-LEGACY.md).
 
 Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/esp32/README.md](firmware/esp32/README.md). Komplett koppling av display, tangentbord, ström och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
 
@@ -135,10 +144,15 @@ skärmflöden, tester och definition of done — finns i [docs/tmbox.md](docs/tm
 driftsatta MQTT v1-protokollet. Beslutshistoriken bakom `docs/tmbox.md` finns i
 [docs/underlag/](docs/underlag/).
 
-[**tmbox-flodesbild.html**](docs/underlag/tmbox-flodesbild.html) är en
-interaktiv referens med exakta skärmbilder för varje steg i uppstart,
-tåguppslag, spårval, avgång, ankomst, request/reply och linjen-ledig, i tre
-kolumner (lokal TMBox / Trainmeet / motstationens TMBox). GitHub visar filen
-som källkod i webbläsaren — ladda ner den och öppna lokalt för att köra den
-interaktivt.
+[**tmbox-scenarier.html**](docs/underlag/tmbox-scenarier.html) är en
+interaktiv referens över allt boxen gör: en simulator vars tangenter kör en
+portning av `navigation.cpp` och `renderer.cpp`, en flödeskarta över tolv
+scenarier i tre kolumner (lokal TMBox / TrainMeet Server / motstationens
+TMBox) med topic och payload för varje steg, en katalog över alla nitton
+`Screen`-värden, och en dokumentationsvy som också listar vad firmwaren
+*inte* gör idag. Skärmrutorna renderas tecken för tecken i vald geometri —
+16×2, 20×2, 16×4 eller 20×4 — och stämmer mot `test_native/golden_frames.txt`.
+
+GitHub visar filen som källkod i webbläsaren. Ladda ner den och öppna lokalt
+för att köra den interaktivt.
 

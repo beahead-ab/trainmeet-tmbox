@@ -147,7 +147,23 @@ aldrig detta lager.
 
 ### 2.6 Plattform
 
-ESP32-S3 med Arduino-ramverket. Ingen Raspberry Pi krävs i boxen själv.
+**TMBox v2: ESP32-S3-DevKitC-1-N8R2** med Arduino-ramverket. Ingen Raspberry
+Pi krävs i boxen själv.
+
+Displayen är 20×4 tecken, HD44780-kompatibel, på ett PCF8574 med adress
+`0x27` bakom en nivåomvandlare. Knappsatsen är en passiv 4×4-matris direkt på
+3,3 V-GPIO. Fullständig pinntabell, stycklista och kopplingsschema finns i
+[`docs/TMBOX-V2-HARDWARE.md`](TMBOX-V2-HARDWARE.md).
+
+> **TMBox v1 Legacy.** De boxar som redan är byggda är ESP8266 (ESP-12F)
+> nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller Bennys
+> `mqttTamBox` och rörs inte — den här firmwaren portas **inte** till dem.
+> Beslutet togs 2026-08-23; hårdvaran beskrivs i
+> [`docs/TMBOX-V1-LEGACY.md`](TMBOX-V1-LEGACY.md) och skälen i issue #13.
+>
+> Det rör inte `lib/tmbox_core/`. Renderaren, navigationen och
+> uppmärksamhetspolicyn är ren C++17 utan hårdvaruberoenden — de gäller för
+> v2 precis som de gjorde innan.
 
 ## 3. Anslutning, installation och identitet
 
@@ -243,6 +259,14 @@ för föregående skärm inte råkar tolkas mot den nya.
 - `D` mer information / vyväxling
 - `*` radera, tillbaka, initiera avbrott
 - `#` välj, OK, bekräfta data, kvittera visning
+
+> **`D` är specificerad men inte byggd.** Tecknet `'D'` förekommer inte en
+> enda gång i `firmware/esp32/lib/tmbox_core/navigation.cpp`, och `MER` finns
+> inte i någon ruta i `test_native/golden_frames.txt`. Rutorna nedan som visar
+> `D=MER`, och `D=NÄRMAR SIG` i avsnitt 10, beskriver alltså avsedd funktion —
+> inte vad en box gör idag. Tangenten sitter i knappsatsen och gör ingenting.
+> [`docs/underlag/tmbox-scenarier.html`](underlag/tmbox-scenarier.html) visar
+> vad som faktiskt är byggt.
 
 **Säkerhetsregel:** `#` får aldrig lämna ett operativt beslut — `KLART`,
 `EJ KLART`, `AVGÅTT` eller `ANKOMMIT` bekräftas alltid via `A`/`B`, aldrig
