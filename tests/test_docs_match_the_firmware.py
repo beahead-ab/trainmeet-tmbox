@@ -103,6 +103,53 @@ class KeysTheFirmwareActuallyHandlesTest(unittest.TestCase):
         self.assertNotIn("MER", frames)
 
 
+class BoardMismatchTest(unittest.TestCase):
+    """The spec named a microcontroller the built boxes do not have.
+
+    `docs/tmbox.md` said "ESP32-S3" while `platformio.ini` builds for
+    `esp32dev`, and the five boxes that exist are ESP8266 nodeMCU V3. Three
+    different answers to one question, and the one in the spec was the one
+    nobody could check without opening a box.
+
+    Until the firmware and the hardware agree, any document naming a board
+    has to say that they do not.
+    """
+
+    FACTS = ROOT / "firmware/esp32/HARDWARE-FACTS.md"
+    PLATFORMIO = ROOT / "firmware/esp32/platformio.ini"
+
+    def test_the_firmware_still_targets_esp32(self) -> None:
+        """The premise. When the port lands, this fails first and says so."""
+
+        self.assertIn("platform = espressif32", self.PLATFORMIO.read_text(encoding="utf-8"))
+
+    def test_the_built_boxes_are_recorded_as_esp8266(self) -> None:
+        self.assertIn("ESP8266", self.FACTS.read_text(encoding="utf-8"))
+
+    def test_the_spec_says_the_two_do_not_match(self) -> None:
+        """A reader who only opens tmbox.md must not come away thinking the
+        firmware fits the boxes."""
+
+        spec = (ROOT / "docs/tmbox.md").read_text(encoding="utf-8")
+        self.assertIn("HARDWARE-FACTS.md", spec)
+        self.assertIn("ESP8266", spec)
+
+    def test_no_current_document_names_a_board_without_the_caveat(self) -> None:
+        """`ESP32-S3` was asserted flatly in the spec's platform section."""
+
+        offenders = []
+        for document in _documents():
+            name = _relative(document)
+            if name in HISTORY:
+                continue
+            body = document.read_text(encoding="utf-8")
+            if not re.search(r"ESP32[\s-]?S3", body):
+                continue
+            if "HARDWARE-FACTS" not in body and "ESP8266" not in body:
+                offenders.append(name)
+        self.assertEqual([], offenders, "dokument namnger ESP32-S3 utan förbehåll")
+
+
 class DocumentationLinksTest(unittest.TestCase):
     #: Skips protocols, anchors and bare fragments - only repo-relative paths
     #: are ours to keep working.

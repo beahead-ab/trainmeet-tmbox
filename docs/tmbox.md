@@ -147,7 +147,18 @@ aldrig detta lager.
 
 ### 2.6 Plattform
 
-ESP32-S3 med Arduino-ramverket. Ingen Raspberry Pi krävs i boxen själv.
+Arduino-ramverket. Ingen Raspberry Pi krävs i boxen själv.
+
+> **Kortet är inte avgjort.** Firmwaren i det här repot byggs mot ESP32 och
+> läser knappsatsen som en GPIO-matris. De boxar som faktiskt är byggda är
+> ESP8266 (ESP-12F) nodeMCU V3 med knappsatsen på ett PCF8574 över I2C.
+> Skillnaden är bekräftad av den som byggt dem och sammanställd i
+> [`firmware/esp32/HARDWARE-FACTS.md`](../firmware/esp32/HARDWARE-FACTS.md);
+> vad vi gör åt den spåras i issue #13.
+>
+> Det rör inte `lib/tmbox_core/`. Renderaren, navigationen och
+> uppmärksamhetspolicyn är ren C++17 utan hårdvaruberoenden — det är därför
+> de går att testa utan en box, och det är därför de överlever bytet.
 
 ## 3. Anslutning, installation och identitet
 

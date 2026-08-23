@@ -36,6 +36,12 @@ Det finns tre hårdvaruprofiler:
 - `esp32-classic-safe` undviker boot-strapping-pinnen GPIO12 vid ny kabeldragning.
 - `esp32-s3` är profilen för en framtida ESP32-S3-baserad box.
 
+> **Ingen av dem passar de boxar som är byggda.** De är ESP8266 (ESP-12F)
+> nodeMCU V3 med knappsatsen på ett PCF8574 över I2C — inte en GPIO-matris på
+> en ESP32. Bekräftat av den som byggt dem och sammanställt i
+> [firmware/esp32/HARDWARE-FACTS.md](firmware/esp32/HARDWARE-FACTS.md).
+> Ladda ingenting härifrån i en befintlig låda innan issue #13 är avgjord.
+
 Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/esp32/README.md](firmware/esp32/README.md). Komplett koppling av display, tangentbord, ström och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
 
 ## Status

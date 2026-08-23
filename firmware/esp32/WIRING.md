@@ -1,25 +1,37 @@
 # Koppling av display och tangentbord
 
-Det här dokumentet beskriver den fysiska TMBoxen med en klassisk ESP32,
-16x2-teckendisplay med I2C-backpack och ett passivt 4x4-matristangentbord.
+Det här dokumentet beskriver kopplingen den här firmwaren är skriven för:
+en klassisk ESP32, 16x2-teckendisplay med I2C-backpack och ett passivt
+4x4-matristangentbord.
 
-## Vad vi vet och vad som måste kontrolleras
+> **De byggda lådorna ser inte ut så.** Frågorna nedan är besvarade sedan
+> 2026-08-23, och svaren står i
+> [HARDWARE-FACTS.md](HARDWARE-FACTS.md): boxarna är ESP8266 nodeMCU V3 med
+> knappsatsen på ett PCF8574 över I2C, inte en GPIO-matris på en ESP32.
+> Läs det dokumentet först. Det här beskriver vad firmwaren antar, inte vad
+> som står på bordet.
 
-Bekräftat från TrainMeet-koden och bilden på Bennys box:
+## Vad det här dokumentet antog
 
-- displayen är 16 tecken bred och 2 rader hög
+Hämtat ur TrainMeet-koden och en bild på Bennys box, innan hårdvaran var
+bekräftad:
+
+- displayen är 16 tecken bred och 2 rader hög — **stämmer**
 - tangentbordet är 4x4 med ordningen `1 2 3 A / 4 5 6 B / 7 8 9 C / * 0 # D`
-- den tidigare sketchen använder LCD-adress `0x27`
+  — **stämmer**, men det sitter bakom ett PCF8574
+- den tidigare sketchen använder LCD-adress `0x27` — **stämmer**
 - den tidigare sketchen använder GPIO 13/12/14/27 för rader och
-  26/25/33/32 för kolumner
+  26/25/33/32 för kolumner — **stämmer inte**, det finns ingen GPIO-matris
 
-Inte bekräftat förrän lådan öppnas:
+Och det som var öppet, med svaren:
 
-- exakt ESP32-kort och vilken märkning som står på modulen
-- ordningen på tangentbordets åtta ledare
-- om LCD-backpacket drivs med 3,3 V eller 5 V
-- om det redan sitter en I2C-nivåomvandlare i lådan
-- om I2C-adressen verkligen är `0x27` på alla byggda boxar
+| Fråga | Svar |
+|---|---|
+| Exakt kort och märkning | ESP8266 (ESP-12F) nodeMCU V3, `ESP8266MOD 12-F` |
+| Ordningen på tangentbordets åtta ledare | Irrelevant — knappsatsen sitter på I2C |
+| Backpackens matning | Vin, 5 V |
+| I2C-nivåomvandlare i lådan | Nej |
+| Är adressen `0x27` på alla | Ja |
 
 Använd därför GPIO-numren på kortets silkscreen, inte pinnens fysiska nummer i
 en bild från ett annat fabrikat.
