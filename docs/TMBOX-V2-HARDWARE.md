@@ -448,7 +448,7 @@ Måste besvaras innan konstruktionen kan beställas.
 | Ö1 | Hur många boxar i första serien? | Avgör om skalet ska 3D-skrivas eller formsprutas, och om en egen kretskortsdesign lönar sig i stället för DevKit. |
 | Ö2 | Bekräfta att 20×4 är rätt, inte 16×2. | Ändrar frontpanelens mått och därmed hela lådans storlek. Går inte att ändra efter att panelen skurits. |
 | Ö3 | Vilken knappsatsmodell exakt? | Panelurtaget måste matcha. Membrantangentbord limmas; mekaniska skruvas. Vi vill ha mekaniska, men modellen bestämmer måtten. |
-| Ö4 | ESP32-S3-WROOM-1 med kortantenn, eller -1U med extern? | En låda med aluminiumfront kan dämpa kortantennen. Beror på Ö6 och på hur långt från accesspunkten boxarna står. |
+| Ö4 | Räcker DevKitens kortantenn i den låda vi väljer? | DevKitC-1 bär en ESP32-S3-WROOM-1 med antenn på kretskortet, och modulen går inte att byta på ett färdigt DevKit. Visar sig en aluminiumfront dämpa för mycket är svaret ett eget kretskort med en WROOM-1**U** och extern antenn — vilket i så fall river hela DevKit-valet i avsnitt 2. Mät på en prototyp innan panelmaterialet bestäms. Hänger ihop med Ö5. |
 | Ö5 | Frontpanel i akryl eller aluminium? | Aluminium är starkare och snyggare men kan störa Wi-Fi och kräver isolering runt knappsatsen. Akryl är enklare. |
 | Ö6 | Ska ÅÄÖ visas, eller behåller vi translitterering? | Tre CGRAM-tecken av åtta. Påverkar renderaren och guldfilerna — de måste skrivas om ifall svaret är ja. |
 | Ö7 | Vilka statuslägen ska lysdioden ha? | Förslaget i avsnitt 8 är mitt, inte beslutat. Färgvalen bör stämma med hur klubben redan tolkar signalfärger. |
@@ -456,5 +456,7 @@ Måste besvaras innan konstruktionen kan beställas.
 | Ö9 | Vem bygger, och var? | Påverkar om stycklistan ska peka på svenska leverantörer eller på ett samlat beställningsunderlag. |
 | Ö10 | Ska v2-boxar kunna tala med v1-boxar på samma träff? | v1 kör `mqttTamBox` med ett annat protokoll. Om svaret är ja behöver servern översätta mellan de två, vilket är ett arbete ingen har budgeterat. |
 
-Ö2, Ö3 och Ö5 blockerar frontpanelen. Ö6 blockerar renderaren. Ö10 är den
-enda som kan visa sig vara stor.
+Ö2, Ö3 och Ö5 blockerar frontpanelen och måste besvaras innan något skärs.
+Ö6 blockerar renderaren och guldfilerna. Ö4 kan i värsta fall riva DevKit-valet
+och därmed hela avsnitt 2 — den ska mätas tidigt, på en prototyp, inte antas.
+Ö10 är den enda som kan visa sig vara ett eget projekt.
