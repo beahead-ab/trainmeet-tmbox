@@ -1,11 +1,17 @@
-# Vad de byggda TMBoxarna faktiskt är
+# TMBox v1 Legacy — de boxar som redan finns
 
 Bekräftat av Benny Thålin 2026-08-23, som svar på en punktlista med de
-antaganden firmwaren i det här repot vilar på. Dellista och kopplingsschema
+antaganden firmwaren i det här repot vilade på. Dellista och kopplingsschema
 ligger till grund tillsammans med svaren.
 
-Det här dokumentet är fakta om hårdvara som finns, inte ett beslut om vad vi
-ska göra åt den. Beslutet spåras i issue #13.
+> **Beslutat 2026-08-23:** de här boxarna är **TMBox v1 Legacy**. De behåller
+> Bennys `mqttTamBox` och rörs inte. Den nya TrainMeet-firmwaren portas
+> **inte** till ESP8266 — se [TMBOX-V2-HARDWARE.md](TMBOX-V2-HARDWARE.md) för
+> vad TMBox v2 är, och issue #13 för varför.
+>
+> Dokumentet står kvar som referens: det beskriver hårdvara som är i drift på
+> riktiga träffar, och den kunskapen ska inte tappas bara för att vi bygger
+> något nytt vid sidan av.
 
 ## Kortet
 
@@ -19,7 +25,7 @@ ska göra åt den. Beslutet spåras i issue #13.
 **Det är inte en ESP32.** Firmwaren i det här repot byggs mot
 `platform = espressif32` och använder `ESPmDNS.h`, `WiFi.h`, `Preferences.h`
 och `esp_random()`, som alla är ESP32-specifika. Den kan inte laddas i en
-befintlig låda som den ser ut idag.
+v1-låda, och ska inte heller anpassas för att kunna det.
 
 ## Knappsats
 
@@ -29,9 +35,11 @@ befintlig låda som den ser ut idag.
 | Ansluten via | **PCF8574 I2C-kort, adress `0x20`** |
 | GPIO-matris | Finns inte |
 
-Alla tre hårdvaruprofiler i `hardware_profile.h` läser tangenterna som en
-direkt GPIO-matris (`TMBOX_ROW_PINS`, `TMBOX_COL_PINS`) med biblioteket
-`chris--a/Keypad`. Det motsvarar ingenting i de byggda lådorna.
+Hårdvaruprofilen i `hardware_profile.h` läser tangenterna som en direkt
+GPIO-matris (`TMBOX_ROW_PINS`, `TMBOX_COL_PINS`) med biblioteket
+`chris--a/Keypad`. Det motsvarar ingenting i en v1-låda — och behöver inte
+göra det. En passiv matris direkt på 3,3 V-GPIO är enklare än ett PCF8574 på
+en buss som måste nivåanpassas, vilket är varför v2 gör så.
 
 Frågan om GPIO12 som boot-pin är därmed inte längre relevant: ingen tangent
 sitter på en GPIO.
@@ -117,7 +125,9 @@ ny hårdvara — summern finns redan.
 Alla byggda boxar kör idag `mqttTamBox`:
 <https://github.com/etxbct/mqttTamBox>
 
-Den är skriven för exakt den här hårdvaran och är därför den bästa
-referensen för hur ESP8266, PCF8574-knappsatsen och displayen ska drivas.
-Benny skriver att han håller på att skriva om det mesta till en kommande
-version.
+Den är skriven för exakt den här hårdvaran, den fungerar, och den fortsätter
+vara det som kör i v1-lådorna. Benny skriver att han håller på att skriva om
+det mesta till en kommande version.
+
+Vi rör den inte. TrainMeets nya firmware och `mqttTamBox` är två program för
+två generationer hårdvara, och det är avsiktligt.

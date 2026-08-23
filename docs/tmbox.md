@@ -147,18 +147,23 @@ aldrig detta lager.
 
 ### 2.6 Plattform
 
-Arduino-ramverket. Ingen Raspberry Pi krävs i boxen själv.
+**TMBox v2: ESP32-S3-DevKitC-1-N8R2** med Arduino-ramverket. Ingen Raspberry
+Pi krävs i boxen själv.
 
-> **Kortet är inte avgjort.** Firmwaren i det här repot byggs mot ESP32 och
-> läser knappsatsen som en GPIO-matris. De boxar som faktiskt är byggda är
-> ESP8266 (ESP-12F) nodeMCU V3 med knappsatsen på ett PCF8574 över I2C.
-> Skillnaden är bekräftad av den som byggt dem och sammanställd i
-> [`firmware/esp32/HARDWARE-FACTS.md`](../firmware/esp32/HARDWARE-FACTS.md);
-> vad vi gör åt den spåras i issue #13.
+Displayen är 20×4 tecken, HD44780-kompatibel, på ett PCF8574 med adress
+`0x27` bakom en nivåomvandlare. Knappsatsen är en passiv 4×4-matris direkt på
+3,3 V-GPIO. Fullständig pinntabell, stycklista och kopplingsschema finns i
+[`docs/TMBOX-V2-HARDWARE.md`](TMBOX-V2-HARDWARE.md).
+
+> **TMBox v1 Legacy.** De boxar som redan är byggda är ESP8266 (ESP-12F)
+> nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller Bennys
+> `mqttTamBox` och rörs inte — den här firmwaren portas **inte** till dem.
+> Beslutet togs 2026-08-23; hårdvaran beskrivs i
+> [`docs/TMBOX-V1-LEGACY.md`](TMBOX-V1-LEGACY.md) och skälen i issue #13.
 >
 > Det rör inte `lib/tmbox_core/`. Renderaren, navigationen och
-> uppmärksamhetspolicyn är ren C++17 utan hårdvaruberoenden — det är därför
-> de går att testa utan en box, och det är därför de överlever bytet.
+> uppmärksamhetspolicyn är ren C++17 utan hårdvaruberoenden — de gäller för
+> v2 precis som de gjorde innan.
 
 ## 3. Anslutning, installation och identitet
 

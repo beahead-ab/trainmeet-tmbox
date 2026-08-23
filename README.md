@@ -32,15 +32,18 @@ pio run -e esp32-benny -t upload
 
 Det finns tre hårdvaruprofiler:
 
-- `esp32-benny` följer de pin-val som identifierats i Bennys befintliga kod.
-- `esp32-classic-safe` undviker boot-strapping-pinnen GPIO12 vid ny kabeldragning.
-- `esp32-s3` är profilen för en framtida ESP32-S3-baserad box.
+- **`esp32-s3` är TMBox v2** och byggmålet som gäller. ESP32-S3-DevKitC-1-N8R2,
+  20×4-display på `0x27` bakom en nivåomvandlare, passiv 4×4-matris direkt på
+  GPIO, summer och statuslysdiod. Fullständig specifikation i
+  [docs/TMBOX-V2-HARDWARE.md](docs/TMBOX-V2-HARDWARE.md).
+- `esp32-benny` och `esp32-classic-safe` beskriver klassisk ESP32 och behålls
+  för den som ska få igång ett kort som råkar finnas. De är inte produkten.
 
-> **Ingen av dem passar de boxar som är byggda.** De är ESP8266 (ESP-12F)
-> nodeMCU V3 med knappsatsen på ett PCF8574 över I2C — inte en GPIO-matris på
-> en ESP32. Bekräftat av den som byggt dem och sammanställt i
-> [firmware/esp32/HARDWARE-FACTS.md](firmware/esp32/HARDWARE-FACTS.md).
-> Ladda ingenting härifrån i en befintlig låda innan issue #13 är avgjord.
+> **TMBox v1 Legacy.** De boxar Benny och Lars Eriksson redan byggt är ESP8266
+> (ESP-12F) nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller
+> sin befintliga firmware och rörs inte; den här koden portas inte till dem.
+> Hårdvaran är dokumenterad i
+> [docs/TMBOX-V1-LEGACY.md](docs/TMBOX-V1-LEGACY.md).
 
 Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/esp32/README.md](firmware/esp32/README.md). Komplett koppling av display, tangentbord, ström och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
 

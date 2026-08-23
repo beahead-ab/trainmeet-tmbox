@@ -13,6 +13,9 @@ rather than by eye.
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -103,51 +106,157 @@ class KeysTheFirmwareActuallyHandlesTest(unittest.TestCase):
         self.assertNotIn("MER", frames)
 
 
-class BoardMismatchTest(unittest.TestCase):
-    """The spec named a microcontroller the built boxes do not have.
+class ProfileTwoIsTheProductTest(unittest.TestCase):
+    """One pin number, one place.
 
-    `docs/tmbox.md` said "ESP32-S3" while `platformio.ini` builds for
-    `esp32dev`, and the five boxes that exist are ESP8266 nodeMCU V3. Three
-    different answers to one question, and the one in the spec was the one
-    nobody could check without opening a box.
+    The v2 hardware specification carries a pin table, `hardware_profile.h`
+    carries the same numbers as constants, and the enclosure gets drilled from
+    the first while the firmware is built from the second. A table and a header
+    that disagree is a box that is soldered wrong.
 
-    Until the firmware and the hardware agree, any document naming a board
-    has to say that they do not.
+    So the numbers are read out of the compiled header and diffed against the
+    document, rather than trusted to stay in step by hand.
     """
 
-    FACTS = ROOT / "firmware/esp32/HARDWARE-FACTS.md"
+    SPEC = ROOT / "docs/TMBOX-V2-HARDWARE.md"
+    LEGACY = ROOT / "docs/TMBOX-V1-LEGACY.md"
+    HEADER = ROOT / "firmware/esp32/hardware_profile.h"
     PLATFORMIO = ROOT / "firmware/esp32/platformio.ini"
 
-    def test_the_firmware_still_targets_esp32(self) -> None:
-        """The premise. When the port lands, this fails first and says so."""
+    #: Radrubrik i specens pinntabell → konstant i profilen.
+    PINS = {
+        "Knappsats rad R1": "TMBOX_ROW_PINS[0]",
+        "Knappsats rad R2": "TMBOX_ROW_PINS[1]",
+        "Knappsats rad R3": "TMBOX_ROW_PINS[2]",
+        "Knappsats rad R4": "TMBOX_ROW_PINS[3]",
+        "Knappsats kolumn C1": "TMBOX_COL_PINS[0]",
+        "Knappsats kolumn C2": "TMBOX_COL_PINS[1]",
+        "Knappsats kolumn C3": "TMBOX_COL_PINS[2]",
+        "Knappsats kolumn C4": "TMBOX_COL_PINS[3]",
+        "I2C SDA": "TMBOX_LCD_SDA",
+        "I2C SCL": "TMBOX_LCD_SCL",
+        "Summer": "TMBOX_BUZZER_PIN",
+        "Status röd": "TMBOX_STATUS_LED_RED",
+        "Status grön": "TMBOX_STATUS_LED_GREEN",
+        "Status blå": "TMBOX_STATUS_LED_BLUE",
+        "Provisioneringsknapp": "TMBOX_PROVISION_BUTTON",
+    }
 
-        self.assertIn("platform = espressif32", self.PLATFORMIO.read_text(encoding="utf-8"))
+    def _compiled(self) -> dict[str, int]:
+        """Read the numbers the compiler sees, not the ones the file says.
 
-    def test_the_built_boxes_are_recorded_as_esp8266(self) -> None:
-        self.assertIn("ESP8266", self.FACTS.read_text(encoding="utf-8"))
+        Arduino.h is not available here, so it is swapped for <cstdint>. The
+        profile uses nothing else from it.
+        """
 
-    def test_the_spec_says_the_two_do_not_match(self) -> None:
-        """A reader who only opens tmbox.md must not come away thinking the
-        firmware fits the boxes."""
+        compiler = shutil.which("g++")
+        if compiler is None:
+            self.skipTest("g++ saknas")
+        with tempfile.TemporaryDirectory() as work:
+            work_path = Path(work)
+            header = self.HEADER.read_text(encoding="utf-8").replace(
+                "#include <Arduino.h>", "#include <cstdint>"
+            )
+            (work_path / "profile.h").write_text(header, encoding="utf-8")
+            fields = "\n".join(
+                f'  printf("{name}=%d\\n", (int)({name}));' for name in self.PINS.values()
+            )
+            (work_path / "probe.cpp").write_text(
+                "#include <cstdio>\n"
+                "#define TMBOX_HARDWARE_PROFILE 2\n"
+                '#include "profile.h"\n'
+                "int main() {\n"
+                f"{fields}\n"
+                '  printf("cols=%d\\n", (int)TMBOX_LCD_COLUMNS);\n'
+                '  printf("rows=%d\\n", (int)TMBOX_LCD_ROWS);\n'
+                '  printf("addr=%d\\n", (int)TMBOX_LCD_ADDRESS);\n'
+                '  printf("buzzer=%d\\n", (int)TMBOX_HAS_BUZZER);\n'
+                "  return 0;\n}\n",
+                encoding="utf-8",
+            )
+            build = subprocess.run(
+                [compiler, "-std=c++17", str(work_path / "probe.cpp"), "-o", str(work_path / "probe")],
+                capture_output=True, text=True, timeout=120,
+            )
+            self.assertEqual(0, build.returncode, build.stderr)
+            run = subprocess.run([str(work_path / "probe")], capture_output=True, text=True, timeout=60)
+            self.assertEqual(0, run.returncode, run.stderr)
 
-        spec = (ROOT / "docs/tmbox.md").read_text(encoding="utf-8")
-        self.assertIn("HARDWARE-FACTS.md", spec)
-        self.assertIn("ESP8266", spec)
+        values = {}
+        for line in run.stdout.splitlines():
+            key, _, value = line.partition("=")
+            values[key] = int(value)
+        return values
 
-    def test_no_current_document_names_a_board_without_the_caveat(self) -> None:
-        """`ESP32-S3` was asserted flatly in the spec's platform section."""
-
-        offenders = []
-        for document in _documents():
-            name = _relative(document)
-            if name in HISTORY:
+    def _spec_pins(self) -> dict[str, int]:
+        found = {}
+        for line in self.SPEC.read_text(encoding="utf-8").splitlines():
+            cells = [cell.strip() for cell in line.split("|")]
+            if len(cells) < 4:
                 continue
-            body = document.read_text(encoding="utf-8")
-            if not re.search(r"ESP32[\s-]?S3", body):
-                continue
-            if "HARDWARE-FACTS" not in body and "ESP8266" not in body:
-                offenders.append(name)
-        self.assertEqual([], offenders, "dokument namnger ESP32-S3 utan förbehåll")
+            if cells[1] in self.PINS and cells[2].isdigit():
+                found[cells[1]] = int(cells[2])
+        return found
+
+    def test_the_spec_and_the_profile_agree_on_every_pin(self) -> None:
+        compiled = self._compiled()
+        documented = self._spec_pins()
+
+        missing = sorted(set(self.PINS) - set(documented))
+        self.assertEqual([], missing, "pinnar saknas i specens tabell")
+
+        wrong = [
+            f"{name}: specen säger {documented[name]}, profilen {compiled[self.PINS[name]]}"
+            for name in self.PINS
+            if documented[name] != compiled[self.PINS[name]]
+        ]
+        self.assertEqual([], wrong)
+
+    def test_profile_two_is_the_default(self) -> None:
+        """A box built from the spec must be what a plain build produces."""
+
+        header = self.HEADER.read_text(encoding="utf-8")
+        self.assertIn("#define TMBOX_HARDWARE_PROFILE 2", header)
+        self.assertIn("default_envs = esp32-s3", self.PLATFORMIO.read_text(encoding="utf-8"))
+
+    def test_the_display_is_twenty_by_four(self) -> None:
+        compiled = self._compiled()
+        self.assertEqual(20, compiled["cols"])
+        self.assertEqual(4, compiled["rows"])
+        self.assertEqual(0x27, compiled["addr"])
+
+    def test_the_buzzer_is_wired_in_v2(self) -> None:
+        """The attention policy was built and tested long before a pin existed."""
+
+        self.assertEqual(1, self._compiled()["buzzer"])
+
+    def test_the_legacy_boxes_are_documented_and_out_of_scope(self) -> None:
+        legacy = self.LEGACY.read_text(encoding="utf-8")
+        self.assertIn("ESP8266", legacy)
+        self.assertIn("v1 Legacy", legacy)
+
+    def test_the_build_does_not_target_esp8266(self) -> None:
+        """The decision, pinned where it can actually be checked.
+
+        An earlier version of this test tried to police prose - it looked for
+        the words "porta till ESP8266" and duly flagged the sentence that
+        states we will not. Intent in a paragraph is not mechanically
+        checkable. A platform in a build file is.
+
+        Somebody starting the port has to add an espressif8266 environment,
+        and that is where this stops them long enough to ask why.
+        """
+
+        platformio = self.PLATFORMIO.read_text(encoding="utf-8")
+        self.assertNotIn("espressif8266", platformio)
+        self.assertIn("platform = espressif32", platformio)
+
+    def test_the_legacy_document_records_the_decision(self) -> None:
+        """So the next reader does not re-open a settled question."""
+
+        legacy = self.LEGACY.read_text(encoding="utf-8")
+        self.assertIn("portas", legacy)
+        self.assertIn("mqttTamBox", legacy)
 
 
 class DocumentationLinksTest(unittest.TestCase):

@@ -1,40 +1,19 @@
 # Koppling av display och tangentbord
 
-Det här dokumentet beskriver kopplingen den här firmwaren är skriven för:
-en klassisk ESP32, 16x2-teckendisplay med I2C-backpack och ett passivt
-4x4-matristangentbord.
+Det här dokumentet beskrev kopplingen för en klassisk ESP32 innan TMBox v2
+fastställdes.
 
-> **De byggda lådorna ser inte ut så.** Frågorna nedan är besvarade sedan
-> 2026-08-23, och svaren står i
-> [HARDWARE-FACTS.md](HARDWARE-FACTS.md): boxarna är ESP8266 nodeMCU V3 med
-> knappsatsen på ett PCF8574 över I2C, inte en GPIO-matris på en ESP32.
-> Läs det dokumentet först. Det här beskriver vad firmwaren antar, inte vad
-> som står på bordet.
-
-## Vad det här dokumentet antog
-
-Hämtat ur TrainMeet-koden och en bild på Bennys box, innan hårdvaran var
-bekräftad:
-
-- displayen är 16 tecken bred och 2 rader hög — **stämmer**
-- tangentbordet är 4x4 med ordningen `1 2 3 A / 4 5 6 B / 7 8 9 C / * 0 # D`
-  — **stämmer**, men det sitter bakom ett PCF8574
-- den tidigare sketchen använder LCD-adress `0x27` — **stämmer**
-- den tidigare sketchen använder GPIO 13/12/14/27 för rader och
-  26/25/33/32 för kolumner — **stämmer inte**, det finns ingen GPIO-matris
-
-Och det som var öppet, med svaren:
-
-| Fråga | Svar |
-|---|---|
-| Exakt kort och märkning | ESP8266 (ESP-12F) nodeMCU V3, `ESP8266MOD 12-F` |
-| Ordningen på tangentbordets åtta ledare | Irrelevant — knappsatsen sitter på I2C |
-| Backpackens matning | Vin, 5 V |
-| I2C-nivåomvandlare i lådan | Nej |
-| Är adressen `0x27` på alla | Ja |
-
-Använd därför GPIO-numren på kortets silkscreen, inte pinnens fysiska nummer i
-en bild från ett annat fabrikat.
+> **Gällande koppling står i
+> [docs/TMBOX-V2-HARDWARE.md](../../docs/TMBOX-V2-HARDWARE.md).** Där finns
+> ESP32-S3-kortet, pinntabellen, I2C-nivåanpassningen, summern,
+> statuslysdioden, provisioneringsknappen, stycklistan och kopplingsschemat.
+>
+> De boxar som redan är byggda är varken det ena eller det andra — de är
+> ESP8266 och beskrivs i
+> [docs/TMBOX-V1-LEGACY.md](../../docs/TMBOX-V1-LEGACY.md). De rörs inte.
+>
+> Resten av den här filen står kvar för de två ESP32-profilerna som behålls
+> för uppstart av lösa kort.
 
 ## Rekommenderad uppbyggnad
 
