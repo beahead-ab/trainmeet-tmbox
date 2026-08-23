@@ -1,8 +1,15 @@
 # Monsterprompt till Claude: implementera TMBox för Trainmeet
 
+> **Historik — implementera inte härifrån.**
+> Det här dokumentet ledde fram till [`docs/tmbox.md`](../tmbox.md), som är den
+> gällande produktbeskrivningen, och till [`beslut.md`](beslut.md), som är
+> normerande där de två säger emot varandra. Det bevaras för att visa *varför*
+> besluten ser ut som de gör. Filen `tmbox-flodesbild.html` som nämns nedan är
+> borttagen; motsvarigheten idag är [`tmbox-scenarier.html`](tmbox-scenarier.html).
+
 Du ska utveckla **TMBox-funktionaliteten end-to-end** i det repository och den kodbas du har fått tillgång till. Läs först igenom hela repositoryt, befintlig dokumentation, datamodell, API, tester, byggsystem och eventuell befintlig hårdvarukod. Anpassa lösningen till den befintliga stacken i stället för att bygga en parallell prototyp.
 
-Den bifogade filen `tmbox-flodesbild.html` är den aktuella interaktions- och flödesreferensen. Använd den för att förstå skärmbilder, statusar och kommandon. Den här specifikationen är samtidigt normerande för arkitektur, ansvarsfördelning, säkerhet och tillståndsregler.
+Den bifogade filen `tmbox-flodesbild.html` var den aktuella interaktions- och flödesreferensen när det här skrevs. Använd den för att förstå skärmbilder, statusar och kommandon. Den här specifikationen är samtidigt normerande för arkitektur, ansvarsfördelning, säkerhet och tillståndsregler.
 
 Arbeta konkret: inspektera, planera, implementera, migrera, testa och dokumentera. Stanna inte vid pseudokod eller en designskiss. Om repositoryt saknar någon nödvändig del ska du skapa den på ett sätt som passar den befintliga strukturen. Gör rimliga antaganden där information saknas, dokumentera antagandena och fråga endast om ett val verkligen blockerar en säker implementation.
 

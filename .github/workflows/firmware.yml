@@ -17,6 +17,12 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
+      # Both suites are dependency-free, so they run before PlatformIO is
+      # fetched. The docs tests hold the documentation to the firmware: they
+      # are what caught a spec describing a key that navigation.cpp never
+      # handles.
+      - name: Test the version tool and the documentation
+        run: python -m unittest discover -s tests
       - name: Install PlatformIO
         run: python -m pip install platformio
       - name: Build supported profiles

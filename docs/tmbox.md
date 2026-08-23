@@ -244,6 +244,14 @@ för föregående skärm inte råkar tolkas mot den nya.
 - `*` radera, tillbaka, initiera avbrott
 - `#` välj, OK, bekräfta data, kvittera visning
 
+> **`D` är specificerad men inte byggd.** Tecknet `'D'` förekommer inte en
+> enda gång i `firmware/esp32/lib/tmbox_core/navigation.cpp`, och `MER` finns
+> inte i någon ruta i `test_native/golden_frames.txt`. Rutorna nedan som visar
+> `D=MER`, och `D=NÄRMAR SIG` i avsnitt 10, beskriver alltså avsedd funktion —
+> inte vad en box gör idag. Tangenten sitter i knappsatsen och gör ingenting.
+> [`docs/underlag/tmbox-scenarier.html`](underlag/tmbox-scenarier.html) visar
+> vad som faktiskt är byggt.
+
 **Säkerhetsregel:** `#` får aldrig lämna ett operativt beslut — `KLART`,
 `EJ KLART`, `AVGÅTT` eller `ANKOMMIT` bekräftas alltid via `A`/`B`, aldrig
 via `#`. Regeln gäller synkront i motorn och i alla klienter (box,

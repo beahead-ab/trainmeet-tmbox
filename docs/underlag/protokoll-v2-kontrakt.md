@@ -10,7 +10,7 @@ operations,models,identity}.py`.
 
 Detta dokument definierar transport, topics, meddelandekuvert, revisions-
 och idempotensregler samt tillstånds­maskiner. Det definierar **inte**
-skärmtexter (de finns redan i [tmbox-flodesbild.html](tmbox-flodesbild.html))
+skärmtexter (de finns redan i [tmbox-scenarier.html](tmbox-scenarier.html))
 och inte implementationsdetaljer i respektive repo — det är nästa steg.
 
 ## 2. Arkitekturskifte: enhet → station, inte enhet → panel

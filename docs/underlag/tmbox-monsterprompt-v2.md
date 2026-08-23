@@ -1,5 +1,12 @@
 # Monsterprompt v2: TMBox — nuläge, beslut och väg till första releasen
 
+> **Historik — implementera inte härifrån.**
+> Det här dokumentet ledde fram till [`docs/tmbox.md`](../tmbox.md), som är den
+> gällande produktbeskrivningen, och till [`beslut.md`](beslut.md), som är
+> normerande där de två säger emot varandra. Det bevaras för att visa *varför*
+> besluten ser ut som de gör. Filen `tmbox-flodesbild.html` som nämns nedan är
+> borttagen; motsvarigheten idag är [`tmbox-scenarier.html`](tmbox-scenarier.html).
+
 Detta ersätter `tmbox-monsterprompt-claude.md` (2026-08-19). Skillnaden är att den
 ursprungliga prompten skrevs **utan kännedom om befintlig kod**. Denna version är
 skriven **efter** en fullständig genomgång av `trainmeet-tambox`,
