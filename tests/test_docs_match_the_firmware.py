@@ -1,14 +1,4 @@
-"""Documentation that describes keys the box does not have.
-
-`docs/underlag/tmbox-flodesbild.html` showed `D=MER` in seventeen places. The
-letter `'D'` does not appear once in `navigation.cpp` - the key is wired in
-hardware and does nothing in software. Anyone reading that file would have
-built against a control that cannot be pressed.
-
-It was replaced rather than corrected, which left links pointing at a file
-that no longer exists. Both failures are mechanical, so both are checked here
-rather than by eye.
-"""
+"""Keep public documentation aligned with the firmware."""
 
 from __future__ import annotations
 
@@ -21,15 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 NAVIGATION = ROOT / "firmware/esp32/lib/tmbox_core/navigation.cpp"
-
-#: Files that deliberately preserve superseded decisions. They carry a banner
-#: saying so, and they are allowed to describe a box that never got built.
-HISTORY = {
-    "docs/underlag/tmbox-monsterprompt-claude.md",
-    "docs/underlag/tmbox-monsterprompt-v2.md",
-    "docs/underlag/gap-analys.md",
-}
-
 
 def _documents() -> list[Path]:
     found = [ROOT / "README.md"]
@@ -81,8 +62,6 @@ class KeysTheFirmwareActuallyHandlesTest(unittest.TestCase):
         offenders = []
         for document in _documents():
             name = _relative(document)
-            if name in HISTORY:
-                continue
             body = document.read_text(encoding="utf-8")
             # `D=` followed by a word is a key presented as an action.
             # "D saknar funktion" and "`'D'` förekommer inte" both pass.
@@ -296,8 +275,14 @@ class DocumentationLinksTest(unittest.TestCase):
         ]
         self.assertEqual([], linked)
 
-    def test_the_replacement_reference_is_present(self) -> None:
-        self.assertTrue((ROOT / "docs/underlag/tmbox-scenarier.html").exists())
+    def test_internal_working_notes_are_not_public_docs(self) -> None:
+        forbidden = ("claude", "codex", "chatgpt", "monsterprompt")
+        offenders = []
+        for document in _documents():
+            body = document.read_text(encoding="utf-8").lower()
+            if any(term in body for term in forbidden):
+                offenders.append(_relative(document))
+        self.assertEqual([], offenders)
 
 
 if __name__ == "__main__":

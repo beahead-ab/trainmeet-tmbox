@@ -1,13 +1,11 @@
 # TMBox v1 Legacy — de boxar som redan finns
 
-Bekräftat av Benny Thålin 2026-08-23, som svar på en punktlista med de
-antaganden firmwaren i det här repot vilade på. Dellista och kopplingsschema
-ligger till grund tillsammans med svaren.
+Det här dokumentet sammanfattar verifierad hårdvara från den tidigare
+generationens boxar och deras kopplingsschema.
 
-> **Beslutat 2026-08-23:** de här boxarna är **TMBox v1 Legacy**. De behåller
-> Bennys `mqttTamBox` och rörs inte. Den nya TrainMeet-firmwaren portas
-> **inte** till ESP8266 — se [TMBOX-V2-HARDWARE.md](TMBOX-V2-HARDWARE.md) för
-> vad TMBox v2 är, och issue #13 för varför.
+> De här boxarna är **TMBox v1 Legacy**. De behåller `mqttTamBox` och rörs
+> inte. Den nya TrainMeet-firmwaren portas **inte** till ESP8266 — se
+> [TMBOX-V2-HARDWARE.md](TMBOX-V2-HARDWARE.md) för TMBox v2.
 >
 > Dokumentet står kvar som referens: det beskriver hårdvara som är i drift på
 > riktiga träffar, och den kunskapen ska inte tappas bara för att vi bygger
@@ -19,7 +17,7 @@ ligger till grund tillsammans med svaren.
 |---|---|
 | Modul | ESP8266 (ESP-12F), nodeMCU V3 |
 | Märkning på burken | `ESP8266MOD 12-F` (foto) |
-| Antal byggda | 5 av Benny, flera av Lars Eriksson (Vagnsta) |
+| Antal byggda | Flera enheter med likvärdig koppling |
 | Kopplade lika? | Ja — samma programvara, likvärdig koppling |
 
 **Det är inte en ESP32.** Firmwaren i det här repot byggs mot
@@ -54,11 +52,10 @@ sitter på en GPIO.
 | Matning | Vin (5 V) |
 | Nivåomvandlare | **Nej** |
 | Kontrastpotentiometer | Ja |
-| ÅÄÖ | Inte i standardteckenuppsättningen — Benny skapar dem som egendefinierade tecken, max 8 |
+| ÅÄÖ | Inte i standardteckenuppsättningen — hanteras som egendefinierade tecken, max 8 |
 
-Lars Erikssons boxar har enligt Benny 20×4. Programvaran hos oss ritar redan
-alla fyra geometrierna, så det är en inställning per låda, inte en
-begränsning.
+Det finns även legacy-boxar med 20×4-display. Programvaran ritar alla fyra
+geometrierna, så det är en inställning per låda, inte en begränsning.
 
 Att backpacken matas med 5 V utan nivåomvandlare betyder att SDA och SCL
 vilar på 5 V genom kortets pull-up, medan ESP8266:ns GPIO är specificerade
@@ -126,8 +123,7 @@ Alla byggda boxar kör idag `mqttTamBox`:
 <https://github.com/etxbct/mqttTamBox>
 
 Den är skriven för exakt den här hårdvaran, den fungerar, och den fortsätter
-vara det som kör i v1-lådorna. Benny skriver att han håller på att skriva om
-det mesta till en kommande version.
+vara det som kör i v1-lådorna.
 
 Vi rör den inte. TrainMeets nya firmware och `mqttTamBox` är två program för
 två generationer hårdvara, och det är avsiktligt.

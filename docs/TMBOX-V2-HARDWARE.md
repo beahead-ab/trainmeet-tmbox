@@ -4,7 +4,7 @@
 inte porta till ESP8266. Öppna punkter står i [sista avsnittet](#öppna-beslut)
 och måste besvaras innan något beställs.
 
-TMBox v1 Legacy — de boxar Benny och Lars Eriksson redan byggt — beskrivs i
+TMBox v1 Legacy — den tidigare generationens boxar — beskrivs i
 [TMBOX-V1-LEGACY.md](TMBOX-V1-LEGACY.md). De rörs inte och behåller sin
 befintliga firmware. Det här dokumentet handlar bara om v2.
 
@@ -23,8 +23,8 @@ spänning — den kan sitta direkt på 3,3 V-GPIO utan nivåanpassning, till
 skillnad från v1:s PCF8574 på en 5 V-buss. Det tar bort en hel klass av
 problem och en I2C-adress.
 
-**Mekanisk kraft ska aldrig nå kretskortet.** Benny rapporterar att
-USB-kontakten kan tryckas in i kortet och ge glapp. v2 löser det med ett
+**Mekanisk kraft ska aldrig nå kretskortet.** Erfarenhet från legacy-boxarna
+visar att USB-kontakten kan tryckas in i kortet och ge glapp. v2 löser det med ett
 panelmonterat uttag och en intern kabel, inte med försiktighet.
 
 **Firmware, simulator, tester och dokument delar en profil.** Ett pinnummer
@@ -113,7 +113,7 @@ Pinnarna 4–9 och 15–18 är oförändrade från profil 2 som redan finns i
 **Varför 20×4 och inte 16×2.** Renderaren ritar redan alla fyra geometrierna
 och guldfilerna täcker dem, så det är ingen mjukvarukostnad. Fyra rader ger
 utrymme för tågnummer, spår, tid och åtgärdsrad samtidigt utan att korta av
-text. Lars Erikssons boxar kör redan 20×4, så formatet är prövat i drift.
+text. Formatet används även i legacy-boxar och är därför prövat i drift.
 
 **Adressen.** Backpackar med PCF8574T svarar på `0x27`, de med PCF8574A**T**
 på `0x3F`. Beställ T-varianten. Firmwaren har `0x27` som förval och tar
@@ -249,8 +249,8 @@ Föreslagna lägen:
 > i profilen, men firmwaren läser inte pinnen. Kopplingen ska finnas i
 > prototypen så att funktionen går att lägga till utan att löda om.
 
-Motsvarar `D0` i v1:s kopplingsschema, som Benny använder för
-lösenordsåterställning. Knappen ska sitta åtkomlig men inte lätt att trycka på
+Motsvarar `D0` i v1:s kopplingsschema för lösenordsåterställning. Knappen ska
+sitta åtkomlig men inte lätt att trycka på
 av misstag — försänkt i lådans undersida.
 
 ---
@@ -269,7 +269,7 @@ lådans vägg och tar upp all mekanisk kraft. En kort intern USB-C-kabel går
 därifrån till DevKitens UART-port. Kortet skruvas fast i distanser. Ingen
 kraft från kabeln når kortets lödda kontakt.
 
-Det löser Bennys punkt 7.1 direkt: i v1 sitter kortets kontakt i lådans vägg
+Det löser det kända legacy-problemet där kortets kontakt sitter i lådans vägg
 och kan tryckas in.
 
 Samma uttag används för att flasha ny firmware — locket behöver inte öppnas.
@@ -300,8 +300,8 @@ ström i pulser; de keramiska tar högfrekvent brus nära varje krets.
 | USB | Panelmonterat genomföringsuttag |
 | Kortet | Distanser mot bottenplattan |
 
-**Varför en separat frontpanel.** Benny rapporterar att display och knappsats
-fått limmas eftersom en 3D-utskriven låda inte har tillräckligt stark plast.
+**Varför en separat frontpanel.** I legacy-boxar har display och knappsats
+behövt limmas eftersom en 3D-utskriven låda inte har tillräckligt stark plast.
 Limning är inte en lösning, det är en eftergift — den gör dessutom att en
 trasig display inte går att byta. En skuren panel i akryl eller aluminium bär
 infästningen, och skalet behöver då bara hålla panelen.
@@ -446,17 +446,16 @@ Måste besvaras innan konstruktionen kan beställas.
 | # | Fråga | Varför den blockerar |
 |---|---|---|
 | Ö1 | Hur många boxar i första serien? | Avgör om skalet ska 3D-skrivas eller formsprutas, och om en egen kretskortsdesign lönar sig i stället för DevKit. |
-| Ö2 | Bekräfta att 20×4 är rätt, inte 16×2. | Ändrar frontpanelens mått och därmed hela lådans storlek. Går inte att ändra efter att panelen skurits. |
 | Ö3 | Vilken knappsatsmodell exakt? | Panelurtaget måste matcha. Membrantangentbord limmas; mekaniska skruvas. Vi vill ha mekaniska, men modellen bestämmer måtten. |
 | Ö4 | Räcker DevKitens kortantenn i den låda vi väljer? | DevKitC-1 bär en ESP32-S3-WROOM-1 med antenn på kretskortet, och modulen går inte att byta på ett färdigt DevKit. Visar sig en aluminiumfront dämpa för mycket är svaret ett eget kretskort med en WROOM-1**U** och extern antenn — vilket i så fall river hela DevKit-valet i avsnitt 2. Mät på en prototyp innan panelmaterialet bestäms. Hänger ihop med Ö5. |
 | Ö5 | Frontpanel i akryl eller aluminium? | Aluminium är starkare och snyggare men kan störa Wi-Fi och kräver isolering runt knappsatsen. Akryl är enklare. |
 | Ö6 | Ska ÅÄÖ visas, eller behåller vi translitterering? | Tre CGRAM-tecken av åtta. Påverkar renderaren och guldfilerna — de måste skrivas om ifall svaret är ja. |
-| Ö7 | Vilka statuslägen ska lysdioden ha? | Förslaget i avsnitt 8 är mitt, inte beslutat. Färgvalen bör stämma med hur klubben redan tolkar signalfärger. |
+| Ö7 | Vilka statuslägen ska lysdioden ha? | Förslaget i avsnitt 8 är ännu inte beslutat. Färgvalen bör stämma med hur användarna tolkar signalfärger. |
 | Ö8 | Ska boxen fungera utan accesspunkt på träffen? | Om ja behövs ett AP-läge i firmwaren och det är inte byggt. Om nej måste varje träff ha nät, vilket är ett driftkrav och inte ett hårdvarukrav. |
 | Ö9 | Vem bygger, och var? | Påverkar om stycklistan ska peka på svenska leverantörer eller på ett samlat beställningsunderlag. |
 | Ö10 | Ska v2-boxar kunna tala med v1-boxar på samma träff? | v1 kör `mqttTamBox` med ett annat protokoll. Om svaret är ja behöver servern översätta mellan de två, vilket är ett arbete ingen har budgeterat. |
 
-Ö2, Ö3 och Ö5 blockerar frontpanelen och måste besvaras innan något skärs.
+Ö3 och Ö5 blockerar frontpanelen och måste besvaras innan något skärs.
 Ö6 blockerar renderaren och guldfilerna. Ö4 kan i värsta fall riva DevKit-valet
 och därmed hela avsnitt 2 — den ska mätas tidigt, på en prototyp, inte antas.
 Ö10 är den enda som kan visa sig vara ett eget projekt.

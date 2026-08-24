@@ -156,10 +156,10 @@ Displayen är 20×4 tecken, HD44780-kompatibel, på ett PCF8574 med adress
 [`docs/TMBOX-V2-HARDWARE.md`](TMBOX-V2-HARDWARE.md).
 
 > **TMBox v1 Legacy.** De boxar som redan är byggda är ESP8266 (ESP-12F)
-> nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller Bennys
+> nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller
 > `mqttTamBox` och rörs inte — den här firmwaren portas **inte** till dem.
-> Beslutet togs 2026-08-23; hårdvaran beskrivs i
-> [`docs/TMBOX-V1-LEGACY.md`](TMBOX-V1-LEGACY.md) och skälen i issue #13.
+> Hårdvaran beskrivs i
+> [`docs/TMBOX-V1-LEGACY.md`](TMBOX-V1-LEGACY.md).
 >
 > Det rör inte `lib/tmbox_core/`. Renderaren, navigationen och
 > uppmärksamhetspolicyn är ren C++17 utan hårdvaruberoenden — de gäller för
@@ -265,8 +265,7 @@ för föregående skärm inte råkar tolkas mot den nya.
 > inte i någon ruta i `test_native/golden_frames.txt`. Rutorna nedan som visar
 > `D=MER`, och `D=NÄRMAR SIG` i avsnitt 10, beskriver alltså avsedd funktion —
 > inte vad en box gör idag. Tangenten sitter i knappsatsen och gör ingenting.
-> [`docs/underlag/tmbox-scenarier.html`](underlag/tmbox-scenarier.html) visar
-> vad som faktiskt är byggt.
+> Native-testerna och guldfilerna visar vad som faktiskt är byggt.
 
 **Säkerhetsregel:** `#` får aldrig lämna ett operativt beslut — `KLART`,
 `EJ KLART`, `AVGÅTT` eller `ANKOMMIT` bekräftas alltid via `A`/`B`, aldrig
@@ -476,10 +475,9 @@ sista regeln behöver ingen egen spärr, eftersom servern bara låter mottagaren
 svara på en klarering (`not_receiver`) och bara avsändaren återkalla den
 (`not_sender`). Riktningen på en rad säger alltså redan vem som flyttade den.
 
-Utgången är det som saknas: `TMBOX_BUZZER_PIN` är osatt tills Bennys svar 5.2
-säger om det finns en ledig GPIO. Utan den loggar boxen sitt beslut på
-serieporten och fortsätter — graceful degradering. Signalerna går redan att
-höra i simulatorn under server.trainmeet.app.
+I v2-profilen driver `TMBOX_BUZZER_PIN` summern på GPIO10. Om en profil saknar
+summer loggar boxen beslutet på serieporten och fortsätter. Signalerna går
+även att höra i simulatorn under server.trainmeet.app.
 
 Renderaren ska gå att testa med rena fixtures utan fysisk display — en
 native testmiljö kör renderare och tillståndsmaskiner i CI utan hårdvara,
