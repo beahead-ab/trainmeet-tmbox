@@ -50,8 +50,8 @@ The Pi owns the common display renderer. Golden-master tests currently lock:
 4. ready for departure
 5. final departure confirmation
 
-The implementation follows the intended Lovable workflow but keeps safety
-improvements that belong on the Pi: atomic state transitions, command expiry,
+The implementation follows the established operator workflow and keeps safety
+controls on the Pi: atomic state transitions, command expiry,
 revision checks, command-id idempotency and one input owner at a time.
 
 ## MQTT v1
@@ -100,4 +100,4 @@ QoS 1 commands and automatic reconnect against protocol **v2** instead — see
 
 1. double-track directed channels and 1.5-second alternating classic display
 2. local/TrainMeet clock adapters and stopped-clock messages
-3. hardware validation against Bennys original ESP32 box and final pin profile
+3. continued hardware validation for supported legacy clients

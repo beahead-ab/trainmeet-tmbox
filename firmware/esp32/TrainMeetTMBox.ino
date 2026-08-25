@@ -6,16 +6,9 @@
  * MQTT topics tmbox/v2/device/{id}/config and .../snapshot, each replaced
  * wholesale on every publish — no delta logic), browses that cache locally,
  * and only speaks on the wire to send a complete command. See
- * trainmeet-tmbox docs/underlag/tmbox-monsterprompt-v2.md §3.4/§3.4a for the
- * design this implements.
- *
- * This is the connectivity-and-proof-of-protocol slice: identity, discovery,
- * station assignment, config/snapshot caching, a minimal movement browser,
- * and one real write command (uppställt). The full local command-page
- * interaction (§6 rendering rules, train lookup, spårväljare, klarering,
- * linjen-ledig) is a separate, larger pass — see §22 step 3 in the same
- * document. Wi-Fi and MQTT are deliberately self-healing regardless: a lost
- * connection never leaves the firmware in a dead loop.
+ * trainmeet-tmbox docs/tmbox.md §2.4/§2.5 for the design this implements.
+ * Wi-Fi and MQTT are deliberately self-healing: a lost connection never
+ * leaves the firmware in a dead loop.
  */
 
 #include <Arduino.h>

@@ -88,7 +88,7 @@ Logisk matris:
 | R3 | 7 | 8 | 9 | C |
 | R4 | * | 0 | # | D |
 
-### Profil 1: Bennys sannolika befintliga koppling
+### Profil 1: äldre klassisk ESP32-koppling
 
 | Matrisledning | ESP32 GPIO | Tangenter på ledningen |
 |---|---:|---|
@@ -102,8 +102,8 @@ Logisk matris:
 | C4 | 32 | A, B, C, D |
 
 Detta är den enda pinmappning som faktiskt förekommer i den äldre TrainMeet-
-sketchen. Den är därför förstahandsvalet när Bennys färdigkopplade box ska
-provas.
+sketchen. Den finns kvar för utveckling och verifiering av äldre klassiska
+ESP32-byggen.
 
 GPIO12 är samtidigt en boot-strapping-pin på klassisk ESP32. Ett tangentläge
 som påverkar GPIO12 under uppstart kan på vissa kort ge startproblem. Släpp alla
@@ -112,7 +112,7 @@ säkrare profil 3.
 
 ### Profil 3: rekommenderad ny klassisk ESP32-koppling
 
-Profil 3 är identisk med Bennys profil förutom R2:
+Profil 3 är identisk med den äldre profilen förutom R2:
 
 | Matrisledning | ESP32 GPIO |
 |---|---:|
@@ -142,8 +142,7 @@ Bygg med `pio run -e esp32-classic-safe`.
 | LCD SDA | 8 |
 | LCD SCL | 9 |
 
-Detta är vår rekommenderade S3-profil, inte ett påstående om hur Bennys box är
-kopplad.
+Detta är den rekommenderade profilen för TMBox v2.
 
 ## Ta reda på ordningen på tangentbordets åtta ledare
 

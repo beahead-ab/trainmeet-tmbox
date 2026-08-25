@@ -1,6 +1,9 @@
 # TrainMeet TMBox
 
-Detta repo innehåller programvaran för den fysiska TrainMeet TMBoxen: ESP32, 16×2 LCD och 4×4-tangentbord. Boxen är en tunn och självläkande klient till [TrainMeet Server](https://github.com/beahead-ab/trainmeet-server), och talar protokoll v2 (`tmbox/v2/...`).
+Detta repo innehåller programvaran för den fysiska TrainMeet TMBoxen: ESP32-S3,
+20×4 LCD och 4×4-tangentbord. Boxen är en tunn och självläkande klient till
+[TrainMeet Server](https://github.com/beahead-ab/trainmeet-server), och talar
+protokoll v2 (`tmbox/v2/...`).
 
 Repot innehåller inte iPhone-appen. Den utvecklas separat i [trainmeet-iphone](https://github.com/beahead-ab/trainmeet-iphone).
 
@@ -26,8 +29,8 @@ Servern hittas automatiskt med mDNS/Bonjour. En serveradress kan också anges ma
 
 ```sh
 cd firmware/esp32
-pio run -e esp32-benny
-pio run -e esp32-benny -t upload
+pio run -e esp32-s3
+pio run -e esp32-s3 -t upload
 ```
 
 Det finns tre hårdvaruprofiler:
@@ -39,7 +42,7 @@ Det finns tre hårdvaruprofiler:
 - `esp32-benny` och `esp32-classic-safe` beskriver klassisk ESP32 och behålls
   för den som ska få igång ett kort som råkar finnas. De är inte produkten.
 
-> **TMBox v1 Legacy.** De boxar Benny och Lars Eriksson redan byggt är ESP8266
+> **TMBox v1 Legacy.** Den tidigare generationens boxar är ESP8266
 > (ESP-12F) nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller
 > sin befintliga firmware och rörs inte; den här koden portas inte till dem.
 > Hårdvaran är dokumenterad i
@@ -72,22 +75,12 @@ Tre guldfiler binder varje annan implementation till den här:
 Simulatorn under server.trainmeet.app speglar alla tre, och serverns testsvit
 faller om de skiljer sig.
 
-### Vad som återstår — och allt hänger på hårdvaran
+### Vad som återstår
 
-Ingenting av det som är kvar går att avgöra härifrån:
-
-- **Bennys svar på hårdvarufrågorna.** Kortmodell, knappsatsens GPIO-karta,
-  I2C-adress, kablage och elektriska nivåer. Frågorna är formulerade och
-  märkta med vilka som är blockerande.
-- **Summer och GPIO.** `AttentionController` avgör redan *vad* som förtjänar
-  uppmärksamhet. `TMBOX_BUZZER_PIN` är osatt tills fråga 5.2 är besvarad;
-  utan den loggar boxen sitt beslut på serieporten och kör vidare. Frekvens-
-  och längdtabellen finns och matchar simulatorns toner.
-- **Fysisk verifiering.** Ingen firmware har körts på en riktig låda. Fyra
-  kända Wi-Fi- och anslutningshärdningar väntar på att kunna provas mot
-  hårdvara i stället för mot en fixtur.
-- **Å, Ä, Ö.** Kärnan translittererar (`SPAR`, `BEGAR`) tills displayens
-  teckenuppsättning är bekräftad.
+Referenskonstruktionen är fastställd och firmwaren är testad utan hårdvara.
+Nästa steg är att bygga den första v2-prototypen och verifiera inkoppling,
+display, knappsats, summer, Wi-Fi, antennläge och kapsling i bänktest. Å, Ä och
+Ö translittereras tills de egendefinierade displaytecknen har verifierats.
 
 Bänktestlistan för det som kräver en människa och fysisk utrustning finns i
 [docs/BANKTEST.md](docs/BANKTEST.md). Se [docs/tmbox.md](docs/tmbox.md) för
@@ -141,18 +134,5 @@ Ordningen är inte godtycklig: firmwaren är originalet, simulatorn speglar.
 Den fullständiga produktbeskrivningen — namngivning, arkitektur, protokoll,
 skärmflöden, tester och definition of done — finns i [docs/tmbox.md](docs/tmbox.md).
 [docs/architecture.md](docs/architecture.md) beskriver det äldre, fortfarande
-driftsatta MQTT v1-protokollet. Beslutshistoriken bakom `docs/tmbox.md` finns i
-[docs/underlag/](docs/underlag/).
-
-[**tmbox-scenarier.html**](docs/underlag/tmbox-scenarier.html) är en
-interaktiv referens över allt boxen gör: en simulator vars tangenter kör en
-portning av `navigation.cpp` och `renderer.cpp`, en flödeskarta över tolv
-scenarier i tre kolumner (lokal TMBox / TrainMeet Server / motstationens
-TMBox) med topic och payload för varje steg, en katalog över alla nitton
-`Screen`-värden, och en dokumentationsvy som också listar vad firmwaren
-*inte* gör idag. Skärmrutorna renderas tecken för tecken i vald geometri —
-16×2, 20×2, 16×4 eller 20×4 — och stämmer mot `test_native/golden_frames.txt`.
-
-GitHub visar filen som källkod i webbläsaren. Ladda ner den och öppna lokalt
-för att köra den interaktivt.
-
+driftsatta MQTT v1-protokollet. En samlad dokumentationsöversikt finns i
+[docs/README.md](docs/README.md).
