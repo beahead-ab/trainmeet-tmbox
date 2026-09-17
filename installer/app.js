@@ -109,7 +109,7 @@ function render(focus = true) {
   next.disabled = !state.id;
   updateNext();
   if (state.step === 4) updateSummary();
-  if (focus) document.querySelector('#step-title').focus({ preventScroll: true });
+  if (focus) document.querySelector('#step-title').focus();
 }
 
 function updateNext() {
