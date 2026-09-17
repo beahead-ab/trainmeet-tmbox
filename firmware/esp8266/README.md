@@ -1,5 +1,9 @@
 # TrainMeet TMBox – NodeMCU / ESP8266
 
+Vill du slippa kompilera? Börja med den gemensamma
+[installationsguiden med färdig USB-firmware](../../docs/INSTALLATION.md).
+Nedan finns koppling, hårdvarutest och utvecklarens alternativa byggvägar.
+
 Separat firmware för **NodeMCU 1.0 (ESP-12E/ESP-12F, 4 MB)** med:
 
 - 16×2 LCD med I²C-backpack, normalt adress `0x27`

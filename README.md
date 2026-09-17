@@ -1,19 +1,42 @@
 # TrainMeet TMBox
 
-Detta repo innehåller programvaran för den fysiska TrainMeet TMBoxen: ESP32-S3,
-20×4 LCD och 4×4-tangentbord. Boxen är en tunn och självläkande klient till
-[TrainMeet Server](https://github.com/beahead-ab/trainmeet-server), och talar
-protokoll v2 (`tmbox/v2/...`).
+Detta repo innehåller två fysiska klienter till
+[TrainMeet Server](https://github.com/beahead-ab/trainmeet-server):
+**ESP32-S3 med 20×4 LCD och direktkopplad knappsats**, samt
+**NodeMCU/ESP8266 med 16×2 LCD och PCF8574-knappsats på I²C**.
+Båda är passiva trafikklienter. Servern fattar trafikbesluten; skillnaderna
+ligger i hårdvara och lokalt gränssnitt. ESP32 använder MQTT v2, NodeMCU MQTT v1.
 
 Repot innehåller inte iPhone-appen. Den utvecklas separat i [trainmeet-iphone](https://github.com/beahead-ab/trainmeet-iphone).
 
-## Grundprincip
+## Börja här — installationsguide utan programmering
+
+[**Läs installationsguiden →**](docs/INSTALLATION.md)
+
+Den svenska webbguiden under [`installer/`](installer/) leder genom fem steg:
+välj rätt box → installera färdig firmware via USB → anslut Wi-Fi → välj
+server/station → kontrollera på testbänk. Den innehåller också hjälp för
+Windows, Mac och Linux/Raspberry Pi OS Desktop.
+
+GitHub-byggjobbet skapar paketet **trainmeet-tmbox-installer** med guiden,
+båda firmwarebilderna, chipmanifest och kontrollsummor. Publiceringsjobbet
+kan ge samma paket som en nedladdningsbar förhandsutgåva; en offentlig
+webbadress är ännu inte aktiverad. Enbart guidekällkoden innehåller inga
+binärer och kan därför inte installera ett kort.
+
+**Ingen fysisk hårdvara är verifierad ännu.** USB-flödet är för nyinstallation
+och kan ersätta befintligt program och inställningar. Samkörning mellan
+ESP8266, ESP32 och TKL kräver den nya gemensamma serverlogiken, som fortfarande
+ligger på `codex/shared-station-traffic`, inte i Server 1.4.1.
+Se [serverkraven i guiden](docs/INSTALLATION.md#vilken-serverversion).
+
+## ESP32-S3: grundprincip
 
 TMBoxen fattar inga trafikbeslut. Den cachar sin tilldelade stations konfiguration och aktuella läge lokalt i RAM, bläddrar i den cachen direkt utan nätverksfördröjning, och pratar bara på tråden när den skickar ett komplett kommando (inga tangenttryckningar en och en). Om Wi-Fi eller MQTT försvinner väntar boxen, återansluter och hämtar ett nytt fullständigt läge.
 
 Varje box har ett permanent id och en kort kod, exempelvis `TMBOX-A7K2C3`. Vid start visas koden på displayen. I serverns webbadmin kopplar administratören koden till en station. Klienten behöver inget lösenord.
 
-## Wi-Fi vid första start
+## ESP32-S3: Wi-Fi vid första start
 
 1. Boxen försöker ansluta till senast sparade Wi-Fi.
 2. Om nätet saknas skapar den tillfälligt nätverket `TrainMeet-XXXXXX`.

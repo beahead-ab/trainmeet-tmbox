@@ -2,6 +2,7 @@
 
 Här finns den publika dokumentationen för TrainMeet TMBox.
 
+- [Installationsguide för ESP8266 och ESP32-S3 — steg för steg](INSTALLATION.md)
 - [Produktbeskrivning och definition av klart](tmbox.md)
 - [TMBox v2 – hårdvaruspecifikation](TMBOX-V2-HARDWARE.md)
 - [Bänktest av en fysisk TMBox v2](BANKTEST.md)

@@ -9,3 +9,5 @@
 # Python-cache från versionsverktygets tester
 __pycache__/
 *.pyc
+node_modules/
+dist/
