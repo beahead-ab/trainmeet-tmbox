@@ -27,7 +27,7 @@ binärer och kan därför inte installera ett kort.
 **Ingen fysisk hårdvara är verifierad ännu.** USB-flödet är för nyinstallation
 och kan ersätta befintligt program och inställningar. Samkörning mellan
 ESP8266, ESP32 och TKL kräver den nya gemensamma serverlogiken, som fortfarande
-ligger på `codex/shared-station-traffic`, inte i Server 1.4.1.
+är en utvecklingsversion och inte ingår i Server 1.4.1.
 Se [serverkraven i guiden](docs/INSTALLATION.md#vilken-serverversion).
 
 ## ESP32-S3: grundprincip
