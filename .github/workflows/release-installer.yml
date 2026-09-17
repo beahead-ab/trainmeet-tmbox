@@ -1,0 +1,55 @@
+name: Package installer for a version
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publicera ZIP-paketet som en offentlig förhandsutgåva?'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/firmware.yml
+  release:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: trainmeet-tmbox-installer
+          path: installer-package
+      - name: Verify firmware and source before publishing
+        working-directory: installer-package
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          sha256sum -c SHA256SUMS
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          catalog = json.loads(Path('catalog.json').read_text())
+          assert catalog['sourceCommit'] == os.environ['EXPECTED_COMMIT']
+          assert catalog['version'] == Path('../VERSION').read_text().strip()
+          assert {p['id'] for p in catalog['profiles']} == {'esp32-s3', 'nodemcu-i2c'}
+          assert all(p['hardwareTested'] is False for p in catalog['profiles'])
+          PY
+      - name: Publish an explicitly marked preview (never overwrite an existing release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(python3 scripts/version.py current)
+          ARCHIVE="trainmeet-tmbox-installer-$VERSION.zip"
+          (cd installer-package && zip -qr "../$ARCHIVE" .)
+          gh release create "v$VERSION-installer-preview" "$ARCHIVE" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "TMBox $VERSION – installationsguide (förhandsversion)" \
+            --notes 'Svensk USB-installationsguide med ESP8266- och ESP32-S3-firmware. Mjukvarubyggd och testad, inte fysiskt bänktestad. Kräver rätt hårdvaruprofil och kompatibel TrainMeet Server. Läs Installationsguide.md i paketet. Servera hela paketet via HTTPS eller localhost; dubbelklick på HTML räcker inte. Nyinstallation kan radera befintligt program och inställningar.'

@@ -1,5 +1,8 @@
 # TrainMeet TMBox firmware
 
+Vill du slippa kompilera? Börja med den gemensamma
+[installationsguiden med färdig USB-firmware](../../docs/INSTALLATION.md).
+
 Firmwaren gör TMBox v2 till en lokal klient för TrainMeet Server över
 protokoll v2. Servern äger alla trafikbeslut. Boxen cachar stationens
 konfiguration och aktuella snapshot i RAM, navigerar lokalt och skickar bara
