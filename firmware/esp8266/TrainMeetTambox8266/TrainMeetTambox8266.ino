@@ -134,6 +134,10 @@ void hello() {
   message["protocol_version"] = 1;
   message["device_code"] = deviceCode;
   message["model"] = TAMBOX_MODEL;
+  message["hardware_version"] = "nodemcu-pcf8574-16x2";
+  message["display"]["rows"] = 2;
+  message["display"]["cols"] = 16;
+  message["display"]["charset"] = "ascii";
   message["firmware_version"] = TAMBOX_FIRMWARE_VERSION;
   message["wifi_rssi"] = WiFi.RSSI();
   publish("tambox/v1/device/" + deviceId + "/hello", message);
@@ -146,7 +150,7 @@ void receiveMessage(int size) {
   // Filter unused fields (routes/slots/ack snapshots) before allocating JSON.
   if (size < 2 || size > 8192) { invalidate(); return; }
   JsonDocument filter, message;
-  for (const char* key : {"status", "panel_id", "traffic_session_id", "revision", "command_id", "reason"}) filter[key] = true;
+  for (const char* key : {"status", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason"}) filter[key] = true;
   filter["assigned_panel_ids"][0] = true;
   filter["display"]["line1"] = true; filter["display"]["line2"] = true;
   filter["interaction"]["allowed_keys"][0] = true;
@@ -156,6 +160,9 @@ void receiveMessage(int size) {
   if (topic.endsWith("/assignment")) {
     const String status = message["status"] | "";
     const String nextPanel = message["assigned_panel_ids"][0] | "";
+    if (status == "assigned" && !nextPanel.length() && String(message["station_id"] | "").length()) {
+      invalidate(); showFrame("V1-PANEL SAKNAS", "KOLLA SERVERN"); return;
+    }
     if (status != "assigned" || !nextPanel.length()) {
       invalidate(); showFrame("KOPPLA BOXEN", deviceCode); return;
     }

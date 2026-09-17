@@ -158,8 +158,16 @@ pio device monitor -b 115200
    lokala IP-adress i portalen, exempelvis `192.168.2.160`.
 6. MQTT-porten är normalt **1883**, inte webbporten 8787. Skriv bara IP-adress
    eller värdnamn, utan `https://`, sökväg eller port i adressfältet.
-7. I **TrainMeet Servers** admin kopplas den upptäckta boxen till rätt logiska
-   stationspanel. Därefter hämtas display och tillåtna tangenter automatiskt.
+7. I **TrainMeet Servers** admin väljer du station för den upptäckta boxen.
+   En uppdaterad server kopplar då även stationens entydiga v1-panel vid
+   boxens nästa kontakt. Därefter hämtas display och tillåtna tangenter.
+
+**Serverkrav:** servern behöver rättningen för MQTT v1 efter stationstilldelning
+(NodeMCU-kompatibiliteten). Äldre stationbaserade versioner sparar bara
+stationen och ger ingen v1-skärmbild. Visas `V1-PANEL SAKNAS`, uppdatera
+servern och kontrollera att stationen har exakt en logisk A–D-panel. Finns
+flera paneler gissar servern inte: v1 kräver då en uttrycklig paneltilldelning
+via serverns äldre API. V2-klienters stationstilldelning ändras inte.
 
 Servern kan köras på Raspberry Pi, Mac, PC eller Linux. Det är samma lokala
 protokoll. Att serverns webbsida går att nå via HTTPS betyder inte att dess
