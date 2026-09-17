@@ -165,13 +165,13 @@ Server **1.4.1** innehåller rättningen som kopplar NodeMCU till stationens
 entydiga v1-panel. Den innehåller däremot **inte** den nya gemensamma trafiklogiken
 för samkörning av ESP8266, ESP32 och TKL.
 
-Den gemensamma trafiklogiken är i nuläget testad på utvecklingsgrenen
-[`codex/shared-station-traffic`](https://github.com/beahead-ab/trainmeet-server/tree/codex/shared-station-traffic),
-revision `ca77f74889060f4905ca90802c8509d4f47e619a`. Den är inte driftsatt bara för
+Den gemensamma trafiklogiken är i nuläget testad i
+[utvecklingsrevision ca77f74](https://github.com/beahead-ab/trainmeet-server/tree/ca77f74889060f4905ca90802c8509d4f47e619a).
+Den är inte driftsatt bara för
 att denna guide finns. Använd en kontrollerad testserver tills en granskad
 serverutgåva inkluderar ändringen och hårdvaran är provkörd. Avsluta äldre
 pågående trafikärenden före serverövergången; läs
-[kompatibilitetsnoteringen](https://github.com/beahead-ab/trainmeet-server/blob/codex/shared-station-traffic/docs/shared-traffic.md).
+[kompatibilitetsnoteringen](https://github.com/beahead-ab/trainmeet-server/blob/ca77f74889060f4905ca90802c8509d4f47e619a/docs/shared-traffic.md).
 
 ## 5. Kontrollera — när du har hårdvaran
 
