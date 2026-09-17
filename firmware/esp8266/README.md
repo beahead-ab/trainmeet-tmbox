@@ -21,6 +21,19 @@ på just din display, knappsatsmodul och kablage innan trafikdrift.
 
 Den befintliga ESP32-varianten ligger kvar oförändrad i `firmware/esp32`.
 
+**Detta är en separat MQTT v1-klient, inte en portning av TMBox v2.**
+Display och tillåtna tangenter kommer från serverns `tambox/v1`-protokoll.
+Den innehåller inte v2:s lokala menyer, summer-/LED-policy eller v2-simulator.
+Befintliga legacy-boxar med `mqttTamBox` ändras inte automatiskt. Laddar du
+denna firmware via USB ersätts kortets nuvarande program: prova på ett separat
+kort först och behåll originalets firmware och inställningar för återgång.
+
+De dokumenterade legacy-boxarna använder just PCF8574 `0x20`, LCD `0x27`,
+D2/SDA och D1/SCL. Matrisledningarnas ordning är däremot inte verifierad här.
+Se [legacy-hårdvaran](../../docs/TMBOX-V1-LEGACY.md). Den dokumentationen
+beskriver också äldre 5 V-kopplingar utan nivåomvandlare; kopiera inte den
+elektriska bristen när du bygger nytt.
+
 ## 1. Koppla hårdvaran (strömmen avstängd)
 
 | NodeMCU | GPIO | Anslutning |

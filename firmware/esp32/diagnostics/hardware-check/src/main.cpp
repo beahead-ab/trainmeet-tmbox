@@ -14,9 +14,9 @@ char keyMap[ROWS][COLS] = {
     {'*', '0', '#', 'D'},
 };
 byte rowPins[ROWS] = {
-    TAMBOX_ROW_PINS[0], TAMBOX_ROW_PINS[1], TAMBOX_ROW_PINS[2], TAMBOX_ROW_PINS[3]};
+    TMBOX_ROW_PINS[0], TMBOX_ROW_PINS[1], TMBOX_ROW_PINS[2], TMBOX_ROW_PINS[3]};
 byte colPins[COLS] = {
-    TAMBOX_COL_PINS[0], TAMBOX_COL_PINS[1], TAMBOX_COL_PINS[2], TAMBOX_COL_PINS[3]};
+    TMBOX_COL_PINS[0], TMBOX_COL_PINS[1], TMBOX_COL_PINS[2], TMBOX_COL_PINS[3]};
 Keypad keypad = Keypad(makeKeymap(keyMap), rowPins, colPins, ROWS, COLS);
 LiquidCrystal_I2C* lcd = nullptr;
 uint8_t activeLCDAddress = 0;
@@ -28,10 +28,10 @@ bool addressResponds(uint8_t address) {
 
 void printPinMap() {
   Serial.println();
-  Serial.println("TrainMeet Tambox hardware check");
-  Serial.printf("Profile: %s\n", TAMBOX_MODEL_NAME);
+  Serial.println("TrainMeet TMBox hardware check");
+  Serial.printf("Profile: %s\n", TMBOX_MODEL_NAME);
   Serial.printf("LCD SDA=GPIO%u SCL=GPIO%u configured=0x%02X\n",
-                TAMBOX_LCD_SDA, TAMBOX_LCD_SCL, TAMBOX_LCD_ADDRESS);
+                TMBOX_LCD_SDA, TMBOX_LCD_SCL, TMBOX_LCD_ADDRESS);
   for (byte index = 0; index < ROWS; ++index) {
     Serial.printf("R%u=GPIO%u%s", index + 1, rowPins[index], index == ROWS - 1 ? "\n" : "  ");
   }
@@ -55,7 +55,7 @@ void scanI2C() {
 }
 
 uint8_t chooseLCDAddress() {
-  if (addressResponds(TAMBOX_LCD_ADDRESS)) return TAMBOX_LCD_ADDRESS;
+  if (addressResponds(TMBOX_LCD_ADDRESS)) return TMBOX_LCD_ADDRESS;
   if (addressResponds(0x27)) return 0x27;
   if (addressResponds(0x3F)) return 0x3F;
   return 0;
@@ -90,7 +90,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   printPinMap();
-  Wire.begin(TAMBOX_LCD_SDA, TAMBOX_LCD_SCL);
+  Wire.begin(TMBOX_LCD_SDA, TMBOX_LCD_SCL);
   scanI2C();
 
   activeLCDAddress = chooseLCDAddress();

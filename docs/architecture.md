@@ -1,8 +1,15 @@
-# Tambox local-first architecture
+# TMBox local-first architecture (v1)
+
+This describes the original MQTT v1 protocol (`tambox/v1/...`), still served
+by `trainmeet-server` for the Swift app and the local web client. The
+physical ESP32 firmware in this repo no longer speaks v1 — it was rewritten
+to protocol v2 (`tmbox/v2/...`); see [`docs/tmbox.md`](tmbox.md) for the
+current, canonical spec. This document stays as the reference for the parts
+of the stack that still run on v1.
 
 ## Product decisions
 
-- A logical Tambox always exposes A, B, C and D. Each position is mapped to a
+- A logical TMBox always exposes A, B, C and D. Each position is mapped to a
   configured station connection or left unused.
 - Raspberry Pi is the only operational authority during a running session.
 - Swift, the local web client and ESP32 boxes are panel clients. They
@@ -14,7 +21,7 @@
   cloud access is unavailable.
 - The Pi can own a complete local configuration. TrainMeet centrally can also
   build and publish a validated release that the Pi installs for the active run.
-- The Pi also serves a local web Tambox and the simple device-assignment UI.
+- The Pi also serves a local web TMBox and the simple device-assignment UI.
 - Local clients do not use MQTT passwords. A permanent device id and Pi-owned
   panel mapping are the usability-focused boundary on the isolated meeting
   network.
@@ -29,9 +36,9 @@
   outgoing traffic can coexist. This is the next expansion after the current
   single-track vertical slice.
 
-## Tambox compatibility rule
+## TMBox compatibility rule
 
-The native and web Tambox surfaces retain the palette, case, 16×2 LCD,
+The native and web TMBox surfaces retain the palette, case, 16×2 LCD,
 character cells, keypad dimensions and key order established by the original
 TrainMeet simulator and the physical box.
 
@@ -43,8 +50,8 @@ The Pi owns the common display renderer. Golden-master tests currently lock:
 4. ready for departure
 5. final departure confirmation
 
-The implementation follows the intended Lovable workflow but keeps safety
-improvements that belong on the Pi: atomic state transitions, command expiry,
+The implementation follows the established operator workflow and keeps safety
+controls on the Pi: atomic state transitions, command expiry,
 revision checks, command-id idempotency and one input owner at a time.
 
 ## MQTT v1
@@ -80,13 +87,17 @@ revision and a short expiry time.
   durable write fails
 - durable identity registry, six-digit Swift/web pairing and panel assignments
 - passwordless physical-box discovery by printed code
-- Pi-hosted responsive web Tambox and physical-device mapping
+- Pi-hosted responsive web TMBox and physical-device mapping
 - one-command Mac runner and Raspberry Pi system service installer
-- ESP32 firmware with permanent device identity, captive Wi-Fi setup, mDNS
-  server discovery, QoS 1 commands and automatic reconnect
+
+The bullet list above reflects `trainmeet-server`'s v1 gateway, still serving
+Swift and the web client. The physical ESP32 firmware has moved on: it now
+implements permanent device identity, captive Wi-Fi setup, mDNS discovery,
+QoS 1 commands and automatic reconnect against protocol **v2** instead — see
+[`docs/tmbox.md`](tmbox.md).
 
 ## Next slices
 
 1. double-track directed channels and 1.5-second alternating classic display
 2. local/TrainMeet clock adapters and stopped-clock messages
-3. hardware validation against Bennys original ESP32 box and final pin profile
+3. continued hardware validation for supported legacy clients

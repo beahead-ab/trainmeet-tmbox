@@ -1,52 +1,51 @@
-# TrainMeet physical Tambox firmware
+# TrainMeet TMBox firmware
 
-This firmware turns a Wi-Fi capable ESP32 into a thin, local Tambox client.
-The Raspberry Pi owns every traffic decision. The ESP32 only displays server
-snapshots and sends keypad presses.
+Firmwaren gör TMBox v2 till en lokal klient för TrainMeet Server över
+protokoll v2. Servern äger alla trafikbeslut. Boxen cachar stationens
+konfiguration och aktuella snapshot i RAM, navigerar lokalt och skickar bara
+kompletta kommandon. Produktens beteende beskrivs i
+[`docs/tmbox.md`](../../docs/tmbox.md).
 
-## What happens at startup
+## Referenshårdvara
 
-1. The display shows the permanent box code, for example `TBX-A7K2`.
-2. The box tries its last saved Wi-Fi network.
-3. When Wi-Fi is available it discovers the TrainMeet Raspberry Pi over mDNS,
-   connects without an MQTT password and announces its id and printed code.
-4. If the box is not assigned, the display says `KOPPLA BOXEN` and shows the
-   same code. The administrator enters that code in the Pi web view.
-5. The Pi sends the assigned panel and the box starts rendering its exact 16x2
-   display frames.
+Standardmålet `esp32-s3` motsvarar TMBox v2:
 
-If saved Wi-Fi cannot be reached, the box keeps retrying and then creates the
-open setup network `TrainMeet-XXXX`. Join it with a phone and choose Wi-Fi in
-the captive portal. Credentials are stored in the ESP32's non-volatile memory.
-Holding `*` for five seconds clears Wi-Fi and reopens setup after reboot.
+- ESP32-S3-DevKitC-1-N8R2
+- 20×4 HD44780-display på I2C-adress `0x27` via nivåomvandlare
+- passiv 4×4-knappsats direkt på GPIO
+- passiv summer och separat statusindikering
 
-Network and server interruptions are normal states. The box never freezes in
-an endless error loop; it retries with backoff and accepts no traffic input
-until a fresh authoritative panel snapshot has arrived.
+Alla pinnar finns i `hardware_profile.h`. Följ
+[WIRING.md](WIRING.md) och
+[`docs/TMBOX-V2-HARDWARE.md`](../../docs/TMBOX-V2-HARDWARE.md) innan något
+ansluts. Kör hårdvarukontrollen i `diagnostics/hardware-check` före första
+fullständiga flashningen.
 
-## Hardware profiles
+## Bygg och ladda
 
-- `esp32-benny` is the default. It uses the keypad pins from the existing
-  TrainMeet sketch (rows 13/12/14/27, columns 26/25/33/32) and I2C on 21/22.
-- `esp32-s3` is a separate profile so the application protocol remains the
-  same when the electronics are changed later.
-- `esp32-classic-safe` is recommended when wiring a new classic ESP32. It uses
-  GPIO23 instead of the original boot-strapping pin GPIO12.
-
-The display is a 16x2 I2C LCD at address `0x27`. Pin choices live only in
-`hardware_profile.h`. The complete power, level-shifter, display, keypad and
-connector guide is in [WIRING.md](WIRING.md). Run the standalone hardware
-check in `diagnostics/hardware-check` before loading the network firmware.
-
-## Build
-
-Open this directory in PlatformIO and use one of:
+Med PlatformIO:
 
 ```sh
-pio run -e esp32-benny
 pio run -e esp32-s3
-pio run -e esp32-classic-safe
+pio run -e esp32-s3 -t upload
 ```
 
-For Arduino IDE, install ArduinoJson, ArduinoMqttClient, Keypad,
-LiquidCrystal_I2C and WiFiManager, then open `TrainMeetTambox.ino`.
+Miljöerna `esp32-benny` och `esp32-classic-safe` finns kvar som
+utvecklingsprofiler för klassiska ESP32-kort. De beskriver inte TMBox v2 och
+ska inte användas för den nya referenskonstruktionen.
+
+För Arduino IDE krävs ArduinoJson, ArduinoMqttClient, Keypad,
+LiquidCrystal_I2C och WiFiManager. Öppna därefter `TrainMeetTMBox.ino`.
+
+## Drift
+
+Vid start visar boxen sitt permanenta id, ansluter till sparat Wi-Fi, hittar
+servern via mDNS och hämtar sin stationstilldelning, konfiguration och
+snapshot. Saknas Wi-Fi öppnas nätet `TrainMeet-XXXXXX` för provisionering.
+Nät- och serveravbrott är normala tillstånd: boxen återansluter med backoff
+och tillåter inga skrivande kommandon innan färsk serverdata har hämtats.
+
+Renderare, navigation, kommandon och uppmärksamhetspolicy ligger i
+`lib/tmbox_core/` och verifieras utan hårdvara genom native-tester och
+guldfiler. Fysisk verifiering görs med
+[`docs/BANKTEST.md`](../../docs/BANKTEST.md).

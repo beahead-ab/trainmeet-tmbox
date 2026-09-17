@@ -1,28 +1,19 @@
 # Koppling av display och tangentbord
 
-Det här dokumentet beskriver den fysiska Tamboxen med en klassisk ESP32,
-16x2-teckendisplay med I2C-backpack och ett passivt 4x4-matristangentbord.
+Det här dokumentet beskrev kopplingen för en klassisk ESP32 innan TMBox v2
+fastställdes.
 
-## Vad vi vet och vad som måste kontrolleras
-
-Bekräftat från TrainMeet-koden och bilden på Bennys box:
-
-- displayen är 16 tecken bred och 2 rader hög
-- tangentbordet är 4x4 med ordningen `1 2 3 A / 4 5 6 B / 7 8 9 C / * 0 # D`
-- den tidigare sketchen använder LCD-adress `0x27`
-- den tidigare sketchen använder GPIO 13/12/14/27 för rader och
-  26/25/33/32 för kolumner
-
-Inte bekräftat förrän lådan öppnas:
-
-- exakt ESP32-kort och vilken märkning som står på modulen
-- ordningen på tangentbordets åtta ledare
-- om LCD-backpacket drivs med 3,3 V eller 5 V
-- om det redan sitter en I2C-nivåomvandlare i lådan
-- om I2C-adressen verkligen är `0x27` på alla byggda boxar
-
-Använd därför GPIO-numren på kortets silkscreen, inte pinnens fysiska nummer i
-en bild från ett annat fabrikat.
+> **Gällande koppling står i
+> [docs/TMBOX-V2-HARDWARE.md](../../docs/TMBOX-V2-HARDWARE.md).** Där finns
+> ESP32-S3-kortet, pinntabellen, I2C-nivåanpassningen, summern,
+> statuslysdioden, provisioneringsknappen, stycklistan och kopplingsschemat.
+>
+> De boxar som redan är byggda är varken det ena eller det andra — de är
+> ESP8266 och beskrivs i
+> [docs/TMBOX-V1-LEGACY.md](../../docs/TMBOX-V1-LEGACY.md). De rörs inte.
+>
+> Resten av den här filen står kvar för de två ESP32-profilerna som behålls
+> för uppstart av lösa kort.
 
 ## Rekommenderad uppbyggnad
 
@@ -83,7 +74,7 @@ Diagnostikprogrammet skannar hela I2C-bussen och skriver hittade adresser i
 seriell monitor. Hittar det `0x3F` byggs huvudprogrammet med:
 
 ```sh
-pio run -e esp32-benny --project-option="build_flags=-D TAMBOX_HARDWARE_PROFILE=1 -D TAMBOX_LCD_ADDRESS_VALUE=0x3F"
+pio run -e esp32-benny --project-option="build_flags=-D TMBOX_HARDWARE_PROFILE=1 -D TMBOX_LCD_ADDRESS_VALUE=0x3F"
 ```
 
 ## Tangentbordets matris
@@ -97,7 +88,7 @@ Logisk matris:
 | R3 | 7 | 8 | 9 | C |
 | R4 | * | 0 | # | D |
 
-### Profil 1: Bennys sannolika befintliga koppling
+### Profil 1: äldre klassisk ESP32-koppling
 
 | Matrisledning | ESP32 GPIO | Tangenter på ledningen |
 |---|---:|---|
@@ -111,8 +102,8 @@ Logisk matris:
 | C4 | 32 | A, B, C, D |
 
 Detta är den enda pinmappning som faktiskt förekommer i den äldre TrainMeet-
-sketchen. Den är därför förstahandsvalet när Bennys färdigkopplade box ska
-provas.
+sketchen. Den finns kvar för utveckling och verifiering av äldre klassiska
+ESP32-byggen.
 
 GPIO12 är samtidigt en boot-strapping-pin på klassisk ESP32. Ett tangentläge
 som påverkar GPIO12 under uppstart kan på vissa kort ge startproblem. Släpp alla
@@ -121,7 +112,7 @@ säkrare profil 3.
 
 ### Profil 3: rekommenderad ny klassisk ESP32-koppling
 
-Profil 3 är identisk med Bennys profil förutom R2:
+Profil 3 är identisk med den äldre profilen förutom R2:
 
 | Matrisledning | ESP32 GPIO |
 |---|---:|
@@ -151,8 +142,7 @@ Bygg med `pio run -e esp32-classic-safe`.
 | LCD SDA | 8 |
 | LCD SCL | 9 |
 
-Detta är vår rekommenderade S3-profil, inte ett påstående om hur Bennys box är
-kopplad.
+Detta är den rekommenderade profilen för TMBox v2.
 
 ## Ta reda på ordningen på tangentbordets åtta ledare
 
@@ -175,7 +165,7 @@ Kontinuitetsmät aldrig i en spänningssatt box.
 
 - mata helst boxen från en egen stabil 5 V USB-adapter på minst 1 A
 - koppla inte DCC-, körströms- eller växelspänning direkt till ESP32
-- använd gemensam jord enbart inom Tamboxens lågvoltsdel
+- använd gemensam jord enbart inom TMBoxens lågvoltsdel
 - placera 100 nF nära ESP32 och LCD samt gärna 220-470 µF över 5 V/GND där
   matningen kommer in i lådan
 - håll SDA/SCL och tangentbordskabel borta från DCC-, motor- och reläkablar
@@ -190,7 +180,7 @@ Kontinuitetsmät aldrig i en spänningssatt box.
 - LCD: 4-polig kontakt märkt `GND / VCC / SDA / SCL`
 - keypad: 8-polig kontakt märkt `R1 R2 R3 R4 C1 C2 C3 C4`
 - nivåomvandlare: märk låg sida `3V3` och hög sida `5V`
-- etikett under lådan: boxkod `TBX-XXXX`, kortmodell och hårdvaruprofil
+- etikett under lådan: boxkod `TMBOX-XXXXXX`, kortmodell och hårdvaruprofil
 - etikett inuti locket: komplett GPIO-tabell
 
 Använd inte enbart kabelkulörer som dokumentation; färger varierar mellan
@@ -205,7 +195,7 @@ leveranser.
 5. Justera kontrast tills båda textraderna syns.
 6. Tryck alla 16 tangenter och kontrollera rätt tecken, rad och kolumn.
 7. Starta om med alla tangenter släppta och kontrollera stabil boot.
-8. Först därefter laddas `TrainMeetTambox.ino`.
+8. Först därefter laddas `TrainMeetTMBox.ino`.
 
 ## Felsökning
 
