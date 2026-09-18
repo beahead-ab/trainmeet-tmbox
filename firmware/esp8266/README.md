@@ -153,7 +153,8 @@ pio device monitor -b 115200
 3. Anslut telefonen till det nätverket. Öppna `http://192.168.4.1` om portalen
    inte öppnas automatiskt.
 4. Välj träffens **2,4 GHz-Wi-Fi** och ange dess lösenord.
-5. Serverfältet kan vara tomt för automatisk mDNS-sökning efter `_tambox._tcp`.
+5. Serverfältet kan vara tomt för automatisk mDNS-sökning efter `_tmbox._tcp`,
+   samma tjänst som ESP32 använder.
    Om fler än en server hittas väljer boxen inte själv. Ange då rätt servers
    lokala IP-adress i portalen, exempelvis `192.168.2.160`.
 6. MQTT-porten är normalt **1883**, inte webbporten 8787. Skriv bara IP-adress
@@ -178,6 +179,77 @@ Håll `*` i fem sekunder för att öppna installationen igen och byta nät/serve
 Det raderar inte boxens identitet eller serverns träff. Nätuppgifter sparas
 av Wi-Fi-systemet och servervalet i EEPROM med kontrollsumma. Konfigurera det
 tillfälliga, öppna installationsnätet på en betrodd plats.
+
+### Test med bara NodeMCU ansluten via USB
+
+Huvudprogrammet kan ansluta till Wi-Fi, hitta servern och registrera boxens ID
+även utan LCD och knappsats. `LCD missing` och `Keypad missing` är då väntade
+meddelanden. I normalt driftläge förblir trafikknapparna spärrade; det är inte ett komplett
+funktionstest av en TMBox. Raderna `LCD |...|...|` i seriell monitor visar
+avsedd text, inte att en fysisk display har hittats.
+
+Läs boxens tilldelade IP-adress och **Webbtestkod** i seriell monitor.
+Boxens IP är inte samma adress som TrainMeet Server. `192.168.4.1` är bara
+boxens tillfälliga installationsportal.
+
+### Telefon som display och knappsats – webbtestläge
+
+1. Installera huvudprogrammet `nodemcu-i2c`, inte hårdvarutestet.
+2. Anslut kortet till Wi-Fi via installationsportalen. Lämna serverfältet
+   tomt för automatisk upptäckt.
+3. Öppna seriell monitor med 115200 baud. Där finns boxens webbadress och
+   en sexsiffrig **webbtestkod**, som byts vid varje omstart.
+4. Öppna boxens webbadress, exempelvis `http://192.168.0.45/`, i telefonen
+   på samma lokala nät. Ange webbtestkoden för att parkoppla telefonen.
+5. Sidan har även ett **separat fält för lokal anslutningskod** från
+   TrainMeet Server. Det är inte webbtestkoden och inte Cloud-koden.
+   Knappen kontrollerar koden hos den lokala servern; fel eller utgången
+   kod visas som fel. Äldre servrar utan `/v1/tmbox/enroll` måste uppdateras
+   för detta steg. Ingen osäker reserv till en annan parkopplingsmetod används.
+6. Administratören tilldelar boxens ID en station i TrainMeet Server.
+   Kodbekräftelsen väljer aldrig station eller ändrar befintlig tilldelning.
+7. Vänta på en aktuell serverpanel och välj **Aktivera webbtest**. Telefonen
+   visar två displayrader och alla 16 tangenter: 0–9, A–D, `*` och `#`.
+   Endast tangenter som den aktuella serverpanelen tillåter är aktiva.
+8. Varje tryck går via kortets ordinarie MQTT-kommandoväg. Nästa tryck
+   spärras tills kvittens och en ny skärmbild har kommit tillbaka.
+
+Webbtest ersätter tillfälligt saknad display/knappsats. Fysiska tangenter
+spärras samtidigt, så att två inmatningssätt inte konkurrerar. Långtryck på
+den virtuella `*` öppnar inte installationsportalen; tangenten skickas till
+serverns panel precis som övriga tillåtna trafikknappar.
+
+**Detta är riktiga kommandon till träffen, inte en simulator. Använd en
+testträff.** Webbtest stängs av vid omstart, tappad server/nätanslutning,
+serverbyte, frånkoppling eller tio minuters inaktivitet. Statusavläsning
+förlänger inte tiden. Inga trafikkommandon lagras för senare uppspelning.
+
+En telefon åt gången kan vara parkopplad. Fem felaktiga kodförsök ger en
+minuts spärr. Använd bara på ett betrott lokalt nät; HTTP och den befintliga
+MQTT v1-trafiken är inte krypterade. Vidarebefordra inte dessa portar mot
+internet. Serverkodsfunktionen är registrering med adminstyrd tilldelning,
+inte en ny autentiseringsmekanism för själva MQTT-brokern.
+
+Under **Serveranslutning** kan adress, MQTT-port (normalt 1883) och serverns
+webbport (normalt 8787, används för kodkontrollen) ändras. Serverkoden sparas
+inte i boxen. Wi-Fi ändras fortsatt i installationsportalen: fysisk `*` i
+fem sekunder när webbtest är avstängt. Vid saknat Wi-Fi öppnas portalen
+automatiskt efter 30 sekunder. Inget fjärrkommando raderar nätuppgifterna.
+
+### Om servern inte hittas
+
+- Lämna serverfältet tomt för automatisk upptäckt. Boxen söker på nytt vid
+  anslutningsförsök, även när en server har startats om eller bytt IP-adress.
+- Servern och boxen behöver samma lokala nät med mDNS/multicast tillåtet.
+  Servern kan vara kabelansluten. Gästnät, klientisolering och separata VLAN
+  kan hindra upptäckt även om internet fungerar.
+- Kontrollera att lokal TrainMeet Server och dess MQTT-broker är startade.
+  Cloud är inte boxens driftserver. Ange serverns lokala IP och MQTT-port
+  manuellt om nätet blockerar mDNS. Öppna inte MQTT mot internet.
+- Om flera servrar annonserar sig måste administratören ange vilken som
+  ska användas; boxen gissar inte vilken träff som är aktiv.
+- Behöver boxen en förutsägbar IP-adress: använd helst en DHCP-reservation
+  i routern. Det ändrar inte boxens permanenta ID eller stationstilldelning.
 
 ## Alternativ: Arduino IDE
 
@@ -215,7 +287,9 @@ testats manuellt på ett anslutet kort.
 - Servern bestämmer tillåtna tangenter, display, session och revision.
 - Gamla retained MQTT-skärmbilder räcker inte för att aktivera tangenttryck.
 - Boxen frågar regelbundet efter ett aktuellt tillstånd, även efter omtilldelning.
-- Saknas Wi-Fi, MQTT, display eller knappsats spärras trafikknapparna.
+- I normalt driftläge spärras trafikknapparna om Wi-Fi, MQTT, display eller
+  knappsats saknas. Uttryckligt aktiverat webbtest ersätter display/knappsats,
+  men kringgår aldrig kravet på en aktuell serveranslutning.
 - Inget aktuellt serversvar inom 30 sekunder spärrar också knapparna, även om
   MQTT-brokern fortfarande svarar. Serverns offline-meddelande spärrar direkt.
 - Ett skickat kommando väntar på kvittens och därefter aktuellt läge. Efter

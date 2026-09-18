@@ -117,6 +117,20 @@ python -m pip install esptool==4.5.1
 Kör sedan Arduino CLI-kommandot i samma terminal. Det ändrar inte dina
 Arduino-bibliotek. Detta är ett verktygsfel, inte dubbel firmware.
 ''' if family == "esp32" else "")
+    web_test_note = """
+## Testa NodeMCU med telefon, utan display och knappsats
+
+Huvudprogrammet nodemcu-i2c har en lokal webbpanel med display och alla
+16 tangenter (0–9, A–D, * och #). Läs boxens webbadress och Webbtestkod i
+seriell monitor (115200 baud) efter Wi-Fi-anslutningen. Öppna adressen på
+telefonen på samma nät och ange webbtestkoden.
+
+Ange därefter Lokal anslutningskod från TrainMeet Server (1.6.2 eller senare).
+Det är inte Cloud-koden. Administratören väljer stationen i servern; boxen
+väljer aldrig själv. Aktivera webbtest när serverns panel visas. Knapparna
+påverkar den anslutna träffen på riktigt: använd en separat testträff.
+Hårdvarutestprogrammet innehåller ingen webbpanel.
+""" if profile == "nodemcu-i2c" else ""
     files["START-HERE.md"] = f"""# TrainMeet TMBox – Arduino IDE
 
 **Vald profil: {profile}** · {hardware}
@@ -169,6 +183,8 @@ Ange den lokala servern om automatisk upptäckt inte fungerar. Den lokala
 administratören kopplar sedan boxens permanenta ID till stationen i
 TrainMeet Server. Boxen väljer aldrig station själv. Cloud används inte i drift.
 Hårdvarutestet behöver inget Wi-Fi och gör ingen stationstilldelning.
+
+{web_test_note}
 
 ## Om ”Multiple libraries were found” visas
 
