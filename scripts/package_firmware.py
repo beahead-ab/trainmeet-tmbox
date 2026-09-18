@@ -226,6 +226,8 @@ https://github.com/beahead-ab/trainmeet-tmbox/blob/main/firmware/{family}/README
 
 def write_package(output: Path, name: str, files: dict[str, bytes], version: str, revision: str) -> Path:
     files = dict(files)
+    title, _, body = files['START-HERE.md'].decode().partition('\n')
+    files['START-HERE.md'] = f'{title}\n\n**Version {version} · källrevision {revision[:12]}**\n{body}'.encode()
     files["PACKAGE.json"] = (json.dumps({
         "format": 1, "version": version, "source_revision": revision,
         "files": {p: hashlib.sha256(data).hexdigest() for p, data in sorted(files.items())},

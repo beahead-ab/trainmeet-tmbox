@@ -81,6 +81,7 @@ class FirmwarePackageTests(unittest.TestCase):
                 manifest = json.loads(contents.pop('PACKAGE.json'))
                 self.assertEqual('test-commit', manifest['source_revision'])
                 self.assertEqual((ROOT / 'VERSION').read_text().strip(), manifest['version'])
+                self.assertIn(f"Version {manifest['version']} · källrevision test-commit", contents['START-HERE.md'].decode())
                 self.assertEqual({p: hashlib.sha256(c).hexdigest() for p, c in contents.items()}, manifest['files'])
             with self.assertRaises(FileExistsError):
                 package.build(ROOT, Path(directory) / 'first', 'other-commit')
