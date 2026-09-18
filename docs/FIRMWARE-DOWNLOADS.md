@@ -75,6 +75,31 @@ Arduino IDE. Nu står respektive systems byggtestade version i START-HERE.
 
 ## Efter laddning
 
+### Nytt för ESP8266: testa med bara kortet och en telefon
+
+Välj huvudprogrammet **nodemcu-i2c**, även när display och knappsats saknas.
+Det innehåller nu en lokal webbtestpanel med 16×2-display och alla tangenter:
+0–9, A–D, `*` och `#`. Hårdvarutestpaketet har ingen webbpanel.
+
+1. Ladda upp programmet och öppna seriell monitor, **115200 baud**.
+2. Anslut kortet till träffens Wi-Fi. Lämna serveradressen tom för automatisk
+   upptäckt, eller ange den lokala serverns IP-adress.
+3. Läs boxens webbadress och **Webbtestkod** i seriell monitor. Öppna adressen
+   på telefonen på samma nät och ange webbtestkoden.
+4. Ange **Lokal anslutningskod** från TrainMeet Server. Det kräver Server
+   **1.6.2 eller senare**. Uppdatera även Bennys lokala server; en uppdatering
+   av den publika demoservern räcker inte.
+5. Administratören tilldelar boxens ID en station i servern.
+6. Välj **Aktivera webbtest** när serverpanelen visas. Knapparna går via det
+   riktiga kortet till servern. Använd därför en separat testträff.
+
+Webbtestkoden parkopplar telefonen med boxen. Den lokala anslutningskoden
+registrerar boxen hos servern. Ingen av dem är Cloud-koden. Webbtest avslutas
+vid omstart, nätavbrott eller tio minuters inaktivitet.
+
+Den här versionen rättar också namnet för serverupptäckt och hindrar att
+Wi-Fi-installationsportalen stängs dubbelt. Fysisk provkörning återstår.
+
 Boxen ansluter till träffens lokala nätverk och TrainMeet Server.
 **Administratören tilldelar stationen i servern utifrån boxens permanenta ID.**
 Boxen väljer inte station själv, och TrainMeet Cloud behövs inte i drift.

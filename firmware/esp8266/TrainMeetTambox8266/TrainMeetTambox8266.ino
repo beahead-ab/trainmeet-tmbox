@@ -15,6 +15,8 @@
 #include "device_settings.h"
 #include "input_state.h"
 #include "pcf_keypad.h"
+#include "network_setup.h"
+#include "web_test_state.h"
 
 #ifndef ESP8266
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
@@ -26,9 +28,11 @@ MqttClient mqtt(networkClient);
 WiFiManager wifiManager;
 KeyState keys;
 InputLease lease;
+WebTestSession webSession;
 String deviceId, deviceCode, bootId, apName;
 String gatewayHost, panelId, sessionId, allowedKeys, commandId;
 String shownLine1, shownLine2;
+String serverLine1, serverLine2;
 long revision = -1;
 uint16_t gatewayPort = 1883;
 bool lcdFound = false, keypadOK = false;
@@ -42,6 +46,10 @@ WiFiManagerParameter* hostParameter = nullptr;
 WiFiManagerParameter* portParameter = nullptr;
 
 Settings settings{};
+
+#ifndef TAMBOX_HARDWARE_CHECK
+void stopWebTestServer();
+#endif
 
 bool due(uint32_t now, uint32_t when) { return int32_t(now - when) >= 0; }
 
@@ -73,10 +81,12 @@ void showFrame(const String& one, const String& two) {
 void invalidate() {
   lease.clear(); panelId = ""; sessionId = ""; allowedKeys = ""; revision = -1;
   commandId = ""; keys.requireRelease();
+  serverLine1 = ""; serverLine2 = "";
 }
 
 void disconnectServer() {
   invalidate(); mqtt.stop(); connectedBefore = false;
+  webSession.enabled = false;
 }
 
 void loadSettings() {
@@ -99,10 +109,13 @@ bool storeSettings(Settings next) {
 
 void startPortal() {
   if (portalActive) return;
+#ifndef TAMBOX_HARDWARE_CHECK
+  stopWebTestServer(); // The setup portal and test page share port 80.
+#endif
   disconnectServer();
   wifiManager.startConfigPortal(apName.c_str());
-  portalActive = true;
-  showFrame("INSTALLERA WIFI", apName);
+  portalActive = wifiManager.getConfigPortalActive();
+  if (portalActive) showFrame("INSTALLERA WIFI", apName);
 }
 
 void savePortalSettings() {
@@ -117,10 +130,11 @@ void savePortalSettings() {
     showFrame("FEL SERVERADRESS", "IP + MQTT-PORT"); return;
   }
   Settings next{};
+  next.reserved = settings.reserved; // Optional HTTP port used for server enrollment.
   host.toCharArray(next.host, sizeof(next.host)); next.port = uint16_t(number);
   if (!storeSettings(next)) { showFrame("KAN INTE SPARA", "FORSOK IGEN"); return; }
   disconnectServer(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
-  wifiManager.stopConfigPortal(); portalActive = false;
+  portalActive = TrainMeetNetwork::finishSavedPortal(wifiManager, WiFi.status() == WL_CONNECTED);
 }
 
 bool publish(const String& topic, JsonDocument& document, bool retained = false) {
@@ -185,7 +199,9 @@ void receiveMessage(int size) {
       if (value.length() == 1 && strchr(TAMBOX_KEYS, value[0])) allowedKeys += value;
     }
     lease.snapshot(millis(), false);
-    if (keypadOK && lcdFound) showFrame(message["display"]["line1"].as<String>(), message["display"]["line2"].as<String>());
+    serverLine1 = lcdLine(message["display"]["line1"].as<String>());
+    serverLine2 = lcdLine(message["display"]["line2"].as<String>());
+    if (keypadOK && lcdFound) showFrame(serverLine1, serverLine2);
   } else if (topic.endsWith("/ack")) {
     if (!lease.waiting || commandId != (message["command_id"] | "")) return;
     // Do not resend unacknowledged input or enable keys until a new snapshot.
@@ -204,18 +220,21 @@ bool resolveServer() {
     // ESP8266's regular DNS is not guaranteed to resolve a .local name.
     if (gatewayHost.endsWith(".local")) {
       if (!mdnsStarted) return false;
-      const int count = MDNS.queryService("tambox", "tcp", 1000);
+      const int count = TrainMeetNetwork::queryServers(MDNS);
       for (int i = 0; i < count; ++i) {
         String host = MDNS.hostname(i); if (host.endsWith(".")) host.remove(host.length() - 1);
         if (!host.endsWith(".local")) host += ".local";
-        if (host.equalsIgnoreCase(gatewayHost)) { gatewayHost = MDNS.IP(i).toString(); return true; }
+        if (host.equalsIgnoreCase(gatewayHost)) {
+          gatewayHost = MDNS.IP(i).toString(); return gatewayHost != "0.0.0.0";
+        }
       }
       return false;
     }
     return true;
   }
   if (!mdnsStarted) return false;
-  const int count = MDNS.queryService("tambox", "tcp");
+  const int count = TrainMeetNetwork::queryServers(MDNS);
+  Serial.printf("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
   // Never pick an arbitrary runtime server when several advertise themselves.
   if (count != 1) {
     showFrame(count > 1 ? "FLERA SERVRAR" : "SOKER SERVER", count > 1 ? "HALL * FOR VAL" : deviceCode);
@@ -229,7 +248,11 @@ void connectServer() {
   disconnectServer();
   if (!resolveServer()) return;
   showFrame("ANSLUTER SERVER", deviceCode);
-  if (!mqtt.connect(gatewayHost.c_str(), gatewayPort)) return;
+  Serial.printf("Connecting to TrainMeet Server %s:%u\n", gatewayHost.c_str(), gatewayPort);
+  if (!mqtt.connect(gatewayHost.c_str(), gatewayPort)) {
+    Serial.printf("MQTT connection failed: %d\n", mqtt.connectError()); return;
+  }
+  Serial.println("TrainMeet Server connected; assignment is managed by the server administrator.");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
   if (!mqtt.subscribe("tambox/v1/device/" + deviceId + "/assignment", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/snapshot/+", 1) ||
@@ -241,9 +264,10 @@ void connectServer() {
   hello();
 }
 
-void sendKey(char key) {
-  if (!mqtt.connected() || !lease.allowed(millis()) || !keypadOK || !lcdFound ||
-      !panelId.length() || !sessionId.length() || allowedKeys.indexOf(key) < 0) return;
+bool sendKey(char key, bool virtualKey) {
+  if (!mqtt.connected() || !lease.allowed(millis()) ||
+      !webSession.permits(virtualKey, keypadOK && lcdFound, millis()) ||
+      !panelId.length() || !sessionId.length() || allowedKeys.indexOf(key) < 0) return false;
   commandId = deviceId + "-" + bootId + "-" + String(++commandSequence);
   JsonDocument command;
   command["protocol_version"] = 1;
@@ -258,8 +282,14 @@ void sendKey(char key) {
   lease.sent(millis());
   if (!publish("tambox/v1/client/" + deviceId + "/command", command)) {
     disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE");
+    return false;
   }
+  return true;
 }
+
+#ifndef TAMBOX_HARDWARE_CHECK
+#include "web_test.h"
+#endif
 
 void scanHardware() {
   Serial.println("I2C scan (7-bit addresses):");
@@ -278,6 +308,7 @@ void scanHardware() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.printf("\nTrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
   Wire.begin(TAMBOX_SDA, TAMBOX_SCL); Wire.setClock(100000);
   scanHardware();
   WiFi.mode(WIFI_STA);
@@ -292,6 +323,7 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   showFrame("HARDVARUTEST", keypadOK ? "TRYCK ALLA 16" : "KNAPPSATS SAKNAS");
 #else
+  setupWebTest();
   loadSettings();
   static char portText[6]; snprintf(portText, sizeof(portText), "%u", settings.port);
   static WiFiManagerParameter hostField("server", "TrainMeet Server: IP/namn (tomt = auto)", settings.host, 63);
@@ -333,12 +365,12 @@ void loop() {
       lease.clear(); keys.requireRelease(); refreshRequested = true;
     }
     const KeyEvent event = keys.update(mask, keypadOK, now);
-    if (!keypadOK) showFrame("KNAPPSATS SAKNAS", "KONTROLLERA I2C");
 #ifdef TAMBOX_HARDWARE_CHECK
+    if (!keypadOK) showFrame("KNAPPSATS SAKNAS", "KONTROLLERA I2C");
     if (event.pressed) showFrame("TANGENT", String(event.pressed));
 #else
-    if (event.pressed) sendKey(event.pressed);
-    if (event.reset) {
+    if (event.pressed) sendKey(event.pressed, false);
+    if (event.reset && !webSession.enabled) {
       // Enter setup without changing permanent identity or erasing good Wi-Fi.
       // Wi-Fi and server can be changed in the portal, including while online.
       startPortal();
@@ -346,22 +378,26 @@ void loop() {
 #endif
   }
 #ifndef TAMBOX_HARDWARE_CHECK
-  if (portalActive) { wifiManager.process(); savePortalSettings(); }
+  if (portalActive) {
+    wifiManager.process(); savePortalSettings();
+    // Also handle the portal's explicit exit, even while Wi-Fi is offline.
+    if (!wifiManager.getConfigPortalActive()) {
+      portalActive = false; nextConnection = millis();
+    }
+  }
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
   if (!wifiConnected) {
     if (wifiWasConnected) {
       disconnectServer(); wifiLostAt = now; gatewayHost = "";
-      if (mdnsStarted) MDNS.close(); mdnsStarted = false;
+      if (mdnsStarted) MDNS.close();
+      mdnsStarted = false;
     }
     if (!portalActive) showFrame("NAT SAKNAS", "FORSOKER IGEN");
     if (!portalActive && uint32_t(now - wifiLostAt) >= 30000) startPortal();
   } else {
+    if (!wifiWasConnected) Serial.printf("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
     if (!mdnsStarted) mdnsStarted = MDNS.begin(deviceId.c_str());
     if (mdnsStarted) MDNS.update();
-    // Keep a manually opened portal open until its save or explicit exit.
-    if (portalActive && !wifiManager.getConfigPortalActive()) {
-      portalActive = false; nextConnection = now;
-    }
     if (!portalActive) {
       if (!mqtt.connected()) {
         if (connectedBefore) { disconnectServer(); showFrame("SERVER BORTA", "FORSOKER IGEN"); }
@@ -377,10 +413,18 @@ void loop() {
         if (lease.expired(current) || lease.timedOut(current)) {
           disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE"); nextConnection = now + 1000;
         } else if (refreshRequested || uint32_t(current - lastHello) >= 10000) hello();
+        // Do not let absent hardware overwrite Wi-Fi/setup/discovery status
+        // every 10 ms, especially when testing a bare NodeMCU over USB.
+        // Traffic input remains guarded by both hardware checks in sendKey().
+        if (mqtt.connected() && lease.fresh && !webSession.enabled) {
+          if (!lcdFound) showFrame("DISPLAY SAKNAS", "KONTROLLERA I2C");
+          else if (!keypadOK) showFrame("KNAPPSATS SAKNAS", "KONTROLLERA I2C");
+        }
       }
     }
   }
   wifiWasConnected = wifiConnected;
+  tickWebTest();
 #endif
   delay(2); // ESP8266 Wi-Fi + watchdog must get CPU time.
 }
