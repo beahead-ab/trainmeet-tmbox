@@ -19,7 +19,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 PROFILES = {
-    "esp32-s3": ("esp32", "TrainMeetTMBox_S3", "ESP32S3 Dev Module", "esp32:esp32:esp32s3:FlashSize=8M,PSRAM=qspi", 2),
+    "esp32-s3": ("esp32", "TrainMeetTMBox_S3", "ESP32S3 Dev Module", "esp32:esp32:esp32s3:FlashSize=8M,PSRAM=enabled", 2),
     "esp32-benny": ("esp32", "TrainMeetTMBox_Benny", "ESP32 Dev Module", "esp32:esp32:esp32", 1),
     "esp32-classic-safe": ("esp32", "TrainMeetTMBox_Classic", "ESP32 Dev Module", "esp32:esp32:esp32", 3),
     "nodemcu-i2c": ("esp8266", "TrainMeetTambox8266", "NodeMCU 1.0 (ESP-12E Module)", "esp8266:esp8266:nodemcuv2", None),

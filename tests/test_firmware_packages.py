@@ -45,6 +45,7 @@ class FirmwarePackageTests(unittest.TestCase):
                         self.assertEqual(path.read_bytes(), files[f'{sketch}/{path.name}'])
 
     def test_hardware_selection_is_explicit(self):
+        self.assertIn('FlashSize=8M,PSRAM=enabled', package.PROFILES['esp32-s3'][3])
         for profile, (family, sketch, _board, _fqbn, number) in package.PROFILES.items():
             files = package.arduino_files(ROOT, profile)
             config = files[f'{sketch}/TrainMeetBuild.h'].decode()
