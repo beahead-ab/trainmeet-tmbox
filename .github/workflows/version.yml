@@ -24,6 +24,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   bump:
@@ -130,3 +131,13 @@ jobs:
           numret tills detta är löst.
           MESSAGE
           exit 1
+
+      # Tags pushed using GITHUB_TOKEN do not trigger another push workflow.
+      # Explicit dispatch is supported and tests the exact version tag before
+      # any source download is published. Never publish an untested main ZIP.
+      - name: Build verified downloads for this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(python3 scripts/version.py current)
+          gh workflow run source-packages.yml --ref "v$VERSION"

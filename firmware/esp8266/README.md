@@ -181,6 +181,13 @@ tillfälliga, öppna installationsnätet på en betrodd plats.
 
 ## Alternativ: Arduino IDE
 
+**Enklast:** hämta [Arduino-paketet för NodeMCU](../../docs/FIRMWARE-DOWNLOADS.md),
+packa upp i en ny mapp och följ START-HERE.md. Det innehåller alla stödfiler,
+men inte PlatformIO:s `src/main.cpp`. Programmet ska inte läggas till som
+ett ZIP-bibliotek i Arduino IDE. Ett separat hårdvarutestpaket finns också.
+
+För den som i stället arbetar direkt i repots källkod:
+
 1. Installera [Arduino IDE](https://www.arduino.cc/en/software/).
 2. Lägg till denna URL under Inställningar → Ytterligare kort-URL:er:
    `https://arduino.esp8266.com/stable/package_esp8266com_index.json`.
@@ -189,7 +196,7 @@ tillfälliga, öppna installationsnätet på en betrodd plats.
 5. Installera dessa bibliotek i Library Manager:
    - ArduinoJson **7.4.2** (Benoit Blanchon)
    - ArduinoMqttClient **0.1.8** (Arduino)
-   - LiquidCrystal I2C **1.1.4** (Frank de Brabander)
+   - LiquidCrystal I2C **1.1.2** (Frank de Brabander; Arduino Library Manager)
    - WiFiManager **2.0.17** (tzapu)
 6. Öppna `TrainMeetTambox8266/TrainMeetTambox8266.ino`. Alla `.h`-filer i
    **samma mapp måste följa med**; flytta inte ut bara `.ino`-filen.
@@ -198,9 +205,10 @@ tillfälliga, öppna installationsnätet på en betrodd plats.
    `.ino`-filen, kompilera och ladda upp. Ta bort raden och ladda upp igen
    för nätverksversionen. Därefter följer du Wi-Fi-stegen ovan.
 
-PlatformIO är det automatiskt byggtestade flödet. Denna Arduino IDE-anvisning
-använder samma källkod och bibliotek; IDE-menyerna har inte testats manuellt
-på ett anslutet kort.
+PlatformIO använder LCD-paket **1.1.4** från sin egen katalog; det versionsnumret
+finns inte i Arduino Library Manager, där du väljer **1.1.2**. Källkoden är
+gemensam. Nedladdningspaketen byggtestas i båda systemen; IDE-menyerna har inte
+testats manuellt på ett anslutet kort.
 
 ## Vad som händer vid avbrott
 
