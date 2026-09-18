@@ -61,13 +61,16 @@ def source_file(root: Path, family: str) -> Path:
 def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
     family, sketch, board, fqbn, number = PROFILES[profile]
     source = source_file(root, family)
-    config = "// Generated build selection; choose another download to change hardware.\n#pragma once\n"
+    config = '// Generated build selection; choose another download to change hardware.\n#pragma once\n#include <Arduino.h>\n'
     if number is not None:
         config += f"#define TMBOX_HARDWARE_PROFILE {number}\n"
     if profile == "nodemcu-hardware-check":
         config += "#define TAMBOX_HARDWARE_CHECK 1\n"
     guard = "ESP32" if family == "esp32" else "ESP8266"
     config += f'#ifndef {guard}\n#error "Wrong board: select {board}"\n#endif\n'
+    if family == "esp32":
+        chip = 'ESP32S3' if number == 2 else 'ESP32'
+        config += f'#ifndef CONFIG_IDF_TARGET_{chip}\n#error "Wrong ESP32 chip: select {board}"\n#endif\n'
     files = {
         f"{sketch}/{sketch}.ino": (
             "// Open this file in Arduino IDE. The firmware is compiled ONCE\n"
@@ -102,6 +105,18 @@ def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
                 else "NodeMCU ESP8266, 16×2 LCD och separat PCF8574-knappsats via I²C")
     warning = ("Detta är ENDAST hårdvarutestet. Det ansluter inte till servern. Installera nodemcu-i2c efter bänktestet."
                if profile == "nodemcu-hardware-check" else "Detta är huvudprogrammet för anslutning till den lokala TrainMeet Server.")
+    python_note = ('''På Linux behöver ESP32-kortstödets verktyg även Python-paketen för esptool.
+Om `No module named serial` visas, skapa en isolerad verktygsmiljö:
+
+```sh
+python3 -m venv .trainmeet-tools
+. .trainmeet-tools/bin/activate
+python -m pip install esptool==4.5.1
+```
+
+Kör sedan Arduino CLI-kommandot i samma terminal. Det ändrar inte dina
+Arduino-bibliotek. Detta är ett verktygsfel, inte dubbel firmware.
+''' if family == "esp32" else "")
     files["START-HERE.md"] = f"""# TrainMeet TMBox – Arduino IDE
 
 **Vald profil: {profile}** · {hardware}
@@ -144,6 +159,8 @@ arduino-cli compile --profile build {sketch}
 Profilen hämtar angivna kortstöd/bibliotek och bygger isolerat från gamla
 globala bibliotek. Arduino IDE använder däremot installationerna från steg 3–4;
 `sketch.yaml` är inte ett löfte om automatisk bibliotekshantering i IDE:n.
+
+{python_note}
 
 ## Första starten och stationen
 
