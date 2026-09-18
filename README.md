@@ -25,6 +25,13 @@ Servern hittas automatiskt med mDNS/Bonjour. En serveradress kan också anges ma
 
 ## Bygg och ladda firmware
 
+**Färdiga källkodspaket:** öppna
+[Nedladdningar / Releases](https://github.com/beahead-ab/trainmeet-tmbox/releases)
+och välj ett **Arduino IDE-** eller **PlatformIO-paket** under Assets.
+[Välj rätt paket och följ steg-för-steg-guiden](docs/FIRMWARE-DOWNLOADS.md).
+Arduino-paketet innehåller alla egna stödfiler och ingen PlatformIO-startfil
+som kan ge dubbelkompilering. Välj inte ”Source code (zip)” för detta flöde.
+
 [PlatformIO](https://platformio.org/) är den rekommenderade vägen:
 
 ```sh
@@ -48,7 +55,9 @@ Det finns tre hårdvaruprofiler:
 > Hårdvaran är dokumenterad i
 > [docs/TMBOX-V1-LEGACY.md](docs/TMBOX-V1-LEGACY.md).
 
-Arduino IDE kan också användas. Instruktioner och bibliotek finns i [firmware/esp32/README.md](firmware/esp32/README.md). Komplett koppling av display, tangentbord, ström och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
+Arduino IDE använder det särskilda [Arduino-paketet](docs/FIRMWARE-DOWNLOADS.md),
+inte en lös `.ino` ur repot. Komplett koppling av display, tangentbord, ström
+och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
 
 ## Valfri NodeMCU / ESP8266-variant (MQTT v1)
 

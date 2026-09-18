@@ -34,8 +34,12 @@ Miljöerna `esp32-benny` och `esp32-classic-safe` finns kvar som
 utvecklingsprofiler för klassiska ESP32-kort. De beskriver inte TMBox v2 och
 ska inte användas för den nya referenskonstruktionen.
 
-För Arduino IDE krävs ArduinoJson, ArduinoMqttClient, Keypad,
-LiquidCrystal_I2C och WiFiManager. Öppna därefter `TrainMeetTMBox.ino`.
+För Arduino IDE: hämta det särskilda
+[Arduino-paketet för din profil](../../docs/FIRMWARE-DOWNLOADS.md) och följ
+START-HERE.md. Paketet innehåller alla egna stödfiler och rätt biblioteksversioner
+anges där. Öppna inte en lös `TrainMeetTMBox.ino` ur detta repo: den behöver
+`lib/tmbox_core`, och PlatformIO:s `src/main.cpp` får inte följa med i en
+Arduino-sketch. De nedladdningsbara paketen byggs från exakt samma källkod.
 
 ## Drift
 
