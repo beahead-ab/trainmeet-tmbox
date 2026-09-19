@@ -96,9 +96,11 @@ Det innehåller nu en lokal webbtestpanel med 16×2-display och alla tangenter:
    upptäckt, eller ange den lokala serverns IP-adress.
 3. Läs boxens webbadress och **Webbtestkod** i seriell monitor. Öppna adressen
    på telefonen på samma nät och ange webbtestkoden.
-4. Ange **Lokal anslutningskod** från TrainMeet Server. Det kräver Server
-   **1.6.2 eller senare**. Uppdatera även Bennys lokala server; en uppdatering
-   av den publika demoservern räcker inte.
+4. Ange serverns IP-adress och **Lokal anslutningskod** i samma formulär och
+   tryck **Anslut till servern**. Tom adress behåller automatisk upptäckt.
+   Även en webbadress som `http://192.168.0.160:8787/` går bra. Det kräver Server
+   **1.6.2 eller senare på den lokala servern**. Har den redan denna version
+   behövs ingen serveruppdatering för rättningen i boxens webbpanel.
 5. Administratören tilldelar boxens ID en station i servern.
 6. Välj **Aktivera webbtest** när serverpanelen visas. Knapparna går via det
    riktiga kortet till servern. Använd därför en separat testträff.
@@ -107,10 +109,12 @@ Webbtestkoden parkopplar telefonen med boxen. Den lokala anslutningskoden
 registrerar boxen hos servern. Ingen av dem är Cloud-koden. Webbtest avslutas
 vid omstart, nätavbrott eller tio minuters inaktivitet.
 
-Den här uppdateringen lägger till valbart USB-debugläge och byter enbart
-ESP8266:s LCD-bibliotek till LiquidCrystal_PCF8574. Den fungerande
-serverupptäckten och stationstilldelningen behålls oförändrade.
-Fysisk provkörning av det nya LCD-biblioteket återstår.
+Den här uppdateringen rättar manuell webbanslutning: adressen sparas före
+kodkontrollen, boxen inväntar serverns registreringsbekräftelse, och status/fel
+visas direkt vid knappen. Misslyckade kodförsök raderar inte det du skrivit.
+Automatisk serverupptäckt och administratörens stationstilldelning är oförändrade.
+USB-debugläget och LiquidCrystal_PCF8574 från förra versionen finns kvar.
+Fysisk provkörning på just ditt kort återstår.
 
 Boxen ansluter till träffens lokala nätverk och TrainMeet Server.
 **Administratören tilldelar stationen i servern utifrån boxens permanenta ID.**

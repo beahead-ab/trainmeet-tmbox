@@ -2,6 +2,22 @@
 #include <stdint.h>
 #include <string.h>
 
+// A TCP/MQTT connection alone does not prove that the server has recorded
+// this device. Only a fresh reply to its hello permits HTTP code enrollment.
+struct EnrollmentReadiness {
+  bool received = false;
+  void clear() { received = false; }
+  bool ready(bool connected) const { return connected && received; }
+  void observe(bool retained, int protocol, const char* actualId,
+               const char* expectedId, const char* status) {
+    if (!retained && protocol == 1 && actualId && expectedId && *expectedId &&
+        strcmp(actualId, expectedId) == 0 && status &&
+        (strcmp(status, "assigned") == 0 || strcmp(status, "waiting_for_assignment") == 0)) {
+      received = true;
+    }
+  }
+};
+
 // No Arduino dependency: authorization lifetime and input source selection
 // are tested on the host as well as compiled for the NodeMCU.
 struct WebTestSession {
