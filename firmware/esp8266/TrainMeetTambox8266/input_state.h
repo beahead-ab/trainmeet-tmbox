@@ -1,5 +1,29 @@
 #pragma once
 #include <stdint.h>
+#include <string>
+
+// Local editing only, no traffic decisions. A changed server interaction or
+// disconnected input source discards the draft; repeated snapshots preserve it.
+class LocalTrainEntry {
+ public:
+  bool active = false;
+  std::string value;
+  void clear() { active = false; value.clear(); context.clear(); }
+  void sync(bool enabled, const std::string& nextContext, const std::string& initial) {
+    if (!enabled || initial.size() > 5 || initial.find_first_not_of("0123456789") != std::string::npos) {
+      clear(); return;
+    }
+    if (!active || context != nextContext) value = initial;
+    context = nextContext; active = true;
+  }
+  bool digit(char key) {
+    if (!active || key < '0' || key > '9' || value.size() >= 5) return false;
+    value += key; return true;
+  }
+  bool canSubmit() const { return active && !value.empty(); }
+ private:
+  std::string context;
+};
 
 // No Arduino dependency: debounce, multi-key rejection and stale-input rules
 // are also exercised by the host tests. Unsigned subtraction survives millis wrap.

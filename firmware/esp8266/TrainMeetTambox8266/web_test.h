@@ -13,6 +13,7 @@ bool testWebRunning = false;
 
 void stopVirtualInput() {
   webSession.enabled = false;
+  trainEntry.clear();
   lease.clear(); keys.requireRelease(); refreshRequested = true;
 }
 
@@ -102,9 +103,16 @@ void webStatus() {
   data["fresh"] = lease.fresh && !lease.expired(millis());
   data["canStart"] = webSnapshotReady();
   data["ready"] = webSnapshotReady() && webSession.enabled;
-  data["allowedKeys"] = allowedKeys;
-  data["line1"] = serverLine1.length() ? serverLine1 : shownLine1;
-  data["line2"] = serverLine2.length() ? serverLine2 : shownLine2;
+  String webKeys = allowedKeys;
+  if (enteringTrain && !trainEntry.active) webKeys = "*";
+  if (enteringTrain && !trainEntry.canSubmit()) webKeys.replace("#", "");
+  if (trainEntry.active && trainEntry.value.size() >= 5)
+    for (char digit = '0'; digit <= '9'; ++digit) webKeys.replace(String(digit), "");
+  data["allowedKeys"] = webKeys;
+  data["localEntry"] = trainEntry.active;
+  data["entryNeedsUpdate"] = enteringTrain && !trainEntry.active;
+  data["line1"] = serverLine1.length() ? inputLine1() : shownLine1;
+  data["line2"] = serverLine2.length() ? inputLine2() : shownLine2;
   webJson(200, data);
 }
 
@@ -150,7 +158,7 @@ void setupWebTest() {
       webSession.enable(millis());
       TMBOX_DEBUG("Web test enabled\n");
       // A fresh snapshot is required after changing input source.
-      lease.clear(); keys.requireRelease(); refreshRequested = true;
+      trainEntry.clear(); lease.clear(); keys.requireRelease(); refreshRequested = true;
     } else { stopVirtualInput(); webSession.touch(millis()); TMBOX_DEBUG("Web test disabled\n"); }
     webStatus();
   });
