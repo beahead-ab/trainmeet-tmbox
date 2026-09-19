@@ -268,7 +268,7 @@ För den som i stället arbetar direkt i repots källkod:
 5. Installera dessa bibliotek i Library Manager:
    - ArduinoJson **7.4.2** (Benoit Blanchon)
    - ArduinoMqttClient **0.1.8** (Arduino)
-   - LiquidCrystal I2C **1.1.2** (Frank de Brabander; Arduino Library Manager)
+   - LiquidCrystal_PCF8574 **2.3.0** (Matthias Hertel)
    - WiFiManager **2.0.17** (tzapu)
 6. Öppna `TrainMeetTambox8266/TrainMeetTambox8266.ino`. Alla `.h`-filer i
    **samma mapp måste följa med**; flytta inte ut bara `.ino`-filen.
@@ -277,10 +277,32 @@ För den som i stället arbetar direkt i repots källkod:
    `.ino`-filen, kompilera och ladda upp. Ta bort raden och ladda upp igen
    för nätverksversionen. Därefter följer du Wi-Fi-stegen ovan.
 
-PlatformIO använder LCD-paket **1.1.4** från sin egen katalog; det versionsnumret
-finns inte i Arduino Library Manager, där du väljer **1.1.2**. Källkoden är
-gemensam. Nedladdningspaketen byggtestas i båda systemen; IDE-menyerna har inte
+ESP8266 använder [LiquidCrystal_PCF8574 **2.3.0** av Matthias Hertel](https://github.com/mathertel/LiquidCrystal_PCF8574/tree/2.3.0)
+i både PlatformIO och Arduino Library Manager. Välj inte LiquidCrystal I2C;
+ESP32:s bibliotek är oförändrat. Nedladdningspaketen byggtestas i båda systemen; IDE-menyerna har inte
 testats manuellt på ett anslutet kort.
+
+## Frivilligt debugläge via USB
+
+Debugläget är av som standard (`TAMBOX_DEBUG_ENABLED` är `0`). För att se mer
+felsökningsinformation, öppna
+[`hardware_profile.h`](TrainMeetTambox8266/hardware_profile.h) och ändra den
+befintliga definitionen till:
+
+```cpp
+#define TAMBOX_DEBUG_ENABLED 1
+```
+
+Kompilera och ladda upp samma firmwareprofil igen. Öppna seriell monitor med
+**115200 baud**. Debugraderna visar funktion, källkodens radnummer och
+millisekunder sedan start (`millis`). Inga extra bibliotek eller separata
+debugpaket behövs. Ändra tillbaka till `0` och bygg/ladda upp igen för att
+stänga av debugutskrifterna.
+
+Normala statusrader och huvudprogrammets **USB-webbtestkod visas även när debug
+är av**. Hårdvarutestprofilen har fortfarande ingen webbpanel eller webbtestkod.
+Dela inte webbtestkoden i offentliga loggar. Flaggan ändrar inte anslutning,
+stationstilldelning eller MQTT-protokoll.
 
 ## Vad som händer vid avbrott
 

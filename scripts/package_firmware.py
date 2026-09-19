@@ -58,6 +58,29 @@ def source_file(root: Path, family: str) -> Path:
     return root / "firmware/esp8266/TrainMeetTambox8266/TrainMeetTambox8266.ino"
 
 
+def esp8266_debug_instructions(hardware_file: str) -> bytes:
+    return f"""
+## Frivilligt debugläge för ESP8266
+
+Debug är av som standard. För mer felsökningsinformation, öppna
+`{hardware_file}` och ändra den befintliga flaggan till:
+
+```cpp
+#define TAMBOX_DEBUG_ENABLED 1
+```
+
+Kompilera och ladda upp samma profil igen. Öppna seriell monitor med
+**115200 baud**. Debugrader anger funktion, källkodens radnummer och antal
+millisekunder sedan start (`millis`). Inget extra bibliotek eller debugpaket
+behövs. Ändra tillbaka till `0`, kompilera och ladda upp för att stänga av.
+
+Normala statusrader och huvudprogrammets USB-webbtestkod finns kvar även när
+debug är av. Hårdvarutestprogrammet har ingen webbpanel eller webbtestkod.
+Dela inte webbtestkoden i offentliga loggar. Flaggan ändrar inte nätinställningar,
+stationstilldelning eller MQTT-protokoll.
+""".encode()
+
+
 def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
     family, sketch, board, fqbn, number = PROFILES[profile]
     source = source_file(root, family)
@@ -197,6 +220,8 @@ inte in PlatformIO:s `src/main.cpp` eller en extra .ino från GitHub.
 Kopplingsguide och serveranslutning:
 https://github.com/beahead-ab/trainmeet-tmbox/blob/main/firmware/{family}/README.md
 """.encode()
+    if family == "esp8266":
+        files["START-HERE.md"] += esp8266_debug_instructions(f"{sketch}/hardware_profile.h")
     return files
 
 
@@ -237,6 +262,8 @@ utifrån boxens permanenta ID. Boxen väljer inte station och använder inte Clo
 Kopplingsguide:
 https://github.com/beahead-ab/trainmeet-tmbox/blob/main/firmware/{family}/README.md
 """.encode()
+    if family == "esp8266":
+        files["START-HERE.md"] += esp8266_debug_instructions("TrainMeetTambox8266/hardware_profile.h")
     return files
 
 

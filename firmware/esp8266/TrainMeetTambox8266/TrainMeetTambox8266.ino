@@ -8,10 +8,11 @@
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_PCF8574.h>
 #include <WiFiManager.h>
 #include <stddef.h>
 #include "hardware_profile.h"
+#include "debug_log.h"
 #include "device_settings.h"
 #include "input_state.h"
 #include "pcf_keypad.h"
@@ -22,7 +23,7 @@
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
 #endif
 
-LiquidCrystal_I2C lcd(TAMBOX_LCD_ADDRESS, 16, 2);
+LiquidCrystal_PCF8574 lcd(TAMBOX_LCD_ADDRESS);
 WiFiClient networkClient;
 MqttClient mqtt(networkClient);
 WiFiManager wifiManager;
@@ -71,7 +72,7 @@ void showFrame(const String& one, const String& two) {
   const String first = lcdLine(one), second = lcdLine(two);
   if (first == shownLine1 && second == shownLine2) return;
   shownLine1 = first; shownLine2 = second;
-  Serial.printf("LCD |%s|%s|\n", first.c_str(), second.c_str());
+  TMBOX_LOG("LCD |%s|%s|\n", first.c_str(), second.c_str());
   if (lcdFound) {
     lcd.setCursor(0, 0); lcd.print(first);
     lcd.setCursor(0, 1); lcd.print(second);
@@ -138,7 +139,9 @@ void savePortalSettings() {
 }
 
 bool publish(const String& topic, JsonDocument& document, bool retained = false) {
-  if (!mqtt.beginMessage(topic, (unsigned long)measureJson(document), retained, 1)) return false;
+  if (!mqtt.beginMessage(topic, (unsigned long)measureJson(document), retained, 1)) {
+    TMBOX_DEBUG("MQTT publish could not start\n"); return false;
+  }
   serializeJson(document, mqtt);
   return mqtt.endMessage() == 1;
 }
@@ -162,18 +165,20 @@ void receiveMessage(int size) {
   const String topic = mqtt.messageTopic();
   const bool retained = mqtt.messageRetain();
   // Filter unused fields (routes/slots/ack snapshots) before allocating JSON.
-  if (size < 2 || size > 8192) { invalidate(); return; }
+  if (size < 2 || size > 8192) { TMBOX_DEBUG("MQTT message rejected: bytes=%d\n", size); invalidate(); return; }
   JsonDocument filter, message;
   for (const char* key : {"status", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason"}) filter[key] = true;
   filter["assigned_panel_ids"][0] = true;
   filter["display"]["line1"] = true; filter["display"]["line2"] = true;
   filter["interaction"]["allowed_keys"][0] = true;
   if (deserializeJson(message, mqtt, DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(10))) {
+    TMBOX_DEBUG("MQTT JSON rejected (payload not logged)\n");
     invalidate(); refreshRequested = true; return;
   }
   if (topic.endsWith("/assignment")) {
     const String status = message["status"] | "";
     const String nextPanel = message["assigned_panel_ids"][0] | "";
+    TMBOX_DEBUG("Assignment: status=%.32s panel=%.80s\n", status.c_str(), nextPanel.c_str());
     if (status == "assigned" && !nextPanel.length() && String(message["station_id"] | "").length()) {
       invalidate(); showFrame("V1-PANEL SAKNAS", "KOLLA SERVERN"); return;
     }
@@ -187,11 +192,18 @@ void receiveMessage(int size) {
   } else if (topic.indexOf("/snapshot/") >= 0) {
     if (retained || !panelId.length() || panelId != (message["panel_id"] | "") ||
         !message["revision"].is<long>() || !message["display"]["line1"].is<const char*>() ||
-        !message["display"]["line2"].is<const char*>() || !message["interaction"]["allowed_keys"].is<JsonArray>()) return;
+        !message["display"]["line2"].is<const char*>() || !message["interaction"]["allowed_keys"].is<JsonArray>()) {
+      TMBOX_DEBUG("Snapshot ignored: retained, wrong panel or invalid fields\n"); return;
+    }
     const String nextSession = message["traffic_session_id"] | "";
     if (!nextSession.length()) return;
     const long nextRevision = message["revision"];
-    if (nextRevision < 0 || (nextSession == sessionId && nextRevision < revision)) return;
+    if (nextRevision < 0 || (nextSession == sessionId && nextRevision < revision)) {
+      TMBOX_DEBUG("Snapshot ignored: stale revision=%ld current=%ld\n", nextRevision, revision); return;
+    }
+    if (nextSession != sessionId || nextRevision != revision) {
+      TMBOX_DEBUG("Snapshot accepted: revision=%ld\n", nextRevision);
+    }
     sessionId = nextSession; revision = nextRevision;
     allowedKeys = "";
     for (JsonVariant key : message["interaction"]["allowed_keys"].as<JsonArray>()) {
@@ -204,6 +216,7 @@ void receiveMessage(int size) {
     if (keypadOK && lcdFound) showFrame(serverLine1, serverLine2);
   } else if (topic.endsWith("/ack")) {
     if (!lease.waiting || commandId != (message["command_id"] | "")) return;
+    TMBOX_DEBUG("Command acknowledgement: status=%.32s\n", message["status"] | "");
     // Do not resend unacknowledged input or enable keys until a new snapshot.
     lease.acknowledged(); commandId = ""; refreshRequested = true;
     if (String(message["status"] | "") == "rejected") showFrame("KOMMANDO NEKAT", "HAMTAR NYTT LAGE");
@@ -234,7 +247,7 @@ bool resolveServer() {
   }
   if (!mdnsStarted) return false;
   const int count = TrainMeetNetwork::queryServers(MDNS);
-  Serial.printf("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
+  TMBOX_LOG("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
   // Never pick an arbitrary runtime server when several advertise themselves.
   if (count != 1) {
     showFrame(count > 1 ? "FLERA SERVRAR" : "SOKER SERVER", count > 1 ? "HALL * FOR VAL" : deviceCode);
@@ -248,11 +261,11 @@ void connectServer() {
   disconnectServer();
   if (!resolveServer()) return;
   showFrame("ANSLUTER SERVER", deviceCode);
-  Serial.printf("Connecting to TrainMeet Server %s:%u\n", gatewayHost.c_str(), gatewayPort);
+  TMBOX_LOG("Connecting to TrainMeet Server %s:%u\n", gatewayHost.c_str(), gatewayPort);
   if (!mqtt.connect(gatewayHost.c_str(), gatewayPort)) {
-    Serial.printf("MQTT connection failed: %d\n", mqtt.connectError()); return;
+    TMBOX_LOG("MQTT connection failed: %d\n", mqtt.connectError()); return;
   }
-  Serial.println("TrainMeet Server connected; assignment is managed by the server administrator.");
+  TMBOX_LOG("TrainMeet Server connected; assignment is managed by the server administrator.\n");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
   if (!mqtt.subscribe("tambox/v1/device/" + deviceId + "/assignment", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/snapshot/+", 1) ||
@@ -267,7 +280,10 @@ void connectServer() {
 bool sendKey(char key, bool virtualKey) {
   if (!mqtt.connected() || !lease.allowed(millis()) ||
       !webSession.permits(virtualKey, keypadOK && lcdFound, millis()) ||
-      !panelId.length() || !sessionId.length() || allowedKeys.indexOf(key) < 0) return false;
+      !panelId.length() || !sessionId.length() || allowedKeys.indexOf(key) < 0) {
+    TMBOX_DEBUG("Key ignored: connection, lease, input mode or assignment not ready\n"); return false;
+  }
+  TMBOX_DEBUG("Key accepted: source=%s revision=%ld\n", virtualKey ? "web" : "physical", revision);
   commandId = deviceId + "-" + bootId + "-" + String(++commandSequence);
   JsonDocument command;
   command["protocol_version"] = 1;
@@ -292,23 +308,24 @@ bool sendKey(char key, bool virtualKey) {
 #endif
 
 void scanHardware() {
-  Serial.println("I2C scan (7-bit addresses):");
+  TMBOX_LOG("I2C scan (7-bit addresses):\n");
   for (uint8_t address = 1; address < 127; ++address) {
     Wire.beginTransmission(address);
-    if (Wire.endTransmission() == 0) Serial.printf("  0x%02X\n", address);
+    if (Wire.endTransmission() == 0) TMBOX_LOG("I2C device: 0x%02X\n", address);
     yield();
   }
   Wire.beginTransmission(TAMBOX_LCD_ADDRESS);
   lcdFound = Wire.endTransmission() == 0;
-  if (lcdFound) { lcd.init(); lcd.backlight(); }
+  if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
   keypadOK = keypadWrite(0xff);
-  if (!lcdFound) Serial.println("LCD missing: traffic input disabled.");
-  if (!keypadOK) Serial.println("Keypad missing: traffic input disabled.");
+  if (!lcdFound) TMBOX_LOG("LCD missing: traffic input disabled.\n");
+  if (!keypadOK) TMBOX_LOG("Keypad missing: traffic input disabled.\n");
 }
 
 void setup() {
   Serial.begin(115200);
-  Serial.printf("\nTrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
+  TMBOX_LOG("TrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
+  TMBOX_LOG("USB debug: %s\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");
   Wire.begin(TAMBOX_SDA, TAMBOX_SCL); Wire.setClock(100000);
   scanHardware();
   WiFi.mode(WIFI_STA);
@@ -323,6 +340,8 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   showFrame("HARDVARUTEST", keypadOK ? "TRYCK ALLA 16" : "KNAPPSATS SAKNAS");
 #else
+  // Use our bounded USB diagnostics; the library can expose network settings.
+  wifiManager.setDebugOutput(false);
   setupWebTest();
   loadSettings();
   static char portText[6]; snprintf(portText, sizeof(portText), "%u", settings.port);
@@ -352,8 +371,8 @@ void loop() {
     if (available != lcdFound) {
       lcdFound = available; lease.clear(); keys.requireRelease(); refreshRequested = true;
       shownLine1 = ""; shownLine2 = "";
-      if (lcdFound) { lcd.init(); lcd.backlight(); }
-      else Serial.println("LCD disconnected: traffic input disabled.");
+      if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
+      else TMBOX_LOG("LCD disconnected: traffic input disabled.\n");
     }
   }
   if (uint32_t(now - lastKeyScan) >= 10) {
@@ -395,7 +414,7 @@ void loop() {
     if (!portalActive) showFrame("NAT SAKNAS", "FORSOKER IGEN");
     if (!portalActive && uint32_t(now - wifiLostAt) >= 30000) startPortal();
   } else {
-    if (!wifiWasConnected) Serial.printf("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
+    if (!wifiWasConnected) TMBOX_LOG("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
     if (!mdnsStarted) mdnsStarted = MDNS.begin(deviceId.c_str());
     if (mdnsStarted) MDNS.update();
     if (!portalActive) {
@@ -411,6 +430,7 @@ void loop() {
         // A callback may just have set lastSnapshot later than the loop's `now`.
         const uint32_t current = millis();
         if (lease.expired(current) || lease.timedOut(current)) {
+          TMBOX_DEBUG("Server timeout: snapshot or acknowledgement missing\n");
           disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE"); nextConnection = now + 1000;
         } else if (refreshRequested || uint32_t(current - lastHello) >= 10000) hello();
         // Do not let absent hardware overwrite Wi-Fi/setup/discovery status
