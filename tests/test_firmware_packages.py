@@ -36,6 +36,10 @@ class FirmwarePackageTests(unittest.TestCase):
             if family == 'esp8266':
                 self.assertIn(f'{sketch}/hardware_profile.h', instructions)
                 self.assertIn('#define TAMBOX_DEBUG_ENABLED 1', instructions)
+                self.assertIn('Debug port', instructions)
+                self.assertIn('Disabled', instructions)
+                self.assertIn('--board-options dbg=Serial', instructions)
+                self.assertIn('Debug Level', instructions)
                 self.assertIn('115200 baud', instructions)
                 self.assertIn('USB-webbtestkod', instructions)
             else:

@@ -34,14 +34,14 @@ def check(archive_path, kind, target):
                 if definition[0] == target:
                     run('pio', 'run', '--project-dir', str(project), '-e', profile)
                     if target == 'esp8266':
-                        debug_env = os.environ.copy()
-                        # Add a source-only flag; do not replace build_flags,
-                        # which selects TAMBOX_HARDWARE_CHECK in its profile.
-                        debug_env['PLATFORMIO_BUILD_SRC_FLAGS'] = ' '.join(filter(None, (
-                            debug_env.get('PLATFORMIO_BUILD_SRC_FLAGS', ''),
-                            '-DTAMBOX_DEBUG_ENABLED=1',
-                        )))
-                        run('pio', 'run', '--project-dir', str(project), '-e', profile, env=debug_env)
+                        # Test the IDE-derived setting AND the supported legacy
+                        # override. Keep the hardware-check profile's flags.
+                        for flag in ('-DDEBUG_ESP_PORT=Serial', '-DTAMBOX_DEBUG_ENABLED=1'):
+                            debug_env = os.environ.copy()
+                            debug_env['PLATFORMIO_BUILD_SRC_FLAGS'] = ' '.join(filter(None, (
+                                debug_env.get('PLATFORMIO_BUILD_SRC_FLAGS', ''), flag,
+                            )))
+                            run('pio', 'run', '--project-dir', str(project), '-e', profile, env=debug_env)
             return
         family, sketch, _board, fqbn, _number = PROFILES[target]
         core, version, index = CORES[family]
@@ -54,6 +54,10 @@ def check(archive_path, kind, target):
         run('arduino-cli', 'compile', '--fqbn', fqbn, str(project / sketch))
         run('arduino-cli', 'compile', '--profile', 'build', str(project / sketch))
         if family == 'esp8266':
+            # Exercise the actual Arduino Debug port menu option, not just a
+            # compiler flag. This must work in ordinary and isolated builds.
+            run('arduino-cli', 'compile', '--fqbn', fqbn, '--board-options', 'dbg=Serial', str(project / sketch))
+            run('arduino-cli', 'compile', '--profile', 'build', '--board-options', 'dbg=Serial', str(project / sketch))
             debug_property = 'compiler.cpp.extra_flags=-DTAMBOX_DEBUG_ENABLED=1'
             run('arduino-cli', 'compile', '--fqbn', fqbn, '--build-property', debug_property, str(project / sketch))
             run('arduino-cli', 'compile', '--profile', 'build', '--build-property', debug_property, str(project / sketch))

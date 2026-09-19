@@ -292,10 +292,17 @@ testats manuellt på ett anslutet kort.
 
 ## Frivilligt debugläge via USB
 
-Debugläget är av som standard (`TAMBOX_DEBUG_ENABLED` är `0`). För att se mer
-felsökningsinformation, öppna
-[`hardware_profile.h`](TrainMeetTambox8266/hardware_profile.h) och ändra den
-befintliga definitionen till:
+Debugläget är av som standard. I **Arduino IDE** väljer du **Verktyg → Debug
+port → Serial**. **Debug Level** kan vara **None**; den menyn gäller
+ESP8266-kortstödets egna loggar, inte TMBox-loggarna. Ingen kodändring behövs.
+Välj **Debug port → Disabled** för att stänga av igen.
+
+Med Arduino CLI lägger du till `--board-options dbg=Serial` i byggkommandot,
+även när du använder nedladdningspaketets isolerade `--profile build`.
+
+I **PlatformIO**, eller som ett uttryckligt manuellt val i båda byggsystemen,
+kan du i [`hardware_profile.h`](TrainMeetTambox8266/hardware_profile.h)
+ta bort `//` framför:
 
 ```cpp
 #define TAMBOX_DEBUG_ENABLED 1
@@ -304,8 +311,14 @@ befintliga definitionen till:
 Kompilera och ladda upp samma firmwareprofil igen. Öppna seriell monitor med
 **115200 baud**. Debugraderna visar funktion, källkodens radnummer och
 millisekunder sedan start (`millis`). Inga extra bibliotek eller separata
-debugpaket behövs. Ändra tillbaka till `0` och bygg/ladda upp igen för att
-stänga av debugutskrifterna.
+debugpaket behövs. En uttrycklig `TAMBOX_DEBUG_ENABLED` (`0` eller `1`) går
+före Arduino-menyn för TMBox-loggarna. Kommentera bort den för att följa
+menyn igen. Utan flagga är PlatformIO:s debugläge av. Byggflaggan
+`-DTAMBOX_DEBUG_ENABLED=1` stöds också; behåll profilens övriga byggflaggor.
+
+TMBox-loggar och webbtestkoden ligger alltid på USB-porten **Serial**, även
+om kortstödets egna loggar skickas till Serial1. Använd därför **Serial** i
+Arduino-menyn vid felsökning med USB.
 
 Normala statusrader och huvudprogrammets **USB-webbtestkod visas även när debug
 är av**. Hårdvarutestprofilen har fortfarande ingen webbpanel eller webbtestkod.

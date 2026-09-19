@@ -78,8 +78,11 @@ LiquidCrystal_I2C **1.1.4**. Den äldre guiden angav felaktigt 1.1.4 även för
 Arduino IDE. Nu står respektive systems byggtestade version i START-HERE.
 
 ESP8266-paketens START-HERE beskriver också frivilligt USB-debugläge:
-sätt `TAMBOX_DEBUG_ENABLED` till `1` i paketets `hardware_profile.h`, bygg och
-ladda upp samma profil, och använd **115200 baud**. Debug är normalt av;
+i Arduino IDE väljer du **Verktyg → Debug port → Serial**, bygger och
+laddar upp samma profil. **Disabled** stänger av igen. Använd **115200 baud**.
+Den tidigare flaggan `TAMBOX_DEBUG_ENABLED` i `hardware_profile.h` stöds
+fortfarande, även i PlatformIO; ett uttryckligt `0` eller `1` går före
+Arduino-menyn för TMBox-loggarna. Debug är normalt av;
 vanliga statusrader och huvudprogrammets USB-webbtestkod finns ändå kvar.
 Det tillkommer inget separat paket eller bibliotek.
 

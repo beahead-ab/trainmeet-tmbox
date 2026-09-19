@@ -62,8 +62,15 @@ def esp8266_debug_instructions(hardware_file: str) -> bytes:
     return f"""
 ## Frivilligt debugläge för ESP8266
 
-Debug är av som standard. För mer felsökningsinformation, öppna
-`{hardware_file}` och ändra den befintliga flaggan till:
+Debug är av som standard. I **Arduino IDE**, välj **Verktyg → Debug port →
+Serial** för mer felsökningsinformation. **Debug Level** kan stå kvar på
+**None**; det valet gäller ESP8266-kortstödets egna loggar. Du behöver inte
+ändra källkoden. Välj **Debug port → Disabled** för att stänga av igen.
+I Arduino CLI motsvaras menyvalet av `--board-options dbg=Serial` på
+kommandot `arduino-cli compile`.
+
+I **PlatformIO**, eller för att använda den tidigare manuella inställningen,
+öppna `{hardware_file}` och ta bort `//` framför:
 
 ```cpp
 #define TAMBOX_DEBUG_ENABLED 1
@@ -72,7 +79,10 @@ Debug är av som standard. För mer felsökningsinformation, öppna
 Kompilera och ladda upp samma profil igen. Öppna seriell monitor med
 **115200 baud**. Debugrader anger funktion, källkodens radnummer och antal
 millisekunder sedan start (`millis`). Inget extra bibliotek eller debugpaket
-behövs. Ändra tillbaka till `0`, kompilera och ladda upp för att stänga av.
+behövs. En uttrycklig `TAMBOX_DEBUG_ENABLED` (`0` eller `1`) går före
+Arduino-menyn för TMBox-loggarna. Kommentera bort flaggan för att följa
+menyvalet igen. I PlatformIO är debug av utan flaggan; byggflaggan
+`-DTAMBOX_DEBUG_ENABLED=1` fungerar också. Behåll profilens övriga byggflaggor.
 
 Normala statusrader och huvudprogrammets USB-webbtestkod finns kvar även när
 debug är av. Hårdvarutestprogrammet har ingen webbpanel eller webbtestkod.

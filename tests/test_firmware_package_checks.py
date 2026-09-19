@@ -45,8 +45,9 @@ class FirmwarePackageCompileChecks(unittest.TestCase):
                 self.assertTrue((sketch / 'TrainMeetFirmware.cpp').is_file())
                 self.assertNotEqual(ROOT, sketch.parent)
                 if target.startswith('nodemcu-'):
-                    hardware = (sketch / 'hardware_profile.h').read_text()
-                    self.assertIn('#define TAMBOX_DEBUG_ENABLED 0', hardware)
+                    self.assertIn('#ifdef DEBUG_ESP_PORT', (sketch / 'debug_log.h').read_text())
+                    self.assertNotRegex((sketch / 'hardware_profile.h').read_text(),
+                                        r'(?m)^\s*#define TAMBOX_DEBUG_ENABLED')
                     build = (sketch / 'TrainMeetBuild.h').read_text()
                     self.assertEqual(target == 'nodemcu-hardware-check',
                                      '#define TAMBOX_HARDWARE_CHECK 1' in build)
@@ -58,8 +59,10 @@ class FirmwarePackageCompileChecks(unittest.TestCase):
                 if target == 'esp8266':
                     self.assertIn('build_flags = -D TAMBOX_HARDWARE_CHECK=1',
                                   (project / 'platformio.ini').read_text())
-                    self.assertIn('#define TAMBOX_DEBUG_ENABLED 0',
-                                  (project / 'TrainMeetTambox8266/hardware_profile.h').read_text())
+                    self.assertIn('#ifdef DEBUG_ESP_PORT',
+                                  (project / 'TrainMeetTambox8266/debug_log.h').read_text())
+                    self.assertNotRegex((project / 'TrainMeetTambox8266/hardware_profile.h').read_text(),
+                                        r'(?m)^\s*#define TAMBOX_DEBUG_ENABLED')
 
         with patch.object(checker, 'run', side_effect=capture):
             checker.check(archive, kind, target)
@@ -71,12 +74,14 @@ class FirmwarePackageCompileChecks(unittest.TestCase):
             with self.subTest(target=target):
                 commands = self.commands_for('arduino', target)
                 compiles = [(args, env) for args, env in commands if args[:2] == ('arduino-cli', 'compile')]
-                self.assertEqual(4, len(compiles))
+                self.assertEqual(6, len(compiles))
                 fqbn = package.PROFILES[target][3]
                 sketch = compiles[0][0][-1]
                 expected = [
                     ('arduino-cli', 'compile', '--fqbn', fqbn, sketch),
                     ('arduino-cli', 'compile', '--profile', 'build', sketch),
+                    ('arduino-cli', 'compile', '--fqbn', fqbn, '--board-options', 'dbg=Serial', sketch),
+                    ('arduino-cli', 'compile', '--profile', 'build', '--board-options', 'dbg=Serial', sketch),
                     ('arduino-cli', 'compile', '--fqbn', fqbn, '--build-property',
                      'compiler.cpp.extra_flags=-DTAMBOX_DEBUG_ENABLED=1', sketch),
                     ('arduino-cli', 'compile', '--profile', 'build', '--build-property',
@@ -87,7 +92,7 @@ class FirmwarePackageCompileChecks(unittest.TestCase):
                 libraries = [args[-1] for args, _ in commands if args[:3] == ('arduino-cli', 'lib', 'install')]
                 self.assertEqual([f'{name}@{version}' for name, version in package.dependencies(ROOT, 'esp8266')], libraries)
 
-    def test_platformio_both_esp8266_profiles_keep_build_flags_and_add_debug_source_flag(self):
+    def test_platformio_both_esp8266_profiles_keep_flags_in_all_debug_modes(self):
         ambient = {
             'PLATFORMIO_BUILD_SRC_FLAGS': '-DEXISTING_SOURCE_FLAG=7',
             'PLATFORMIO_BUILD_FLAGS': '-DEXISTING_BUILD_FLAG=3',
@@ -95,18 +100,18 @@ class FirmwarePackageCompileChecks(unittest.TestCase):
         }
         with patch.dict(os.environ, ambient):
             commands = self.commands_for('platformio', 'esp8266')
-            self.assertEqual(4, len(commands))
-            for offset, profile in ((0, 'nodemcu-i2c'), (2, 'nodemcu-hardware-check')):
-                default, debug = commands[offset:offset + 2]
-                self.assertEqual(default[0], debug[0])
+            self.assertEqual(6, len(commands))
+            for offset, profile in ((0, 'nodemcu-i2c'), (3, 'nodemcu-hardware-check')):
+                default, *debug_modes = commands[offset:offset + 3]
                 self.assertEqual(('pio', 'run'), default[0][:2])
                 self.assertEqual(('-e', profile), default[0][-2:])
                 self.assertIsNone(default[1])
-                self.assertIsNot(os.environ, debug[1])
-                self.assertEqual('-DEXISTING_SOURCE_FLAG=7 -DTAMBOX_DEBUG_ENABLED=1',
-                                 debug[1]['PLATFORMIO_BUILD_SRC_FLAGS'])
-                self.assertEqual('-DEXISTING_BUILD_FLAG=3', debug[1]['PLATFORMIO_BUILD_FLAGS'])
-                self.assertEqual('inherited', debug[1]['TRAINMEET_COMPILE_TEST'])
+                for debug, flag in zip(debug_modes, ('-DDEBUG_ESP_PORT=Serial', '-DTAMBOX_DEBUG_ENABLED=1')):
+                    self.assertEqual(default[0], debug[0])
+                    self.assertIsNot(os.environ, debug[1])
+                    self.assertEqual(f'-DEXISTING_SOURCE_FLAG=7 {flag}', debug[1]['PLATFORMIO_BUILD_SRC_FLAGS'])
+                    self.assertEqual('-DEXISTING_BUILD_FLAG=3', debug[1]['PLATFORMIO_BUILD_FLAGS'])
+                    self.assertEqual('inherited', debug[1]['TRAINMEET_COMPILE_TEST'])
             self.assertEqual(ambient, {key: os.environ[key] for key in ambient})
 
     def test_esp32_build_matrix_has_no_debug_builds_or_environment_changes(self):
