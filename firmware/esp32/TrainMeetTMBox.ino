@@ -31,8 +31,9 @@
 #include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
+#include "meet_scope.h"
 
-constexpr char FIRMWARE_VERSION[] = "0.4.2";
+constexpr char FIRMWARE_VERSION[] = "0.4.3";
 constexpr char DISCOVERY_SERVICE[] = "tmbox";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
 constexpr unsigned long SAVED_WIFI_WINDOW_MS = 15000;
@@ -97,6 +98,9 @@ tmbox::StationConfig stationConfig;
 tmbox::Snapshot stationSnapshot;
 tmbox::LocalNavigationState navigation;
 tmbox::AttentionController attention;
+tmbox::MeetScope meetScope;
+bool scopeRefreshRequested = false;
+unsigned long scopeRefreshAt = 0;
 
 // What this box can physically show, announced in `hello` so the server knows
 // what it is formatting for.
@@ -118,6 +122,7 @@ unsigned long ackMessageUntil = 0;
 // Which action is in flight, so its acknowledgement can be read correctly,
 // and the screen to come back to when the flash is over.
 String pendingAction;
+String pendingMessageId;
 tmbox::Screen flashReturnScreen = tmbox::Screen::StationOverview;
 // What is on the glass right now, so an unchanged line is not rewritten.
 static const uint8_t MAX_DISPLAY_ROWS = 4;
@@ -146,6 +151,9 @@ void handleSnapshot(const String& payload);
 void signalAttention(const std::vector<tmbox::AttentionEvent>& events);
 const char* attentionName(tmbox::Attention kind);
 void handleAck(const String& payload);
+void invalidateStationCache();
+bool acceptScope(JsonDocument& document, tmbox::ScopePart part, const char* station);
+void showStationWhenReady();
 void keypadEvent(KeypadEvent key);
 void buildIdentity();
 String codeFromChipId(uint64_t chipId);
@@ -198,6 +206,11 @@ void loop() {
 
   processWiFi();
   processGateway();
+  if (scopeRefreshRequested && mqttClient.connected() && millis() >= scopeRefreshAt) {
+    scopeRefreshRequested = false;
+    scopeRefreshAt = millis() + 2000;
+    publishPresence("online");  // Ask for a complete fresh authoritative triplet.
+  }
 
   if (ackMessageUntil != 0 && millis() >= ackMessageUntil) {
     ackMessageUntil = 0;
@@ -210,7 +223,7 @@ void loop() {
   // arrived: acting on a stale cache is how a box sends a decision about a
   // train that is no longer there.
   if (key && ackMessageUntil == 0 && mqttClient.connected()
-      && !assignedStationId.isEmpty() && hasConfig && hasSnapshot) {
+      && !assignedStationId.isEmpty() && hasConfig && hasSnapshot && meetScope.ready()) {
     const tmbox::KeyResult result =
         navigation.press(key, millis(), stationConfig, stationSnapshot);
     if (result.outcome == tmbox::Outcome::Redraw) {
@@ -344,6 +357,11 @@ bool connectMqtt() {
     return false;
   }
 
+  // A dropped connection may already report disconnected before the Wi-Fi
+  // handler sees it. Never carry that connection's selections into a new one.
+  meetScope.reset();
+  invalidateStationCache();
+
   mqttClient.subscribe(assignmentTopic, 1);
   mqttClient.subscribe(configTopic, 1);
   mqttClient.subscribe(snapshotTopic, 1);
@@ -359,6 +377,11 @@ void disconnectMqtt() {
   if (!mqttClient.connected()) return;
   publishPresence("offline");
   mqttClient.stop();
+  meetScope.reset();
+  invalidateStationCache();
+}
+
+void invalidateStationCache() {
   assignedStationId = "";
   hasConfig = false;
   hasSnapshot = false;
@@ -366,6 +389,37 @@ void disconnectMqtt() {
   stationSnapshot = tmbox::Snapshot();
   navigation = tmbox::LocalNavigationState();
   attention.forget();
+  pendingAction = "";
+  pendingMessageId = "";
+  ackMessageUntil = 0;
+  flashReturnScreen = tmbox::Screen::StationOverview;
+}
+
+bool acceptScope(JsonDocument& document, tmbox::ScopePart part, const char* station) {
+  tmbox::WireScope incoming;
+  incoming.present = !document["meet_generation"].isNull() || !document["publication_id"].isNull();
+  if (incoming.present) {
+    incoming.valid = document["meet_generation"].is<uint64_t>()
+        && document["publication_id"].is<const char*>();
+    incoming.generation = document["meet_generation"] | uint64_t(0);
+    incoming.publication = document["publication_id"] | "";
+  }
+  const bool accepted = meetScope.accept(part, incoming, station ? station : "");
+  if (meetScope.reset_seen()) {
+    invalidateStationCache();
+    showScreen(tmbox::Screen::LoadingStation);
+  }
+  if (!accepted) scopeRefreshRequested = true;
+  return accepted;
+}
+
+void showStationWhenReady() {
+  if (hasConfig && hasSnapshot && meetScope.ready()
+      && (navigation.view().screen == tmbox::Screen::LoadingStation
+          || navigation.view().screen == tmbox::Screen::AwaitingAssignment)) {
+    navigation.show(tmbox::Screen::StationOverview, millis());
+  }
+  drawScreen();
 }
 
 void publishHello() {
@@ -399,14 +453,23 @@ void publishPresence(const char* status) {
 }
 
 void sendCommand(const tmbox::Command& command) {
+  if (!mqttClient.connected() || !meetScope.ready() || !hasConfig || !hasSnapshot) {
+    showScreen(tmbox::Screen::LoadingStation);
+    return;
+  }
   // One id per command, reused on replay, so a reconnect cannot turn one
   // decision into two.
   JsonDocument document;
   document["protocol_version"] = 2;
-  document["message_id"] = deviceId + "-" + String((uint32_t)esp_random(), HEX);
+  pendingMessageId = deviceId + "-" + String((uint32_t)esp_random(), HEX);
+  document["message_id"] = pendingMessageId;
   document["device_id"] = deviceId;
   document["station_id"] = assignedStationId;
   document["action"] = command.action.c_str();
+  if (meetScope.value().present) {
+    document["meet_generation"] = meetScope.value().generation;
+    document["publication_id"] = meetScope.value().publication.c_str();
+  }
   JsonObject payloadObject = document["payload"].to<JsonObject>();
   // Every id the state machine put on the command travels. A field it sets
   // and nobody packs is a command that will be refused on arrival.
@@ -453,19 +516,23 @@ void handleAssignment(const String& payload) {
   if (deserializeJson(document, payload)) return;
   const String status = document["status"] | "";
   if (status != "assigned") {
-    assignedStationId = "";
-    hasConfig = false;
-    hasSnapshot = false;
+    acceptScope(document, tmbox::ScopePart::Assignment, "");
+    meetScope.invalidate();
+    invalidateStationCache();
+    scopeRefreshRequested = false;  // Waiting for the administrator, not a retry loop.
     showScreen(tmbox::Screen::AwaitingAssignment);
     return;
   }
+  if (!acceptScope(document, tmbox::ScopePart::Assignment, document["station_id"] | "")) return;
   assignedStationId = document["station_id"] | "";
-  showScreen(tmbox::Screen::LoadingStation);
+  if (!meetScope.ready()) showScreen(tmbox::Screen::LoadingStation);
+  showStationWhenReady();
 }
 
 void handleConfig(const String& payload) {
   JsonDocument document;
   if (deserializeJson(document, payload)) return;
+  if (!acceptScope(document, tmbox::ScopePart::Config, document["station"]["id"] | "")) return;
   configPublicationId = document["config_version"] | "";
   stationConfig = tmbox::StationConfig();
   stationConfig.station_id = document["station"]["id"] | "";
@@ -487,12 +554,13 @@ void handleConfig(const String& payload) {
     stationConfig.connections.push_back(connection);
   }
   hasConfig = true;
-  drawScreen();
+  showStationWhenReady();
 }
 
 void handleSnapshot(const String& payload) {
   JsonDocument document;
   if (deserializeJson(document, payload)) return;
+  if (!acceptScope(document, tmbox::ScopePart::Snapshot, document["station_id"] | "")) return;
   stationSnapshot = tmbox::Snapshot();
   stationSnapshot.station_id = document["station_id"] | "";
   stationSnapshot.clock.time = document["clock"]["time"] | "";
@@ -540,16 +608,21 @@ void handleSnapshot(const String& payload) {
   // A snapshot replaces the cache whole, so a selection that no longer exists
   // must not survive it.
   navigation.reconcile(stationConfig, stationSnapshot, millis());
-  if (navigation.view().screen == tmbox::Screen::LoadingStation
-      || navigation.view().screen == tmbox::Screen::AwaitingAssignment) {
-    navigation.show(tmbox::Screen::StationOverview, millis());
-  }
-  drawScreen();
+  showStationWhenReady();
 }
 
 void handleAck(const String& payload) {
   JsonDocument document;
   if (deserializeJson(document, payload)) return;
+  if (pendingMessageId.isEmpty() || pendingMessageId != (document["message_id"] | "") || !meetScope.ready()) return;
+  pendingMessageId = "";
+  if (String(document["reason"] | "") == "stale_meet_context") {
+    meetScope.invalidate();
+    invalidateStationCache();
+    scopeRefreshRequested = true;
+    showScreen(tmbox::Screen::LoadingStation);
+    return;
+  }
   const String status = document["status"] | "";
   const bool refused = status != "accepted" && status != "duplicate";
 

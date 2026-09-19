@@ -6,7 +6,7 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -I$(CORE) -I.
 CORE_SRC := $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp \
             $(CORE)/attention.cpp
 
-test: run-renderer run-navigation run-attention run-firmware-calls check-golden
+test: run-renderer run-navigation run-attention run-firmware-calls run-meet-scope check-golden
 
 run-renderer: build/test_renderer
 	./build/test_renderer
@@ -19,6 +19,9 @@ run-attention: build/test_attention
 
 run-firmware-calls: build/test_firmware_calls
 	./build/test_firmware_calls
+
+run-meet-scope: build/test_meet_scope
+	./build/test_meet_scope
 
 # Rewrites the files every other implementation of these screens is held to.
 golden: build/dump_golden build/dump_traces build/dump_attention
@@ -43,4 +46,4 @@ build/%: %.cpp $(CORE_SRC)
 clean:
 	rm -rf build
 
-.PHONY: test run-renderer run-navigation run-attention run-firmware-calls golden check-golden clean
+.PHONY: test run-renderer run-navigation run-attention run-firmware-calls run-meet-scope golden check-golden clean
