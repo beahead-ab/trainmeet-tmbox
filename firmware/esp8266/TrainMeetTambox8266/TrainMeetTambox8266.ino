@@ -325,7 +325,7 @@ void scanHardware() {
 void setup() {
   Serial.begin(115200);
   TMBOX_LOG("TrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
-  TMBOX_LOG("USB debug: %s\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");
+  TMBOX_LOG("USB debug: %s\n", DEBUG_ESP_PORT ? "on" : "off");
   Wire.begin(TAMBOX_SDA, TAMBOX_SCL); Wire.setClock(100000);
   scanHardware();
   WiFi.mode(WIFI_STA);
