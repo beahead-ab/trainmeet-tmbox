@@ -73,14 +73,14 @@ DCC-, växel- eller körström till kortet. Använd korta I²C-ledningar.
 
 | PCF8574 | Knappsatsledning | Tangenter |
 |---|---|---|
-| P0 | R1 | 1, 2, 3, A |
-| P1 | R2 | 4, 5, 6, B |
-| P2 | R3 | 7, 8, 9, C |
-| P3 | R4 | *, 0, #, D |
-| P4 | C1 | 1, 4, 7, * |
-| P5 | C2 | 2, 5, 8, 0 |
-| P6 | C3 | 3, 6, 9, # |
-| P7 | C4 | A, B, C, D |
+| P0 | C1 | 1, 4, 7, * |
+| P1 | C2 | 2, 5, 8, 0 |
+| P2 | C3 | 3, 6, 9, # |
+| P3 | C4 | A, B, C, D |
+| P4 | R1 | 1, 2, 3, A |
+| P5 | R2 | 4, 5, 6, B |
+| P6 | R3 | 7, 8, 9, C |
+| P7 | R4 | *, 0, #, D |
 
 Ordningen på knappsatsens kontakt är inte standardiserad. Kontrollera den med
 multimeter på strömlös, frånkopplad knappsats. Om din modul använder en annan

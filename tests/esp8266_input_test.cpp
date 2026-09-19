@@ -156,6 +156,9 @@ int main() {
   lease.sent(0xfffffff0u); assert(!lease.timedOut(10)); assert(lease.timedOut(5000));
   unsigned pins = 0;
   for (unsigned i = 0; i < 4; ++i) {
+    // Default PCF8574 wiring: columns on P0..P3, rows on P4..P7.
+    assert(TAMBOX_KEYPAD_ROWS[i] == i + 4);
+    assert(TAMBOX_KEYPAD_COLS[i] == i);
     assert(TAMBOX_KEYPAD_ROWS[i] < 8 && TAMBOX_KEYPAD_COLS[i] < 8);
     pins |= 1u << TAMBOX_KEYPAD_ROWS[i]; pins |= 1u << TAMBOX_KEYPAD_COLS[i];
   }
