@@ -29,6 +29,8 @@ MqttClient mqtt(networkClient);
 WiFiManager wifiManager;
 KeyState keys;
 InputLease lease;
+LocalTrainEntry trainEntry;
+bool enteringTrain = false;
 WebTestSession webSession;
 EnrollmentReadiness serverEnrollment;
 String deviceId, deviceCode, bootId, apName;
@@ -48,6 +50,8 @@ WiFiManagerParameter* hostParameter = nullptr;
 WiFiManagerParameter* portParameter = nullptr;
 
 Settings settings{};
+String inputLine1();
+String inputLine2();
 
 #ifndef TAMBOX_HARDWARE_CHECK
 void stopWebTestServer();
@@ -81,6 +85,7 @@ void showFrame(const String& one, const String& two) {
 }
 
 void invalidate() {
+  trainEntry.clear(); enteringTrain = false;
   lease.clear(); panelId = ""; sessionId = ""; allowedKeys = ""; revision = -1;
   commandId = ""; keys.requireRelease();
   serverLine1 = ""; serverLine2 = "";
@@ -173,6 +178,8 @@ void receiveMessage(int size) {
   filter["assigned_panel_ids"][0] = true;
   filter["display"]["line1"] = true; filter["display"]["line2"] = true;
   filter["interaction"]["allowed_keys"][0] = true;
+  for (const char* key : {"mode", "selected_slot", "owner_client_id", "train_number", "local_train_entry"})
+    filter["interaction"][key] = true;
   if (deserializeJson(message, mqtt, DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(10))) {
     TMBOX_DEBUG("MQTT JSON rejected (payload not logged)\n");
     invalidate(); refreshRequested = true; return;
@@ -217,7 +224,14 @@ void receiveMessage(int size) {
     lease.snapshot(millis(), false);
     serverLine1 = lcdLine(message["display"]["line1"].as<String>());
     serverLine2 = lcdLine(message["display"]["line2"].as<String>());
-    if (keypadOK && lcdFound) showFrame(serverLine1, serverLine2);
+    enteringTrain = String(message["interaction"]["mode"] | "") == "enter_train";
+    const String initial = message["interaction"]["train_number"] | "";
+    const String owner = message["interaction"]["owner_client_id"] | "";
+    const String context = sessionId + "|" + panelId + "|" +
+      String(message["interaction"]["selected_slot"] | "") + "|" + owner + "|" + initial;
+    trainEntry.sync(enteringTrain && message["interaction"]["local_train_entry"] == true && owner == deviceId,
+                    context.c_str(), initial.c_str());
+    if (keypadOK && lcdFound) showFrame(inputLine1(), inputLine2());
   } else if (topic.endsWith("/ack")) {
     if (!lease.waiting || commandId != (message["command_id"] | "")) return;
     TMBOX_DEBUG("Command acknowledgement: status=%.32s\n", message["status"] | "");
@@ -282,12 +296,33 @@ void connectServer() {
   hello();
 }
 
+String inputLine1() {
+  return enteringTrain && !trainEntry.active ? lcdLine("UPPDATERA SERVER") : serverLine1;
+}
+
+String inputLine2() {
+  if (enteringTrain && !trainEntry.active) return lcdLine("LOKAL INMATNING");
+  if (!trainEntry.active) return serverLine2;
+  String row = "Tag: " + String(trainEntry.value.c_str());
+  if (trainEntry.value.size() < 5) row += '_';
+  while (row.length() < 11) row += ' ';
+  return row + "*=Avb";
+}
+
 bool sendKey(char key, bool virtualKey) {
   if (!mqtt.connected() || !lease.allowed(millis()) ||
       !webSession.permits(virtualKey, keypadOK && lcdFound, millis()) ||
       !panelId.length() || !sessionId.length() || allowedKeys.indexOf(key) < 0) {
     TMBOX_DEBUG("Key ignored: connection, lease, input mode or assignment not ready\n"); return false;
   }
+  if (key >= '0' && key <= '9') {
+    // Web and physical keys share this local buffer. Never send digit traffic,
+    // including to older servers which do not advertise atomic submission.
+    if (!trainEntry.digit(key)) return false;
+    showFrame(inputLine1(), inputLine2());
+    return true;
+  }
+  if (enteringTrain && key == '#' && !trainEntry.canSubmit()) return false;
   TMBOX_DEBUG("Key accepted: source=%s revision=%ld\n", virtualKey ? "web" : "physical", revision);
   commandId = deviceId + "-" + bootId + "-" + String(++commandSequence);
   JsonDocument command;
@@ -299,12 +334,14 @@ bool sendKey(char key, bool virtualKey) {
   command["expected_revision"] = revision;
   command["action"] = "key_press";
   command["key"] = String(key);
+  if (enteringTrain && key == '#') command["train_number"] = trainEntry.value.c_str();
   command["device_uptime_ms"] = millis();
   lease.sent(millis());
   if (!publish("tambox/v1/client/" + deviceId + "/command", command)) {
     disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE");
     return false;
   }
+  if (key == '*') trainEntry.clear();
   return true;
 }
 

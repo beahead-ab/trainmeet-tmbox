@@ -21,6 +21,22 @@ på just din display, knappsatsmodul och kablage innan trafikdrift.
 
 Den befintliga ESP32-varianten ligger kvar oförändrad i `firmware/esp32`.
 
+### Lokal tågnummerinmatning
+
+Efter val av sträcka med A–D stannar tågnumrets siffror i boxen. `#` skickar
+hela numret i ett enda bekräftat kommando; `*` avbryter inmatningen. Samma
+funktion används av I²C-knappsatsen och telefonens webbtest. Telefonen skickar
+tangenter till boxen, men boxen skickar inte varje siffra till TrainMeet Server.
+Trafikbeslut (klart, nekat, avgått, ankommit) ligger fortfarande på de A/B-val
+som visas på skärmen; `#` betyder inte att tåget automatiskt har avgått.
+
+Uppdatera **servern först**, till en version som annonserar
+`interaction.local_train_entry` och accepterar `train_number` med `key: "#"`.
+Mot äldre server visar boxen **UPPDATERA SERVER** i stället för att i tysthet
+återgå till att skicka siffror. Äldre boxar kan fortsätta använda tangentprotokollet
+med den nya servern. Avbruten anslutning, ändrad station/sträcka eller nytt
+inmatningsläge rensar oskickad text; inga trafikkommandon spelas upp automatiskt.
+
 **Detta är en separat MQTT v1-klient, inte en portning av TMBox v2.**
 Display och tillåtna tangenter kommer från serverns `tambox/v1`-protokoll.
 Den innehåller inte v2:s lokala menyer, summer-/LED-policy eller v2-simulator.

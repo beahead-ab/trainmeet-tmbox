@@ -58,6 +58,15 @@ class NetworkSetupTest(unittest.TestCase):
         subprocess.run([node, "--check"], input=script, text=True,
                        capture_output=True, check=True, timeout=30)
 
+    def test_digits_are_buffered_before_mqtt_publish(self):
+        source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        send = source.split("bool sendKey(char key, bool virtualKey)", 1)[1].split("#ifndef", 1)[0]
+        local = send.index("trainEntry.digit(key)")
+        self.assertLess(local, send.index('command["action"]'))
+        self.assertIn("return true;", send[local:send.index('command["action"]')])
+        self.assertIn('command["train_number"] = trainEntry.value.c_str()', send)
+        self.assertIn('message["interaction"]["local_train_entry"] == true', source)
+
     def test_native_network_and_input_regressions(self):
         compiler = shutil.which("g++")
         if not compiler:

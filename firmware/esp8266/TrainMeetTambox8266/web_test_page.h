@@ -51,7 +51,7 @@ function fillSettings(s,force){if(force||(!configured&&!settingsEdited)){const v
 function show(s){state=s;online=true;lastReply=Date.now();$('login').hidden=true;$('controls').hidden=false;
  $('identity').textContent=s.deviceCode+' · '+s.firmware;$('link').textContent='Box: '+s.ip+' · Server: '+(s.server||'söker automatiskt')+' · Panel: '+(s.panel||'ej tilldelad');
  $('line1').textContent=s.line1;$('line2').textContent=s.line2;$('mode').textContent=s.webTest?'Webbtest aktivt':'Webbtest avstängt';
- $('status').textContent=!s.connected?'Söker eller återansluter till lokal server.':!s.panel?'Ansluten. Tilldela stationen i serverns admin.':s.waiting?'Väntar på serverkvittens…':!s.fresh?'Väntar på aktuell skärmbild från servern.':s.webTest?'Serverns tillåtna tangenter är aktiva.':'Aktivera webbtest för att använda knapparna.';
+ $('status').textContent=!s.connected?'Söker eller återansluter till lokal server.':!s.panel?'Ansluten. Tilldela stationen i serverns admin.':s.waiting?'Väntar på serverkvittens…':!s.fresh?'Väntar på aktuell skärmbild från servern.':s.entryNeedsUpdate?'Uppdatera TrainMeet Server för lokal inmatning. Inga siffror skickas till servern.':s.webTest&&s.localEntry?'Skriv tågnumret. # bekräftar, * avbryter. Siffrorna stannar i boxen tills du bekräftar.':s.webTest?'Serverns tillåtna tangenter är aktiva.':'Aktivera webbtest för att använda knapparna.';
  $('hardware').textContent='Display: '+(s.lcd?'ansluten':'saknas')+' · Knappsats: '+(s.keypad?'ansluten':'saknas');
  fillSettings(s,false);drawControls();}
 function lost(){online=false;drawControls();$('status').textContent='Kontakten med boxen är bruten. Knapparna är spärrade.';}

@@ -108,6 +108,24 @@ void testNetworkSetup() {
 }
 
 int main() {
+  LocalTrainEntry entry;
+  assert(!entry.digit('4') && !entry.canSubmit());
+  entry.sync(true, "meet|panel|A|owner|", "");
+  assert(entry.active && !entry.canSubmit());
+  for (char digit : std::string("00421")) assert(entry.digit(digit));
+  assert(entry.canSubmit() && entry.value == "00421");
+  assert(!entry.digit('9') && !entry.digit('A'));
+  entry.sync(true, "meet|panel|A|owner|", ""); // Clock/unrelated revisions do not erase digits.
+  assert(entry.value == "00421");
+  entry.sync(true, "meet|panel|B|owner|", "");
+  assert(entry.value.empty()); // Never move a draft to a different connection.
+  assert(entry.digit('7'));
+  entry.sync(false, "old-server-or-wrong-owner", "");
+  assert(!entry.active && entry.value.empty());
+  entry.sync(true, "new-meet", "123456"); assert(!entry.active);
+  entry.sync(true, "new-meet", "x"); assert(!entry.active);
+  entry.sync(true, "new-meet", "42"); assert(entry.value == "42");
+  entry.clear(); assert(!entry.active && !entry.canSubmit());
   testNetworkSetup();
   testWebInput();
   const char expected[] = "123A456B789C*0#D";
