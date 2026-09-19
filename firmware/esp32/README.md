@@ -53,3 +53,21 @@ Renderare, navigation, kommandon och uppmärksamhetspolicy ligger i
 `lib/tmbox_core/` och verifieras utan hårdvara genom native-tester och
 guldfiler. Fysisk verifiering görs med
 [`docs/BANKTEST.md`](../../docs/BANKTEST.md).
+
+## Träffomfattning vid config- och trafikdagsbyte
+
+När Server skickar `meet_generation` och `publication_id` kräver boxen att
+tilldelning, stationsconfig och trafiksnapshot har samma värden och samma
+station innan knappar kan skicka trafikkommandon. Kommandot tar med den
+generation operatören såg, inte en nyhämtad generation vid sändning.
+
+En ny generation eller station tömmer gamla val, skärmdata och väntande
+kommandoidentifierare. Försenade svar kan därför inte återställa ett gammalt
+val. Blandade eller felaktiga MQTT-data spärrar inmatning medan boxen begär
+färska data från Server. Äldre Server utan dessa fält stöds fortfarande,
+men gamla och nya protokollfält blandas aldrig under samma MQTT-anslutning.
+
+Detta ändrar inte stationstilldelningens ägare: administratören på Server
+bestämmer stationen. Boxen får ingen Cloud-koppling eller egen trafiklogik.
+Hosttester verifierar tillståndsmaskinen och alla sex ankomstordningar för
+MQTT-data. Funktion på fysisk hårdvara behöver också provköras före release.
