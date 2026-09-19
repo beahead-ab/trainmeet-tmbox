@@ -16,11 +16,13 @@ class NetworkSetupTest(unittest.TestCase):
         for source in (esp32, esp8266):
             self.assertRegex(source, r'DISCOVERY_SERVICE\[\]\s*=\s*"tmbox"')
 
-    def test_auto_and_named_server_both_use_tested_query(self):
+    def test_automatic_server_uses_tested_query_without_manual_override(self):
         source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
-        self.assertEqual(source.count("TrainMeetNetwork::queryServers(MDNS)"), 2)
+        self.assertEqual(source.count("TrainMeetNetwork::queryServers(MDNS)"), 1)
         self.assertNotIn("MDNS.queryService(", source)
-        self.assertIn("if (count != 1)", source)
+        self.assertNotIn("settings.host", source)
+        self.assertNotIn("WiFiManagerParameter", source)
+        self.assertIn("TrainMeetNetwork::selectServer(MDNS, count, gatewayHost)", source)
         # Service-name repair must never rename the existing wire protocol.
         self.assertIn('"tambox/v1/device/"', source)
         self.assertNotIn("tmbox/v1/", source)
@@ -31,6 +33,29 @@ class NetworkSetupTest(unittest.TestCase):
         readme = (ROOT / "firmware/esp8266/README.md").read_text()
         self.assertIn("_tmbox._tcp", readme)
         self.assertNotIn("_tambox._tcp", readme)
+
+    def test_assignment_is_not_a_periodic_heartbeat(self):
+        source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        self.assertNotIn("lastHello", source)
+        self.assertIn("serverSync.next(current, refreshRequested)", source)
+        self.assertIn("if (request == ServerSync::Assignment) hello()", source)
+        self.assertIn("else if (request == ServerSync::State) requestState()", source)
+        request = source.split("void requestState()", 1)[1].split("void receiveMessage", 1)[0]
+        self.assertIn('"/presence"', request)
+        self.assertNotIn("/hello", request)
+        self.assertIn('message["state_token"] = stateToken', request)
+        self.assertLess(request.index("serverSync.sent("), request.index("publish("))
+        hello = source.split("void hello()", 1)[1].split("void requestState()", 1)[0]
+        self.assertLess(hello.index("serverSync.sent("), hello.index("publish("))
+        self.assertIn('"/state", 1)', source)
+        self.assertIn('stateRequestId != (message["request_id"] | "")', source)
+        self.assertIn('stateToken == (message["state_token"] | "")', source)
+        self.assertIn("lease.heartbeat(millis())", source)
+        self.assertIn("serverSync.assignmentReceived(millis())", source)
+        self.assertIn("serverSync.reset(); invalidate()", source)
+        # ESP32 already requests registration only when MQTT reconnects.
+        esp32 = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
+        self.assertEqual(2, esp32.count("publishHello();")) # declaration + connect
 
     def test_web_keys_share_server_command_safety(self):
         backend = (SKETCH / "web_test.h").read_text()

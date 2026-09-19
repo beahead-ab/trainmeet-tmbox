@@ -228,6 +228,23 @@ void an_empty_station_says_so() {
   check::equal("INGA TAG IDAG   ", frame[1], "en dag utan tag ska sagas rent ut");
 }
 
+void cloud_controls_the_neighbours_side_not_the_function_keys() {
+  StationConfig config = fixtures::charlottendal();
+  ViewState view;
+  view.screen = Screen::ConnectionPicker;
+  view.selected_connection = 0;
+  for (const Geometry& geometry : ALL) {
+    config.connections[0].display_side = "left";
+    const Frame left = render(geometry, view, config, Snapshot{});
+    check::equal("VST", left[0].substr(0, 3), "Cloud placerar grannen till vanster");
+    config.connections[0].display_side = "right";
+    const Frame right = render(geometry, view, config, Snapshot{});
+    // The renderer reserves the final cell for its indicator.
+    check::truthy(right[0].find("VST") > 0, "Cloud placerar grannen till hoger");
+    check::equal(left[1], right[1], "A/C ar funktioner och byter inte betydelse med sidan");
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -244,5 +261,6 @@ int main() {
   a_station_without_data_yet_does_not_claim_it_is_empty();
   a_refusal_says_what_is_wrong_not_what_it_is_called();
   an_empty_station_says_so();
+  cloud_controls_the_neighbours_side_not_the_function_keys();
   return check::report();
 }

@@ -5,7 +5,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ArduinoMqttClient.h>
-#include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <LiquidCrystal_PCF8574.h>
@@ -13,11 +12,11 @@
 #include <stddef.h>
 #include "hardware_profile.h"
 #include "debug_log.h"
-#include "device_settings.h"
 #include "input_state.h"
 #include "pcf_keypad.h"
 #include "network_setup.h"
 #include "web_test_state.h"
+#include "server_sync.h"
 
 #ifndef ESP8266
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
@@ -33,23 +32,23 @@ LocalTrainEntry trainEntry;
 bool enteringTrain = false;
 WebTestSession webSession;
 EnrollmentReadiness serverEnrollment;
+ServerSync serverSync;
 String deviceId, deviceCode, bootId, apName;
 String gatewayHost, panelId, sessionId, allowedKeys, commandId;
 String shownLine1, shownLine2;
 String serverLine1, serverLine2;
+String stateToken, stateRequestId;
 long revision = -1;
 uint16_t gatewayPort = 1883;
 bool lcdFound = false, keypadOK = false;
 bool portalActive = false, saveRequested = false, mdnsStarted = false;
 bool connectedBefore = false, wifiWasConnected = false, refreshRequested = false;
-uint32_t nextConnection = 0, lastHello = 0, wifiLostAt = 0, lastKeyScan = 0;
+uint32_t nextConnection = 0, wifiLostAt = 0, lastKeyScan = 0;
 uint32_t lastLcdCheck = 0;
 uint32_t commandSequence = 0;
+uint32_t stateSequence = 0;
 unsigned connectionFailures = 0;
-WiFiManagerParameter* hostParameter = nullptr;
-WiFiManagerParameter* portParameter = nullptr;
 
-Settings settings{};
 String inputLine1();
 String inputLine2();
 
@@ -89,30 +88,14 @@ void invalidate() {
   lease.clear(); panelId = ""; sessionId = ""; allowedKeys = ""; revision = -1;
   commandId = ""; keys.requireRelease();
   serverLine1 = ""; serverLine2 = "";
+  stateToken = ""; stateRequestId = "";
 }
 
 void disconnectServer() {
   invalidate(); mqtt.stop(); connectedBefore = false;
   serverEnrollment.clear();
+  serverSync.reset();
   webSession.enabled = false;
-}
-
-void loadSettings() {
-  EEPROM.begin(128);
-  EEPROM.get(0, settings);
-  if (!validSettings(settings)) {
-    memset(&settings, 0, sizeof(settings)); settings.port = 1883;
-  }
-}
-
-bool storeSettings(Settings next) {
-  next.magic = 0x544d3836;
-  next.checksum = settingsChecksum(next);
-  if (memcmp(&next, &settings, sizeof(next)) == 0) return true;
-  EEPROM.put(0, next);
-  if (!EEPROM.commit()) return false;
-  settings = next;
-  return true;
 }
 
 void startPortal() {
@@ -129,18 +112,6 @@ void startPortal() {
 void savePortalSettings() {
   if (!saveRequested) return;
   saveRequested = false;
-  String host = hostParameter->getValue(); host.trim();
-  String port = portParameter->getValue(); port.trim();
-  bool validPort = port.length() > 0 && port.length() <= 5;
-  for (size_t i = 0; i < port.length(); ++i) validPort &= isDigit(port[i]);
-  const long number = port.toInt();
-  if (!validPort || number < 1 || number > 65535 || host.indexOf('/') >= 0 || host.indexOf(':') >= 0 || host.indexOf(' ') >= 0) {
-    showFrame("FEL SERVERADRESS", "IP + MQTT-PORT"); return;
-  }
-  Settings next{};
-  next.reserved = settings.reserved; // Optional HTTP port used for server enrollment.
-  host.toCharArray(next.host, sizeof(next.host)); next.port = uint16_t(number);
-  if (!storeSettings(next)) { showFrame("KAN INTE SPARA", "FORSOK IGEN"); return; }
   disconnectServer(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
   portalActive = TrainMeetNetwork::finishSavedPortal(wifiManager, WiFi.status() == WL_CONNECTED);
 }
@@ -164,17 +135,32 @@ void hello() {
   message["display"]["charset"] = "ascii";
   message["firmware_version"] = TAMBOX_FIRMWARE_VERSION;
   message["wifi_rssi"] = WiFi.RSSI();
+  // QoS1 publication can poll incoming replies before returning.
+  serverSync.sent(ServerSync::Assignment, millis());
   publish("tambox/v1/device/" + deviceId + "/hello", message);
-  lastHello = millis(); refreshRequested = false;
+}
+
+void requestState() {
+  // Existing v1 servers answer presence with a snapshot. Updated servers only
+  // acknowledge unchanged state, without re-sending assignment or display.
+  JsonDocument message;
+  stateRequestId = bootId + "-" + String(++stateSequence);
+  message["status"] = "online";
+  message["request_id"] = stateRequestId;
+  message["panel_id"] = panelId;
+  if (lease.allowed(millis()) && !refreshRequested) message["state_token"] = stateToken;
+  serverSync.sent(ServerSync::State, millis());
+  refreshRequested = false;
+  publish("tambox/v1/client/" + deviceId + "/presence", message);
 }
 
 void receiveMessage(int size) {
   const String topic = mqtt.messageTopic();
   const bool retained = mqtt.messageRetain();
   // Filter unused fields (routes/slots/ack snapshots) before allocating JSON.
-  if (size < 2 || size > 8192) { TMBOX_DEBUG("MQTT message rejected: bytes=%d\n", size); invalidate(); return; }
+  if (size < 2 || size > 8192) { TMBOX_DEBUG("MQTT message rejected: bytes=%d\n", size); invalidate(); serverSync.reset(); return; }
   JsonDocument filter, message;
-  for (const char* key : {"status", "device_id", "protocol_version", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason"}) filter[key] = true;
+  for (const char* key : {"status", "device_id", "protocol_version", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason", "state_token", "request_id"}) filter[key] = true;
   filter["assigned_panel_ids"][0] = true;
   filter["display"]["line1"] = true; filter["display"]["line2"] = true;
   filter["interaction"]["allowed_keys"][0] = true;
@@ -182,13 +168,17 @@ void receiveMessage(int size) {
     filter["interaction"][key] = true;
   if (deserializeJson(message, mqtt, DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(10))) {
     TMBOX_DEBUG("MQTT JSON rejected (payload not logged)\n");
-    invalidate(); refreshRequested = true; return;
+    invalidate(); serverSync.reset(); return;
   }
   if (topic.endsWith("/assignment")) {
     const String status = message["status"] | "";
     const String nextPanel = message["assigned_panel_ids"][0] | "";
+    if (retained || message["protocol_version"] != 1 || deviceId != (message["device_id"] | "") ||
+        (status != "assigned" && status != "waiting_for_assignment")) return;
     serverEnrollment.observe(retained, message["protocol_version"] | 0,
                              message["device_id"] | "", deviceId.c_str(), status.c_str());
+    serverSync.assignmentReceived(millis());
+    refreshRequested = false;
     TMBOX_DEBUG("Assignment: status=%.32s panel=%.80s\n", status.c_str(), nextPanel.c_str());
     if (status == "assigned" && !nextPanel.length() && String(message["station_id"] | "").length()) {
       invalidate(); showFrame("V1-PANEL SAKNAS", "KOLLA SERVERN"); return;
@@ -201,7 +191,7 @@ void receiveMessage(int size) {
       showFrame("BOX KOPPLAD", "HAMTAR PANEL...");
     }
   } else if (topic.indexOf("/snapshot/") >= 0) {
-    if (retained || !panelId.length() || panelId != (message["panel_id"] | "") ||
+    if (retained || !serverEnrollment.ready(mqtt.connected()) || !panelId.length() || panelId != (message["panel_id"] | "") ||
         !message["revision"].is<long>() || !message["display"]["line1"].is<const char*>() ||
         !message["display"]["line2"].is<const char*>() || !message["interaction"]["allowed_keys"].is<JsonArray>()) {
       TMBOX_DEBUG("Snapshot ignored: retained, wrong panel or invalid fields\n"); return;
@@ -222,6 +212,8 @@ void receiveMessage(int size) {
       if (value.length() == 1 && strchr(TAMBOX_KEYS, value[0])) allowedKeys += value;
     }
     lease.snapshot(millis(), false);
+    serverSync.stateReceived(millis()); refreshRequested = false; stateRequestId = "";
+    stateToken = message["state_token"] | "";
     serverLine1 = lcdLine(message["display"]["line1"].as<String>());
     serverLine2 = lcdLine(message["display"]["line2"].as<String>());
     enteringTrain = String(message["interaction"]["mode"] | "") == "enter_train";
@@ -232,6 +224,17 @@ void receiveMessage(int size) {
     trainEntry.sync(enteringTrain && message["interaction"]["local_train_entry"] == true && owner == deviceId,
                     context.c_str(), initial.c_str());
     if (keypadOK && lcdFound) showFrame(inputLine1(), inputLine2());
+  } else if (topic.endsWith("/state")) {
+    // A heartbeat is not an assignment, command ACK, or permission to revive
+    // expired input. Only our latest request and exact snapshot may renew it.
+    if (retained || !stateRequestId.length() || stateRequestId != (message["request_id"] | "") ||
+        !serverEnrollment.ready(mqtt.connected())) return;
+    const String status = message["status"] | "";
+    if (status == "current" && stateToken.length() && stateToken == (message["state_token"] | "") &&
+        panelId.length() && panelId == (message["panel_id"] | "")) {
+      if (!lease.heartbeat(millis())) return;
+    } else if (status != "waiting_for_assignment" || panelId.length()) return;
+    stateRequestId = ""; serverSync.stateReceived(millis());
   } else if (topic.endsWith("/ack")) {
     if (!lease.waiting || commandId != (message["command_id"] | "")) return;
     TMBOX_DEBUG("Command acknowledgement: status=%.32s\n", message["status"] | "");
@@ -241,39 +244,25 @@ void receiveMessage(int size) {
   } else if (topic.startsWith("tambox/v1/gateway/") && topic.endsWith("/status")) {
     if (String(message["status"] | "") != "online") {
       serverEnrollment.clear();
+      serverSync.reset();
       invalidate(); showFrame("SERVER BORTA", "FORSOKER IGEN");
-    } else refreshRequested = true;
+    } else if (!retained) {
+      // A restarted gateway may have different grants/configuration.
+      serverEnrollment.clear(); serverSync.reset(); invalidate();
+    }
   }
 }
 
 bool resolveServer() {
-  if (settings.host[0]) {
-    gatewayHost = settings.host; gatewayPort = settings.port;
-    // ESP8266's regular DNS is not guaranteed to resolve a .local name.
-    if (gatewayHost.endsWith(".local")) {
-      if (!mdnsStarted) return false;
-      const int count = TrainMeetNetwork::queryServers(MDNS);
-      for (int i = 0; i < count; ++i) {
-        String host = MDNS.hostname(i); if (host.endsWith(".")) host.remove(host.length() - 1);
-        if (!host.endsWith(".local")) host += ".local";
-        if (host.equalsIgnoreCase(gatewayHost)) {
-          gatewayHost = MDNS.IP(i).toString(); return gatewayHost != "0.0.0.0";
-        }
-      }
-      return false;
-    }
-    return true;
-  }
+  // Legacy EEPROM addresses are deliberately ignored. The local administrator
+  // assigns this ID; operators never select hosts, ports or stations.
   if (!mdnsStarted) return false;
   const int count = TrainMeetNetwork::queryServers(MDNS);
   TMBOX_LOG("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
-  // Never pick an arbitrary runtime server when several advertise themselves.
-  if (count != 1) {
-    showFrame(count > 1 ? "FLERA SERVRAR" : "SOKER SERVER", count > 1 ? "HALL * FOR VAL" : deviceCode);
-    return false;
-  }
-  gatewayHost = MDNS.IP(0).toString(); gatewayPort = MDNS.port(0);
-  return gatewayHost != "0.0.0.0" && gatewayPort > 0;
+  const int selected = TrainMeetNetwork::selectServer(MDNS, count, gatewayHost);
+  if (selected < 0) { showFrame("SOKER SERVER", deviceCode); return false; }
+  gatewayHost = MDNS.IP(selected).toString(); gatewayPort = MDNS.port(selected);
+  return true;
 }
 
 void connectServer() {
@@ -289,6 +278,7 @@ void connectServer() {
   if (!mqtt.subscribe("tambox/v1/device/" + deviceId + "/assignment", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/snapshot/+", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/ack", 1) ||
+      !mqtt.subscribe("tambox/v1/client/" + deviceId + "/state", 1) ||
       !mqtt.subscribe("tambox/v1/gateway/+/status", 1)) { disconnectServer(); return; }
   JsonDocument presence;
   presence["status"] = "online"; presence["device_code"] = deviceCode;
@@ -385,14 +375,8 @@ void setup() {
   // Use our bounded USB diagnostics; the library can expose network settings.
   wifiManager.setDebugOutput(false);
   setupWebTest();
-  loadSettings();
-  static char portText[6]; snprintf(portText, sizeof(portText), "%u", settings.port);
-  static WiFiManagerParameter hostField("server", "TrainMeet Server: IP/namn (tomt = auto)", settings.host, 63);
-  static WiFiManagerParameter portField("mqttport", "MQTT-port (inte webbport)", portText, 5);
-  hostParameter = &hostField; portParameter = &portField;
-  wifiManager.addParameter(hostParameter); wifiManager.addParameter(portParameter);
   wifiManager.setConfigPortalBlocking(false); wifiManager.setConnectTimeout(15);
-  wifiManager.setSaveParamsCallback([]() { saveRequested = true; });
+  wifiManager.setSaveConfigCallback([]() { saveRequested = true; });
   mqtt.setId(deviceId); mqtt.setCleanSession(true); mqtt.setKeepAliveInterval(10000);
   mqtt.setConnectionTimeout(3000); mqtt.onMessage(receiveMessage);
   const String will = "{\"status\":\"offline\",\"device_code\":\"" + deviceCode + "\"}";
@@ -433,7 +417,7 @@ void loop() {
     if (event.pressed) sendKey(event.pressed, false);
     if (event.reset && !webSession.enabled) {
       // Enter setup without changing permanent identity or erasing good Wi-Fi.
-      // Wi-Fi and server can be changed in the portal, including while online.
+      // Only Wi-Fi is configured here; server discovery is automatic.
       startPortal();
     }
 #endif
@@ -474,7 +458,11 @@ void loop() {
         if (lease.expired(current) || lease.timedOut(current)) {
           TMBOX_DEBUG("Server timeout: snapshot or acknowledgement missing\n");
           disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE"); nextConnection = now + 1000;
-        } else if (refreshRequested || uint32_t(current - lastHello) >= 10000) hello();
+        } else {
+          const auto request = serverSync.next(current, refreshRequested);
+          if (request == ServerSync::Assignment) hello();
+          else if (request == ServerSync::State) requestState();
+        }
         // Do not let absent hardware overwrite Wi-Fi/setup/discovery status
         // every 10 ms, especially when testing a bare NodeMCU over USB.
         // Traffic input remains guarded by both hardware checks in sendKey().

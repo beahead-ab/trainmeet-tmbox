@@ -551,6 +551,7 @@ void handleConfig(const String& payload) {
     connection.connection_id = item["connection_id"] | "";
     connection.other_station_code = item["other_station_code"] | "";
     connection.track_type = item["track_type"] | "";
+    connection.display_side = item["display_side"] | "";
     stationConfig.connections.push_back(connection);
   }
   hasConfig = true;
