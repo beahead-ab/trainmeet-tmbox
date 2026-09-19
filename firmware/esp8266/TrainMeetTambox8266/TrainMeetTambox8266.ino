@@ -8,7 +8,7 @@
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_PCF8574.h>
 #include <WiFiManager.h>
 #include <stddef.h>
 #include "hardware_profile.h"
@@ -22,7 +22,7 @@
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
 #endif
 
-LiquidCrystal_I2C lcd(TAMBOX_LCD_ADDRESS, 16, 2);
+LiquidCrystal_PCF8574 lcd(TAMBOX_LCD_ADDRESS);
 WiFiClient networkClient;
 MqttClient mqtt(networkClient);
 WiFiManager wifiManager;
@@ -34,7 +34,8 @@ String gatewayHost, panelId, sessionId, allowedKeys, commandId;
 String shownLine1, shownLine2;
 String serverLine1, serverLine2;
 long revision = -1;
-uint16_t gatewayPort = 1883;
+uint16_t gatewayPort = TrainMeetNetwork::DEFAULT_MQTT_PORT;
+bool serverDiscovered = false;
 bool lcdFound = false, keypadOK = false;
 bool portalActive = false, saveRequested = false, mdnsStarted = false;
 bool connectedBefore = false, wifiWasConnected = false, refreshRequested = false;
@@ -44,6 +45,7 @@ uint32_t commandSequence = 0;
 unsigned connectionFailures = 0;
 WiFiManagerParameter* hostParameter = nullptr;
 WiFiManagerParameter* portParameter = nullptr;
+WiFiManagerParameter* httpPortParameter = nullptr;
 
 Settings settings{};
 
@@ -93,7 +95,7 @@ void loadSettings() {
   EEPROM.begin(128);
   EEPROM.get(0, settings);
   if (!validSettings(settings)) {
-    memset(&settings, 0, sizeof(settings)); settings.port = 1883;
+    memset(&settings, 0, sizeof(settings)); settings.port = TrainMeetNetwork::DEFAULT_MQTT_PORT;
   }
 }
 
@@ -123,14 +125,18 @@ void savePortalSettings() {
   saveRequested = false;
   String host = hostParameter->getValue(); host.trim();
   String port = portParameter->getValue(); port.trim();
+  String httpPort = httpPortParameter->getValue(); httpPort.trim();
   bool validPort = port.length() > 0 && port.length() <= 5;
   for (size_t i = 0; i < port.length(); ++i) validPort &= isDigit(port[i]);
+  bool validHttpPort = httpPort.length() > 0 && httpPort.length() <= 5;
+  for (size_t i = 0; i < httpPort.length(); ++i) validHttpPort &= isDigit(httpPort[i]);
   const long number = port.toInt();
-  if (!validPort || number < 1 || number > 65535 || host.indexOf('/') >= 0 || host.indexOf(':') >= 0 || host.indexOf(' ') >= 0) {
-    showFrame("FEL SERVERADRESS", "IP + MQTT-PORT"); return;
+  const long httpNumber = httpPort.toInt();
+  if (!validPort || number < 1 || number > 65535 || !validHttpPort || httpNumber < 1 || httpNumber > 65535 || host.indexOf('/') >= 0 || host.indexOf(':') >= 0 || host.indexOf(' ') >= 0) {
+    showFrame("FEL SERVERADRESS", "WEBB 8787 MQTT1883"); return;
   }
   Settings next{};
-  next.reserved = settings.reserved; // Optional HTTP port used for server enrollment.
+  next.reserved = uint16_t(httpNumber);
   host.toCharArray(next.host, sizeof(next.host)); next.port = uint16_t(number);
   if (!storeSettings(next)) { showFrame("KAN INTE SPARA", "FORSOK IGEN"); return; }
   disconnectServer(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
@@ -215,32 +221,41 @@ void receiveMessage(int size) {
 }
 
 bool resolveServer() {
-  if (settings.host[0]) {
-    gatewayHost = settings.host; gatewayPort = settings.port;
-    // ESP8266's regular DNS is not guaranteed to resolve a .local name.
-    if (gatewayHost.endsWith(".local")) {
-      if (!mdnsStarted) return false;
-      const int count = TrainMeetNetwork::queryServers(MDNS);
-      for (int i = 0; i < count; ++i) {
-        String host = MDNS.hostname(i); if (host.endsWith(".")) host.remove(host.length() - 1);
-        if (!host.endsWith(".local")) host += ".local";
-        if (host.equalsIgnoreCase(gatewayHost)) {
-          gatewayHost = MDNS.IP(i).toString(); return gatewayHost != "0.0.0.0";
-        }
-      }
-      return false;
-    }
+  serverDiscovered = false;
+  // Discovery is also used for a manually entered IP/name. The selected
+  // server's advertised MQTT port takes precedence over an old saved port.
+  // The SRV port is MQTT, never the separate HTTP/enrollment port (8787).
+  const int count = mdnsStarted ? TrainMeetNetwork::queryServers(MDNS) : 0;
+  Serial.printf("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
+  constexpr int maxServers = 16;
+  if (count > maxServers) { MDNS.removeQuery(); showFrame("FLERA SERVRAR", "KOLLA NATVERKET"); return false; }
+  String addresses[maxServers], hostnames[maxServers];
+  TrainMeetNetwork::ServerAdvertisement candidates[maxServers];
+  for (int i = 0; i < count; ++i) {
+    addresses[i] = MDNS.IP(i).toString(); hostnames[i] = MDNS.hostname(i);
+    candidates[i] = {addresses[i].c_str(), hostnames[i].c_str(), MDNS.port(i)};
+  }
+  if (mdnsStarted) MDNS.removeQuery(); // Copied above; do not retain query allocations between retries.
+  const int selected = TrainMeetNetwork::selectServer(candidates, count > 0 ? size_t(count) : 0, settings.host);
+  if (selected == -2) {
+    showFrame("FLERA SERVRAR", "VALJ I WEBBPANEL"); return false;
+  }
+  if (selected >= 0) {
+    gatewayHost = addresses[selected]; gatewayPort = candidates[selected].mqttPort;
+    serverDiscovered = true;
+    Serial.printf("Discovery selected MQTT %s:%u; HTTP port %u\n", gatewayHost.c_str(), gatewayPort,
+                  settings.reserved ? settings.reserved : TrainMeetNetwork::DEFAULT_HTTP_PORT);
     return true;
   }
-  if (!mdnsStarted) return false;
-  const int count = TrainMeetNetwork::queryServers(MDNS);
-  Serial.printf("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
-  // Never pick an arbitrary runtime server when several advertise themselves.
-  if (count != 1) {
-    showFrame(count > 1 ? "FLERA SERVRAR" : "SOKER SERVER", count > 1 ? "HALL * FOR VAL" : deviceCode);
+  if (!settings.host[0]) {
+    showFrame("SOKER SERVER", deviceCode);
     return false;
   }
-  gatewayHost = MDNS.IP(0).toString(); gatewayPort = MDNS.port(0);
+  gatewayHost = settings.host; gatewayPort = settings.port;
+  String lowerHost = gatewayHost; lowerHost.toLowerCase();
+  if (lowerHost.endsWith(".local") || lowerHost.endsWith(".local.")) {
+    showFrame("SOKER SERVER", "NAMN EJ HITTAT"); return false;
+  }
   return gatewayHost != "0.0.0.0" && gatewayPort > 0;
 }
 
@@ -248,7 +263,10 @@ void connectServer() {
   disconnectServer();
   if (!resolveServer()) return;
   showFrame("ANSLUTER SERVER", deviceCode);
-  Serial.printf("Connecting to TrainMeet Server %s:%u\n", gatewayHost.c_str(), gatewayPort);
+  Serial.printf("TrainMeet Server web: http://%s:%u/\n", gatewayHost.c_str(),
+                settings.reserved ? settings.reserved : TrainMeetNetwork::DEFAULT_HTTP_PORT);
+  Serial.printf("Connecting to TrainMeet Server MQTT %s:%u (%s)\n", gatewayHost.c_str(), gatewayPort,
+                serverDiscovered ? "discovery" : "manual fallback");
   if (!mqtt.connect(gatewayHost.c_str(), gatewayPort)) {
     Serial.printf("MQTT connection failed: %d\n", mqtt.connectError()); return;
   }
@@ -300,7 +318,7 @@ void scanHardware() {
   }
   Wire.beginTransmission(TAMBOX_LCD_ADDRESS);
   lcdFound = Wire.endTransmission() == 0;
-  if (lcdFound) { lcd.init(); lcd.backlight(); }
+  if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
   keypadOK = keypadWrite(0xff);
   if (!lcdFound) Serial.println("LCD missing: traffic input disabled.");
   if (!keypadOK) Serial.println("Keypad missing: traffic input disabled.");
@@ -326,10 +344,12 @@ void setup() {
   setupWebTest();
   loadSettings();
   static char portText[6]; snprintf(portText, sizeof(portText), "%u", settings.port);
+  static char httpPortText[6]; snprintf(httpPortText, sizeof(httpPortText), "%u", settings.reserved ? settings.reserved : TrainMeetNetwork::DEFAULT_HTTP_PORT);
   static WiFiManagerParameter hostField("server", "TrainMeet Server: IP/namn (tomt = auto)", settings.host, 63);
-  static WiFiManagerParameter portField("mqttport", "MQTT-port (inte webbport)", portText, 5);
-  hostParameter = &hostField; portParameter = &portField;
-  wifiManager.addParameter(hostParameter); wifiManager.addParameter(portParameter);
+  static WiFiManagerParameter httpPortField("httpport", "Serverns webbport (standard 8787)", httpPortText, 5);
+  static WiFiManagerParameter portField("mqttport", "MQTT reservport (1883; Discovery valjer automatiskt)", portText, 5);
+  hostParameter = &hostField; portParameter = &portField; httpPortParameter = &httpPortField;
+  wifiManager.addParameter(hostParameter); wifiManager.addParameter(httpPortParameter); wifiManager.addParameter(portParameter);
   wifiManager.setConfigPortalBlocking(false); wifiManager.setConnectTimeout(15);
   wifiManager.setSaveParamsCallback([]() { saveRequested = true; });
   mqtt.setId(deviceId); mqtt.setCleanSession(true); mqtt.setKeepAliveInterval(10000);
@@ -352,7 +372,7 @@ void loop() {
     if (available != lcdFound) {
       lcdFound = available; lease.clear(); keys.requireRelease(); refreshRequested = true;
       shownLine1 = ""; shownLine2 = "";
-      if (lcdFound) { lcd.init(); lcd.backlight(); }
+      if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
       else Serial.println("LCD disconnected: traffic input disabled.");
     }
   }

@@ -64,6 +64,32 @@ struct FakePortal {
 };
 
 void testNetworkSetup() {
+  using namespace TrainMeetNetwork;
+  static_assert(DEFAULT_HTTP_PORT == 8787 && DEFAULT_MQTT_PORT == 1883, "Different transports");
+  ServerAdvertisement answers[] = {
+    {"192.168.0.160", "TrainMeet-Server.local.", 1883},
+    {"192.168.0.160", "trainmeet-server", 1883},
+    {"192.168.0.161", "another.local", 1884},
+    {"0.0.0.0", "invalid.local", 1883},
+    {"192.168.0.162", "invalid-port.local", 0},
+  };
+  assert(selectServer(answers, 0, "") == -1);
+  assert(selectServer(answers, 1, "") == 0);
+  assert(selectServer(answers, 2, "") == 0); // Duplicate advertisement.
+  assert(selectServer(answers, 3, "") == -2); // Never silently choose a different server.
+  assert(selectServer(answers, 5, "192.168.0.160") == 0);
+  assert(selectServer(answers, 5, "TRAINMEET-SERVER.LOCAL") == 0);
+  assert(selectServer(answers, 5, "trainmeet-server.local.") == 0);
+  assert(selectServer(answers, 5, "another") == 2);
+  assert(selectServer(answers, 5, "192.168.0.199") == -1);
+  assert(selectServer(answers + 3, 2, "") == -1);
+  answers[1].mqttPort = 1885;
+  assert(selectServer(answers, 2, "192.168.0.160") == -2); // Two brokers on one host need explicit resolution.
+  answers[1].mqttPort = 1883;
+  // The discovered endpoint supplies MQTT, independently of a bad saved port.
+  const uint16_t oldSavedPort = 1397;
+  const int selected = selectServer(answers, 5, "192.168.0.160");
+  assert(answers[selected].mqttPort == 1883 && answers[selected].mqttPort != oldSavedPort);
   FakeMDNS mdns;
   for (int count : {0, 1, 2}) {
     mdns.answers = count;

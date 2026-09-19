@@ -18,9 +18,11 @@ class NetworkSetupTest(unittest.TestCase):
 
     def test_auto_and_named_server_both_use_tested_query(self):
         source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
-        self.assertEqual(source.count("TrainMeetNetwork::queryServers(MDNS)"), 2)
+        self.assertEqual(source.count("TrainMeetNetwork::queryServers(MDNS)"), 1)
         self.assertNotIn("MDNS.queryService(", source)
-        self.assertIn("if (count != 1)", source)
+        self.assertIn("TrainMeetNetwork::selectServer(", source)
+        self.assertIn("if (selected == -2)", source)
+        self.assertIn("MDNS.removeQuery()", source)
         # Service-name repair must never rename the existing wire protocol.
         self.assertIn('"tambox/v1/device/"', source)
         self.assertNotIn("tmbox/v1/", source)
@@ -31,6 +33,18 @@ class NetworkSetupTest(unittest.TestCase):
         readme = (ROOT / "firmware/esp8266/README.md").read_text()
         self.assertIn("_tmbox._tcp", readme)
         self.assertNotIn("_tambox._tcp", readme)
+
+    def test_web_and_mqtt_ports_remain_separate(self):
+        backend = (SKETCH / "web_test.h").read_text()
+        firmware = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        page = (SKETCH / "web_test_page.h").read_text()
+        self.assertIn('data["mqttServer"]', backend)
+        self.assertIn('data["discovered"]', backend)
+        self.assertIn('TrainMeetNetwork::DEFAULT_HTTP_PORT', backend)
+        self.assertIn('mqtt.connect(gatewayHost.c_str(), gatewayPort)', firmware)
+        self.assertIn('gatewayPort = candidates[selected].mqttPort', firmware)
+        self.assertIn('Serverwebb:', page)
+        self.assertIn('MQTT-reservport', page)
 
     def test_web_keys_share_server_command_safety(self):
         backend = (SKETCH / "web_test.h").read_text()

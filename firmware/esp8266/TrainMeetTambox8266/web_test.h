@@ -88,9 +88,12 @@ void webStatus() {
   data["deviceCode"] = deviceCode; data["deviceId"] = deviceId;
   data["firmware"] = TAMBOX_FIRMWARE_VERSION;
   data["ip"] = WiFi.localIP().toString();
-  data["server"] = gatewayHost.length() ? gatewayHost + ":" + gatewayPort : "";
+  const unsigned httpPort = settings.reserved ? settings.reserved : TrainMeetNetwork::DEFAULT_HTTP_PORT;
+  data["server"] = gatewayHost.length() ? "http://" + gatewayHost + ":" + httpPort + "/" : "";
+  data["mqttServer"] = gatewayHost.length() ? gatewayHost + ":" + gatewayPort : "";
+  data["discovered"] = serverDiscovered;
   data["configuredServer"] = settings.host; data["configuredPort"] = settings.port;
-  data["httpPort"] = settings.reserved ? settings.reserved : 8787;
+  data["httpPort"] = httpPort;
   data["connected"] = mqtt.connected(); data["panel"] = panelId;
   data["session"] = sessionId; data["revision"] = revision;
   data["lcd"] = lcdFound; data["keypad"] = keypadOK;
@@ -167,7 +170,7 @@ void setupWebTest() {
     if (!webAuthorize(true)) return;
     JsonDocument data; if (!readWebBody(data)) return;
     if (!data["host"].is<const char*>() || !data["port"].is<unsigned>() || !data["httpPort"].is<unsigned>()) {
-      webError(400, "Ange serveradress och MQTT-port."); return;
+      webError(400, "Ange serveradress, webbport (8787) och MQTT-reservport (1883)."); return;
     }
     String host = data["host"].as<String>(); host.trim();
     const unsigned port = data["port"].as<unsigned>();
@@ -186,6 +189,8 @@ void setupWebTest() {
     hostParameter->setValue(settings.host, 63);
     char portText[6]; snprintf(portText, sizeof(portText), "%u", settings.port);
     portParameter->setValue(portText, 5);
+    char httpPortText[6]; snprintf(httpPortText, sizeof(httpPortText), "%u", settings.reserved);
+    httpPortParameter->setValue(httpPortText, 5);
     disconnectServer(); gatewayHost = ""; nextConnection = millis();
     webSession.touch(millis()); webStatus();
   });
@@ -205,7 +210,7 @@ void setupWebTest() {
     stopVirtualInput();
     WiFiClient pairingClient;
     HTTPClient http;
-    const unsigned port = settings.reserved ? settings.reserved : 8787;
+    const unsigned port = settings.reserved ? settings.reserved : TrainMeetNetwork::DEFAULT_HTTP_PORT;
     if (!http.begin(pairingClient, "http://" + gatewayHost + ":" + port + "/v1/tmbox/enroll")) {
       webError(502, "Kunde inte nå serverns webbanslutning."); return;
     }

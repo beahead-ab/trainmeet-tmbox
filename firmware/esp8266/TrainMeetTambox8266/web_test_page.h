@@ -30,10 +30,11 @@ input{width:100%;background:white;margin:8px 0}section{margin:18px 0}.panel{back
 <section class="panel"><h2>Anslut till träffens server</h2><form id="enroll"><label for="servercode">Lokal anslutningskod</label>
 <input id="servercode" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="123456" required>
 <button type="submit">Bekräfta kod hos servern</button></form><p id="enrollment" class="status muted">Använd koden från lokal TrainMeet Server, inte Cloud-koden. Administratören väljer station åt boxen.</p></section>
-<details class="panel"><summary>Serveranslutning</summary><p>Tom adress söker automatiskt på samma lokala nät. Ange en server om flera hittas.</p>
+<details class="panel"><summary>Serveranslutning</summary><p>Tom adress söker automatiskt på samma lokala nät. Ange en server om flera hittas. Webbanslutningen använder normalt 8787. Trafiken använder en separat MQTT-anslutning som Discovery väljer automatiskt.</p>
 <form id="settings"><label for="server">TrainMeet Server · IP eller namn</label><input id="server" maxlength="63" placeholder="Automatisk upptäckt">
-<label for="port">MQTT-port</label><input id="port" type="number" min="1" max="65535" value="1883" required>
 <label for="httpport">Serverns webbport (för anslutningskoden)</label><input id="httpport" type="number" min="1" max="65535" value="8787" required>
+<details><summary>Avancerat · MQTT-reservport</summary><p>Normalt 1883, inte 8787. Används bara när den angivna servern inte annonserar sig via Discovery. En upptäckt server anger själv sin MQTT-port.</p>
+<label for="port">MQTT-reservport</label><input id="port" type="number" min="1" max="65535" value="1883" required></details>
 <button type="submit">Spara och återanslut</button></form><p class="muted">Detta ändrar serveradressen, inte boxens egen IP-adress.</p></details>
 <button id="logout">Koppla från telefonen</button><p class="muted"><small>Webbtest stängs av vid omstart, nätavbrott eller tio minuters inaktivitet. Ingen Cloud-anslutning behövs.</small></p></div>
 <p id="message" role="alert"></p></main><script>
@@ -42,7 +43,7 @@ const $=id=>document.getElementById(id);let state=null,busy=false,online=false,l
 const buttons=[...'123A456B789C*0#D'].map(key=>{const b=document.createElement('button');b.textContent=key;b.type='button';b.disabled=true;b.setAttribute('aria-label','Tangent '+key);b.onclick=()=>press(key);$('keys').append(b);return b;});
 function drawKeys(){for(const b of buttons)b.disabled=busy||!online||!state||!state.webTest||!state.ready||!state.allowedKeys.includes(b.textContent);}
 function show(s){state=s;online=true;lastReply=Date.now();$('login').hidden=true;$('controls').hidden=false;
- $('identity').textContent=s.deviceCode+' · '+s.firmware;$('link').textContent='Box: '+s.ip+' · Server: '+(s.server||'söker automatiskt')+' · Panel: '+(s.panel||'ej tilldelad');
+ $('identity').textContent=s.deviceCode+' · '+s.firmware;$('link').textContent='Box: '+s.ip+' · Serverwebb: '+(s.server||'söker automatiskt')+' · MQTT: '+(s.mqttServer||'söker')+(s.discovered?' (Discovery)':'')+' · Panel: '+(s.panel||'ej tilldelad');
  $('line1').textContent=s.line1;$('line2').textContent=s.line2;$('mode').textContent=s.webTest?'Webbtest aktivt':'Webbtest avstängt';
  $('start').disabled=busy||s.webTest||!s.canStart;$('stop').disabled=busy||!s.webTest;
  $('status').textContent=!s.connected?'Söker eller återansluter till lokal server.':!s.panel?'Ansluten. Tilldela stationen i serverns admin.':s.waiting?'Väntar på serverkvittens…':!s.fresh?'Väntar på aktuell skärmbild från servern.':s.webTest?'Serverns tillåtna tangenter är aktiva.':'Aktivera webbtest för att använda knapparna.';

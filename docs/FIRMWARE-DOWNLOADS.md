@@ -68,12 +68,33 @@ anger källrevision och kontrollsummor; `SHA256SUMS.txt` hör till nedladdningar
 Källorna för ESP8266 respektive ESP32 är fortfarande olika hårdvaruklienter
 som talar med samma lokala TrainMeet Server. Paketeringen ändrar inte protokoll.
 
-**LCD-bibliotekets versionsnummer skiljer mellan katalogerna:** Arduino
+**ESP8266:** använder [LiquidCrystal_PCF8574 **2.3.0** av Matthias Hertel](https://github.com/mathertel/LiquidCrystal_PCF8574/tree/2.3.0)
+i både Arduino Library Manager och PlatformIO. Välj detta bibliotek för NodeMCU,
+inte LiquidCrystal I2C.
+
+**ESP32 är oförändrad; dess LCD-versionsnummer skiljer mellan katalogerna:** Arduino
 Library Manager har LiquidCrystal I2C **1.1.2**, medan PlatformIO-paketet heter
 LiquidCrystal_I2C **1.1.4**. Den äldre guiden angav felaktigt 1.1.4 även för
 Arduino IDE. Nu står respektive systems byggtestade version i START-HERE.
 
 ## Efter laddning
+
+### Serveradress och portar
+
+- **Webbläsare och lokal anslutningskod:** `http://192.168.0.160:8787`.
+- **TMBox-trafik:** MQTT, normalt `192.168.0.160:1883`. Ange inte webbporten
+  8787 i MQTT-fältet. IP-adressen här är ett exempel; använd träffens server.
+- **Rekommenderat:** lämna serveradressen tom. Boxen söker `_tmbox._tcp` på
+  samma lokala nät och använder serverns annonserade MQTT-port.
+
+ESP8266 söker nu även när en server-IP eller ett namn angetts manuellt. En
+matchande annonsering rättar den använda MQTT-porten även om en gammal port
+finns sparad. Utan annonsering används den manuella reservporten; den raderas
+inte. Flera olika servrar väljs aldrig godtyckligt. Telefonpanelen och USB-loggen
+visar webbanslutning och MQTT separat. Webbportens standard är fortfarande 8787.
+
+Biblioteksbytet till LiquidCrystal_PCF8574 och denna nätverksrättning gäller
+**ESP8266**. ESP32:s displaybibliotek och firmware lämnas oförändrade.
 
 ### Nytt för ESP8266: testa med bara kortet och en telefon
 
