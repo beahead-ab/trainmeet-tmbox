@@ -68,10 +68,20 @@ anger källrevision och kontrollsummor; `SHA256SUMS.txt` hör till nedladdningar
 Källorna för ESP8266 respektive ESP32 är fortfarande olika hårdvaruklienter
 som talar med samma lokala TrainMeet Server. Paketeringen ändrar inte protokoll.
 
-**LCD-bibliotekets versionsnummer skiljer mellan katalogerna:** Arduino
+**ESP8266:** använder [LiquidCrystal_PCF8574 **2.3.0** av Matthias Hertel](https://github.com/mathertel/LiquidCrystal_PCF8574/tree/2.3.0)
+i både Arduino Library Manager och PlatformIO. Välj detta bibliotek för NodeMCU,
+inte LiquidCrystal I2C.
+
+**ESP32 är oförändrad; dess LCD-versionsnummer skiljer mellan katalogerna:** Arduino
 Library Manager har LiquidCrystal I2C **1.1.2**, medan PlatformIO-paketet heter
 LiquidCrystal_I2C **1.1.4**. Den äldre guiden angav felaktigt 1.1.4 även för
 Arduino IDE. Nu står respektive systems byggtestade version i START-HERE.
+
+ESP8266-paketens START-HERE beskriver också frivilligt USB-debugläge:
+sätt `TAMBOX_DEBUG_ENABLED` till `1` i paketets `hardware_profile.h`, bygg och
+ladda upp samma profil, och använd **115200 baud**. Debug är normalt av;
+vanliga statusrader och huvudprogrammets USB-webbtestkod finns ändå kvar.
+Det tillkommer inget separat paket eller bibliotek.
 
 ## Efter laddning
 
@@ -97,8 +107,10 @@ Webbtestkoden parkopplar telefonen med boxen. Den lokala anslutningskoden
 registrerar boxen hos servern. Ingen av dem är Cloud-koden. Webbtest avslutas
 vid omstart, nätavbrott eller tio minuters inaktivitet.
 
-Den här versionen rättar också namnet för serverupptäckt och hindrar att
-Wi-Fi-installationsportalen stängs dubbelt. Fysisk provkörning återstår.
+Den här uppdateringen lägger till valbart USB-debugläge och byter enbart
+ESP8266:s LCD-bibliotek till LiquidCrystal_PCF8574. Den fungerande
+serverupptäckten och stationstilldelningen behålls oförändrade.
+Fysisk provkörning av det nya LCD-biblioteket återstår.
 
 Boxen ansluter till träffens lokala nätverk och TrainMeet Server.
 **Administratören tilldelar stationen i servern utifrån boxens permanenta ID.**

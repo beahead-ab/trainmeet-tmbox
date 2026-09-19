@@ -109,7 +109,7 @@ void setupWebTest() {
   char pin[7]; snprintf(pin, sizeof(pin), "%06u", unsigned(ESP.random() % 1000000));
   webPin = pin;
   // Printed only at boot, over the physical USB connection, never in the API.
-  Serial.printf("Webbtestkod: %s (galler till nasta omstart)\n", webPin.c_str());
+  TMBOX_LOG("Webbtestkod: %s (galler till nasta omstart)\n", webPin.c_str());
   testWeb.collectHeaders("Cookie", "Origin", "Content-Type");
   testWeb.on("/", HTTP_GET, []() {
     if (!webRequestAllowed(false)) return;
@@ -131,6 +131,7 @@ void setupWebTest() {
     snprintf(token, sizeof(token), "%08lx%08lx%08lx%08lx", (unsigned long)ESP.random(),
              (unsigned long)ESP.random(), (unsigned long)ESP.random(), (unsigned long)ESP.random());
     webToken = token; webSession.pair(millis());
+    TMBOX_DEBUG("Phone web session paired (credentials not logged)\n");
     testWeb.sendHeader("Set-Cookie", "tm_test=" + webToken + "; Path=/; HttpOnly; SameSite=Strict");
     webStatus();
   });
@@ -144,9 +145,10 @@ void setupWebTest() {
     if (data["enabled"].as<bool>()) {
       if (!webSnapshotReady()) { webError(409, "Invänta stationstilldelning och aktuell skärmbild från servern."); return; }
       webSession.enable(millis());
+      TMBOX_DEBUG("Web test enabled\n");
       // A fresh snapshot is required after changing input source.
       lease.clear(); keys.requireRelease(); refreshRequested = true;
-    } else { stopVirtualInput(); webSession.touch(millis()); }
+    } else { stopVirtualInput(); webSession.touch(millis()); TMBOX_DEBUG("Web test disabled\n"); }
     webStatus();
   });
   testWeb.on("/api/key", HTTP_POST, []() {
@@ -214,6 +216,7 @@ void setupWebTest() {
     JsonDocument request; request["client_id"] = deviceId; request["pairing_code"] = code;
     String body; serializeJson(request, body);
     const int status = http.POST(body);
+    TMBOX_DEBUG("Local server enrollment: HTTP status=%d (code not logged)\n", status);
     code = ""; body = ""; request.clear();
     if (status == 404) { http.end(); webError(409, "Uppdatera TrainMeet Server. Den saknar stöd för TMBox-anslutningskod."); return; }
     if (status == 401) { http.end(); webError(400, "Servern nekade koden eller boxen. Kontrollera kodens giltighet och enhetens behörighet."); return; }
@@ -252,7 +255,7 @@ void tickWebTest() {
   if (!testWebRunning) {
     testWeb.begin(); testWebRunning = true;
     if (mdnsStarted) MDNS.addService("http", "tcp", 80);
-    Serial.printf("TMBox webbtest: http://%s/ (anvand webbtestkoden fran USB)\n", WiFi.localIP().toString().c_str());
+    TMBOX_LOG("TMBox webbtest: http://%s/ (anvand webbtestkoden fran USB)\n", WiFi.localIP().toString().c_str());
   }
   testWeb.handleClient();
 }

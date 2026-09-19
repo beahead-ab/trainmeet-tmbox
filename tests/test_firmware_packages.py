@@ -15,8 +15,35 @@ SPEC.loader.exec_module(package)
 
 class FirmwarePackageTests(unittest.TestCase):
     def test_arduino_lcd_uses_a_version_in_its_actual_registry(self):
-        for family in package.CORES:
-            self.assertIn(('LiquidCrystal I2C', '1.1.2'), package.dependencies(ROOT, family))
+        self.assertIn(('LiquidCrystal I2C', '1.1.2'), package.dependencies(ROOT, 'esp32'))
+        self.assertIn(('LiquidCrystal_PCF8574', '2.3.0'), package.dependencies(ROOT, 'esp8266'))
+        self.assertNotIn(('LiquidCrystal I2C', '1.1.2'), package.dependencies(ROOT, 'esp8266'))
+
+    def test_esp8266_lcd_uses_pcf8574_api_at_startup_and_reconnect(self):
+        source = package.source_file(ROOT, 'esp8266').read_text()
+        self.assertIn('#include <LiquidCrystal_PCF8574.h>', source)
+        self.assertIn('LiquidCrystal_PCF8574 lcd(TAMBOX_LCD_ADDRESS);', source)
+        self.assertEqual(2, source.count('lcd.begin(16, 2, Wire);'))
+        self.assertEqual(2, source.count('lcd.setBacklight(255);'))
+        self.assertNotIn('LiquidCrystal_I2C', source)
+        self.assertNotIn('lcd.init()', source)
+        self.assertNotIn('lcd.backlight()', source)
+
+    def test_esp8266_debug_instructions_use_existing_profiles_and_hardware_file(self):
+        self.assertEqual(5, len(package.PROFILES))
+        for profile, (family, sketch, *_rest) in package.PROFILES.items():
+            instructions = package.arduino_files(ROOT, profile)['START-HERE.md'].decode()
+            if family == 'esp8266':
+                self.assertIn(f'{sketch}/hardware_profile.h', instructions)
+                self.assertIn('#define TAMBOX_DEBUG_ENABLED 1', instructions)
+                self.assertIn('115200 baud', instructions)
+                self.assertIn('USB-webbtestkod', instructions)
+            else:
+                self.assertNotIn('TAMBOX_DEBUG_ENABLED', instructions)
+        instructions = package.platformio_files(ROOT, 'esp8266')['START-HERE.md'].decode()
+        self.assertIn('TrainMeetTambox8266/hardware_profile.h', instructions)
+        self.assertIn('#define TAMBOX_DEBUG_ENABLED 1', instructions)
+        self.assertNotIn('TAMBOX_DEBUG_ENABLED', package.platformio_files(ROOT, 'esp32')['START-HERE.md'].decode())
 
     def test_one_arduino_entry_and_no_platformio_wrapper(self):
         for profile in package.PROFILES:
