@@ -30,6 +30,7 @@ WiFiManager wifiManager;
 KeyState keys;
 InputLease lease;
 WebTestSession webSession;
+EnrollmentReadiness serverEnrollment;
 String deviceId, deviceCode, bootId, apName;
 String gatewayHost, panelId, sessionId, allowedKeys, commandId;
 String shownLine1, shownLine2;
@@ -87,6 +88,7 @@ void invalidate() {
 
 void disconnectServer() {
   invalidate(); mqtt.stop(); connectedBefore = false;
+  serverEnrollment.clear();
   webSession.enabled = false;
 }
 
@@ -167,7 +169,7 @@ void receiveMessage(int size) {
   // Filter unused fields (routes/slots/ack snapshots) before allocating JSON.
   if (size < 2 || size > 8192) { TMBOX_DEBUG("MQTT message rejected: bytes=%d\n", size); invalidate(); return; }
   JsonDocument filter, message;
-  for (const char* key : {"status", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason"}) filter[key] = true;
+  for (const char* key : {"status", "device_id", "protocol_version", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason"}) filter[key] = true;
   filter["assigned_panel_ids"][0] = true;
   filter["display"]["line1"] = true; filter["display"]["line2"] = true;
   filter["interaction"]["allowed_keys"][0] = true;
@@ -178,6 +180,8 @@ void receiveMessage(int size) {
   if (topic.endsWith("/assignment")) {
     const String status = message["status"] | "";
     const String nextPanel = message["assigned_panel_ids"][0] | "";
+    serverEnrollment.observe(retained, message["protocol_version"] | 0,
+                             message["device_id"] | "", deviceId.c_str(), status.c_str());
     TMBOX_DEBUG("Assignment: status=%.32s panel=%.80s\n", status.c_str(), nextPanel.c_str());
     if (status == "assigned" && !nextPanel.length() && String(message["station_id"] | "").length()) {
       invalidate(); showFrame("V1-PANEL SAKNAS", "KOLLA SERVERN"); return;
@@ -222,6 +226,7 @@ void receiveMessage(int size) {
     if (String(message["status"] | "") == "rejected") showFrame("KOMMANDO NEKAT", "HAMTAR NYTT LAGE");
   } else if (topic.startsWith("tambox/v1/gateway/") && topic.endsWith("/status")) {
     if (String(message["status"] | "") != "online") {
+      serverEnrollment.clear();
       invalidate(); showFrame("SERVER BORTA", "FORSOKER IGEN");
     } else refreshRequested = true;
   }

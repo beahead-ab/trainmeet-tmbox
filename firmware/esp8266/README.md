@@ -201,11 +201,15 @@ boxens tillfälliga installationsportal.
    en sexsiffrig **webbtestkod**, som byts vid varje omstart.
 4. Öppna boxens webbadress, exempelvis `http://192.168.0.45/`, i telefonen
    på samma lokala nät. Ange webbtestkoden för att parkoppla telefonen.
-5. Sidan har även ett **separat fält för lokal anslutningskod** från
-   TrainMeet Server. Det är inte webbtestkoden och inte Cloud-koden.
-   Knappen kontrollerar koden hos den lokala servern; fel eller utgången
-   kod visas som fel. Äldre servrar utan `/v1/tmbox/enroll` måste uppdateras
-   för detta steg. Ingen osäker reserv till en annan parkopplingsmetod används.
+5. Under **Anslut till träffens server** anger du serverns IP-adress och
+   **lokala anslutningskod**, och trycker **Anslut till servern**. Adressen
+   kan vara exempelvis `192.168.0.160` eller `http://192.168.0.160:8787/`.
+   Lämna adressen tom om du vill behålla automatisk upptäckt.
+   Sidan sparar adressen, väntar på serverns bekräftelse av boxens registrering
+   och kontrollerar sedan koden. Status och eventuella fel visas vid knappen;
+   koden behålls vid fel. Det är inte webbtestkoden och inte Cloud-koden.
+   Äldre servrar utan `/v1/tmbox/enroll` måste uppdateras för detta steg.
+   Ingen osäker reserv till en annan parkopplingsmetod används.
 6. Administratören tilldelar boxens ID en station i TrainMeet Server.
    Kodbekräftelsen väljer aldrig station eller ändrar befintlig tilldelning.
 7. Vänta på en aktuell serverpanel och välj **Aktivera webbtest**. Telefonen
@@ -230,9 +234,13 @@ MQTT v1-trafiken är inte krypterade. Vidarebefordra inte dessa portar mot
 internet. Serverkodsfunktionen är registrering med adminstyrd tilldelning,
 inte en ny autentiseringsmekanism för själva MQTT-brokern.
 
-Under **Serveranslutning** kan adress, MQTT-port (normalt 1883) och serverns
-webbport (normalt 8787, används för kodkontrollen) ändras. Serverkoden sparas
-inte i boxen. Wi-Fi ändras fortsatt i installationsportalen: fysisk `*` i
+Under **Avancerade serverinställningar** kan MQTT-port (normalt 1883) och
+serverns webbport (normalt 8787, används för kodkontrollen) ändras.
+En port i en inklistrad webbadress avser alltid webbporten, aldrig MQTT-porten.
+**Spara adress utan kod** byter anslutning utan att godkänna någon kod eller
+tilldela en station. Serverkoden sparas inte i boxen. Ett kodanrop skickas
+bara en gång; vid ett osäkert nätavbrott, kontrollera servern innan du försöker
+igen. Wi-Fi ändras fortsatt i installationsportalen: fysisk `*` i
 fem sekunder när webbtest är avstängt. Vid saknat Wi-Fi öppnas portalen
 automatiskt efter 30 sekunder. Inget fjärrkommando raderar nätuppgifterna.
 

@@ -2,6 +2,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 #include "web_test_page.h"
+#include "manual_server.h"
 
 // Included after the firmware's shared command path: HTTP keys must use
 // exactly the same MQTT command, lease, revision and acknowledgement rules.
@@ -89,9 +90,11 @@ void webStatus() {
   data["firmware"] = TAMBOX_FIRMWARE_VERSION;
   data["ip"] = WiFi.localIP().toString();
   data["server"] = gatewayHost.length() ? gatewayHost + ":" + gatewayPort : "";
+  data["serverHost"] = gatewayHost; data["serverPort"] = gatewayPort;
   data["configuredServer"] = settings.host; data["configuredPort"] = settings.port;
   data["httpPort"] = settings.reserved ? settings.reserved : 8787;
   data["connected"] = mqtt.connected(); data["panel"] = panelId;
+  data["enrollmentReady"] = serverEnrollment.ready(mqtt.connected());
   data["session"] = sessionId; data["revision"] = revision;
   data["lcd"] = lcdFound; data["keypad"] = keypadOK;
   data["webTest"] = webSession.enabled && webSession.valid(millis());
@@ -171,18 +174,15 @@ void setupWebTest() {
     if (!data["host"].is<const char*>() || !data["port"].is<unsigned>() || !data["httpPort"].is<unsigned>()) {
       webError(400, "Ange serveradress och MQTT-port."); return;
     }
-    String host = data["host"].as<String>(); host.trim();
     const unsigned port = data["port"].as<unsigned>();
     const unsigned httpPort = data["httpPort"].as<unsigned>();
-    bool valid = host.length() <= 63 && port > 0 && port <= 65535 && httpPort > 0 && httpPort <= 65535;
-    for (unsigned i = 0; i < host.length(); ++i) {
-      const char c = host[i];
-      valid &= (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-               (c >= '0' && c <= '9') || c == '.' || c == '-';
+    TrainMeetManual::Address address{};
+    if (!port || port > 65535 || !httpPort || httpPort > 65535 ||
+        !TrainMeetManual::parseAddress(data["host"].as<const char*>(), uint16_t(httpPort), address)) {
+      webError(400, "Ange IP/namn eller http://IP:8787 utan sökväg. Portarna måste vara 1–65535. HTTPS stöds inte av boxen."); return;
     }
-    if (!valid) { webError(400, "Skriv IP/namn utan http, sökväg eller port. MQTT-port: 1–65535."); return; }
-    Settings next{}; host.toCharArray(next.host, sizeof(next.host)); next.port = uint16_t(port);
-    next.reserved = uint16_t(httpPort);
+    Settings next{}; memcpy(next.host, address.host, sizeof(next.host)); next.port = uint16_t(port);
+    next.reserved = address.httpPort;
     if (!storeSettings(next)) { webError(500, "Inställningarna kunde inte sparas."); return; }
     // Keep WiFiManager's form consistent if setup is opened later.
     hostParameter->setValue(settings.host, 63);
@@ -202,6 +202,9 @@ void setupWebTest() {
     if (!mqtt.connected() || !gatewayHost.length()) {
       webError(409, "Invänta lokal serveranslutning först."); return;
     }
+    if (!serverEnrollment.ready(true)) {
+      webError(409, "Servern har inte bekräftat boxens registrering ännu. Vänta på anslutningen och försök igen."); return;
+    }
     // A dedicated endpoint never assigns all panels (as the older /v1/pair
     // workflow can). Older servers fail closed with an update instruction.
     stopVirtualInput();
@@ -218,9 +221,23 @@ void setupWebTest() {
     const int status = http.POST(body);
     TMBOX_DEBUG("Local server enrollment: HTTP status=%d (code not logged)\n", status);
     code = ""; body = ""; request.clear();
+    if (status <= 0) {
+      http.end(); webError(502, "Kunde inte nå serverns webbport. Kontrollera IP-adressen och webbporten (normalt 8787, inte MQTT-port 1883)."); return;
+    }
     if (status == 404) { http.end(); webError(409, "Uppdatera TrainMeet Server. Den saknar stöd för TMBox-anslutningskod."); return; }
-    if (status == 401) { http.end(); webError(400, "Servern nekade koden eller boxen. Kontrollera kodens giltighet och enhetens behörighet."); return; }
     if (status == 429) { http.end(); webError(429, "För många kodförsök mot servern. Vänta en minut."); return; }
+    if (status >= 400 && status < 500) {
+      // Preserve the server's explanation (expired code, undiscovered or
+      // disabled box). Never turn a server's 401 into a phone-session logout.
+      JsonDocument failure;
+      bool parsed = http.getSize() >= 0 && http.getSize() <= 1536 &&
+                    !deserializeJson(failure, http.getString(), DeserializationOption::NestingLimit(3));
+      http.end();
+      const String detail = parsed ? String(failure["message"] | "") : String();
+      if (detail.length() && detail.length() <= 300) webError(400, detail.c_str());
+      else webError(400, "Servern nekade koden eller boxen. Kontrollera att du använder den lokala serverns anslutningskod och att boxen inte är spärrad.");
+      return;
+    }
     if (status != 201 || http.getSize() < 0 || http.getSize() > 1536) {
       http.end(); webError(502, "Ingen giltig bekräftelse från servern. Kontrollera dess webbport."); return;
     }
