@@ -7,6 +7,24 @@
 #include "../firmware/esp8266/TrainMeetTambox8266/web_test_state.h"
 
 void testWebInput() {
+  EnrollmentReadiness registration;
+  assert(!registration.ready(true));
+  registration.observe(true, 1, "box-1", "box-1", "assigned");
+  assert(!registration.ready(true)); // Retained replay is not a current hello.
+  registration.observe(false, 1, "box-2", "box-1", "assigned");
+  registration.observe(false, 2, "box-1", "box-1", "assigned");
+  registration.observe(false, 1, "box-1", "box-1", "unknown");
+  registration.observe(false, 1, "", "", "assigned");
+  registration.observe(false, 1, nullptr, "box-1", "assigned");
+  assert(!registration.ready(true));
+  registration.observe(false, 1, "box-1", "box-1", "waiting_for_assignment");
+  assert(registration.ready(true)); // Registration does not assign a station.
+  assert(!registration.ready(false));
+  registration.clear();
+  assert(!registration.ready(true)); // Server changes/reconnects require new hello.
+  registration.observe(false, 1, "box-1", "box-1", "assigned");
+  assert(registration.ready(true));
+
   WebTestSession test;
   assert(!test.enable(100));
   assert(!test.permits(true, false, 100));

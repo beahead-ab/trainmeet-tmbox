@@ -148,8 +148,11 @@ Huvudprogrammet nodemcu-i2c har en lokal webbpanel med display och alla
 seriell monitor (115200 baud) efter Wi-Fi-anslutningen. Öppna adressen på
 telefonen på samma nät och ange webbtestkoden.
 
-Ange därefter Lokal anslutningskod från TrainMeet Server (1.6.2 eller senare).
-Det är inte Cloud-koden. Administratören väljer stationen i servern; boxen
+Ange därefter serverns IP-adress och Lokal anslutningskod i samma formulär
+och tryck Anslut till servern. Tom adress behåller automatisk upptäckt;
+även http://192.168.0.160:8787/ fungerar. Servern måste vara 1.6.2 eller senare.
+Status och fel visas vid knappen. Det är inte Cloud-koden.
+Administratören väljer stationen i servern; boxen
 väljer aldrig själv. Aktivera webbtest när serverns panel visas. Knapparna
 påverkar den anslutna träffen på riktigt: använd en separat testträff.
 Hårdvarutestprogrammet innehåller ingen webbpanel.
