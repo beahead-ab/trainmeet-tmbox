@@ -20,6 +20,12 @@ class LocalTrainEntry {
     if (!active || key < '0' || key > '9' || value.size() >= 5) return false;
     value += key; return true;
   }
+  const std::string& entryContext() const { return context; }
+  bool replace(const std::string& expectedContext, const std::string& digits) {
+    if (!active || expectedContext != context || digits.empty() || digits.size() > 5 ||
+        digits.find_first_not_of("0123456789") != std::string::npos) return false;
+    value = digits; return true;
+  }
   bool canSubmit() const { return active && !value.empty(); }
  private:
   std::string context;
@@ -74,4 +80,8 @@ class InputLease {
   bool expired(uint32_t now) const { return fresh && uint32_t(now - lastSnapshot) >= 30000; }
   bool timedOut(uint32_t now) const { return waiting && uint32_t(now - sentAt) >= 5000; }
   bool allowed(uint32_t now) const { return fresh && !waiting && !expired(now); }
+  bool heartbeat(uint32_t now) {
+    if (!allowed(now)) return false; // Never replace a missing snapshot/ACK.
+    lastSnapshot = now; return true;
+  }
 };

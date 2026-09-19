@@ -84,10 +84,9 @@ Arduino-menyn för TMBox-loggarna. Kommentera bort flaggan för att följa
 menyvalet igen. I PlatformIO är debug av utan flaggan; byggflaggan
 `-DTAMBOX_DEBUG_ENABLED=1` fungerar också. Behåll profilens övriga byggflaggor.
 
-Normala statusrader och huvudprogrammets USB-webbtestkod finns kvar även när
-debug är av. Hårdvarutestprogrammet har ingen webbpanel eller webbtestkod.
-Dela inte webbtestkoden i offentliga loggar. Flaggan ändrar inte nätinställningar,
-stationstilldelning eller MQTT-protokoll.
+Normala statusrader finns kvar även när debug är av. Webbpanelen kräver ingen kod.
+Hårdvarutestprogrammet har ingen webbpanel. Flaggan ändrar inte
+nätinställningar, stationstilldelning eller MQTT-protokoll.
 """.encode()
 
 
@@ -154,18 +153,16 @@ Arduino-bibliotek. Detta är ett verktygsfel, inte dubbel firmware.
 ## Testa NodeMCU med telefon, utan display och knappsats
 
 Huvudprogrammet nodemcu-i2c har en lokal webbpanel med display och alla
-16 tangenter (0–9, A–D, * och #). Läs boxens webbadress och Webbtestkod i
-seriell monitor (115200 baud) efter Wi-Fi-anslutningen. Öppna adressen på
-telefonen på samma nät och ange webbtestkoden.
+16 tangenter (0–9, A–D, * och #). Läs boxens webbadress i
+seriell monitor (115200 baud) efter Wi-Fi-anslutningen och öppna den på
+telefonen. Ingen webbtestkod, serveradress, port eller anslutningskod behövs.
 
-Ange därefter serverns IP-adress och Lokal anslutningskod i samma formulär
-och tryck Anslut till servern. Tom adress behåller automatisk upptäckt;
-även http://192.168.0.160:8787/ fungerar. Servern måste vara 1.6.2 eller senare.
-Status och fel visas vid knappen. Det är inte Cloud-koden.
-Administratören väljer stationen i servern; boxen
-väljer aldrig själv. Aktivera webbtest när serverns panel visas. Knapparna
-påverkar den anslutna träffen på riktigt: använd en separat testträff.
-Hårdvarutestprogrammet innehåller ingen webbpanel.
+Boxen upptäcker TrainMeet Server automatiskt på det lokala nätet.
+Administratören tilldelar boxens enhetskod en station på servern.
+Aktivera webbtest när serverns panel visas. Tågnumrets siffror stannar
+i telefonen tills # bekräftar hela numret; * avbryter utan siffrorna.
+Knapparna påverkar den anslutna träffen på riktigt efter tilldelning:
+använd en separat testträff. Hårdvarutestprogrammet har ingen webbpanel.
 """ if profile == "nodemcu-i2c" else ""
     files["START-HERE.md"] = f"""# TrainMeet TMBox – Arduino IDE
 
@@ -215,7 +212,7 @@ globala bibliotek. Arduino IDE använder däremot installationerna från steg 3�
 ## Första starten och stationen
 
 Anslut till boxens tillfälliga TrainMeet-Wi-Fi och välj träffens lokala nät.
-Ange den lokala servern om automatisk upptäckt inte fungerar. Den lokala
+{("Ange den lokala servern om automatisk upptäckt inte fungerar." if family == "esp32" else "Servern hittas automatiskt; inga serverfält eller koder används.")} Den lokala
 administratören kopplar sedan boxens permanenta ID till stationen i
 TrainMeet Server. Boxen väljer aldrig station själv. Cloud används inte i drift.
 Hårdvarutestet behöver inget Wi-Fi och gör ingen stationstilldelning.

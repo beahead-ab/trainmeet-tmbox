@@ -83,7 +83,7 @@ laddar upp samma profil. **Disabled** stänger av igen. Använd **115200 baud**.
 Den tidigare flaggan `TAMBOX_DEBUG_ENABLED` i `hardware_profile.h` stöds
 fortfarande, även i PlatformIO; ett uttryckligt `0` eller `1` går före
 Arduino-menyn för TMBox-loggarna. Debug är normalt av;
-vanliga statusrader och huvudprogrammets USB-webbtestkod finns ändå kvar.
+vanliga statusrader och huvudprogrammets statusmeddelanden finns ändå kvar.
 Det tillkommer inget separat paket eller bibliotek.
 
 ## Efter laddning
@@ -95,29 +95,18 @@ Det innehåller nu en lokal webbtestpanel med 16×2-display och alla tangenter:
 0–9, A–D, `*` och `#`. Hårdvarutestpaketet har ingen webbpanel.
 
 1. Ladda upp programmet och öppna seriell monitor, **115200 baud**.
-2. Anslut kortet till träffens Wi-Fi. Lämna serveradressen tom för automatisk
-   upptäckt, eller ange den lokala serverns IP-adress.
-3. Läs boxens webbadress och **Webbtestkod** i seriell monitor. Öppna adressen
-   på telefonen på samma nät och ange webbtestkoden.
-4. Ange serverns IP-adress och **Lokal anslutningskod** i samma formulär och
-   tryck **Anslut till servern**. Tom adress behåller automatisk upptäckt.
-   Även en webbadress som `http://192.168.0.160:8787/` går bra. Det kräver Server
-   **1.6.2 eller senare på den lokala servern**. Har den redan denna version
-   behövs ingen serveruppdatering för rättningen i boxens webbpanel.
-5. Administratören tilldelar boxens ID en station i servern.
-6. Välj **Aktivera webbtest** när serverpanelen visas. Knapparna går via det
-   riktiga kortet till servern. Använd därför en separat testträff.
+2. Anslut kortet till träffens 2,4 GHz-Wi-Fi. Servern hittas automatiskt.
+3. Öppna boxens webbadress från seriell monitor på telefonen. Ingen kod behövs.
+4. Administratören tilldelar boxens ID en station på TrainMeet Server.
+5. Välj **Aktivera webbtest** när serverpanelen visas.
+6. Tågnumrets siffror stannar i telefonen tills `#` bekräftar; `*` avbryter.
+   Ingen separat tangentbegäran görs för siffrorna under tågnummerinmatning.
 
-Webbtestkoden parkopplar telefonen med boxen. Den lokala anslutningskoden
-registrerar boxen hos servern. Ingen av dem är Cloud-koden. Webbtest avslutas
-vid omstart, nätavbrott eller tio minuters inaktivitet.
-
-Den här uppdateringen rättar manuell webbanslutning: adressen sparas före
-kodkontrollen, boxen inväntar serverns registreringsbekräftelse, och status/fel
-visas direkt vid knappen. Misslyckade kodförsök raderar inte det du skrivit.
-Automatisk serverupptäckt och administratörens stationstilldelning är oförändrade.
-USB-debugläget och LiquidCrystal_PCF8574 från förra versionen finns kvar.
-Fysisk provkörning på just ditt kort återstår.
+Det finns inga manuella IP-, port- eller anslutningskodsfält. Befintliga
+sparade serveradresser ignoreras. Webbtest avslutas vid omstart, nätavbrott
+eller tio minuters inaktivitet. Admin på servern bestämmer stationen och
+trafikbehörigheten. Använd bara ett betrott lokalt nät, inte internet.
+USB-debug och LiquidCrystal_PCF8574 är kvar. Fysisk provkörning återstår.
 
 Boxen ansluter till träffens lokala nätverk och TrainMeet Server.
 **Administratören tilldelar stationen i servern utifrån boxens permanenta ID.**

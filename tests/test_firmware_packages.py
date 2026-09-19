@@ -41,7 +41,8 @@ class FirmwarePackageTests(unittest.TestCase):
                 self.assertIn('--board-options dbg=Serial', instructions)
                 self.assertIn('Debug Level', instructions)
                 self.assertIn('115200 baud', instructions)
-                self.assertIn('USB-webbtestkod', instructions)
+                self.assertIn('Webbpanelen kräver ingen kod.', instructions)
+                self.assertNotIn('USB-webbtestkod', instructions)
             else:
                 self.assertNotIn('TAMBOX_DEBUG_ENABLED', instructions)
         instructions = package.platformio_files(ROOT, 'esp8266')['START-HERE.md'].decode()

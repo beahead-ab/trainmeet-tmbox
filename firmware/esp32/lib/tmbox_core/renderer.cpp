@@ -230,8 +230,10 @@ Frame render(const Geometry& geometry,
                   && static_cast<std::size_t>(view.selected_connection) < config.connections.size()
               ? static_cast<std::size_t>(view.selected_connection)
               : 0;
-      lines.push_back(spread("BEGAR MOT",
-                             config.connections[index].other_station_code, geometry.cols));
+      const Connection& connection = config.connections[index];
+      lines.push_back(connection.display_side == "left"
+          ? spread(connection.other_station_code, "BEGAR MOT", geometry.cols)
+          : spread("BEGAR MOT", connection.other_station_code, geometry.cols));
       lines.push_back("A=BEGAR  C=NASTA");
       if (geometry.tall()) {
         lines.push_back(std::to_string(index + 1) + " AV "

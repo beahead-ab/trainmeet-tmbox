@@ -59,6 +59,9 @@ struct Connection {
   std::string connection_id;
   std::string other_station_code;
   std::string track_type;
+  // Supplied by Cloud via Server, never inferred from station/connection IDs.
+  // Empty means an older config, no mapping, or conflicting panel positions.
+  std::string display_side = "";
 };
 
 struct Clock {

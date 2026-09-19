@@ -21,7 +21,7 @@ Varje box har ett permanent id och en kort kod, exempelvis `TMBOX-A7K2C3`. Vid s
 4. Uppgifterna lagras i ESP32:ans beständiga minne.
 5. Håll `*` i fem sekunder för att rensa Wi-Fi och börja om.
 
-Servern hittas automatiskt med mDNS/Bonjour. En serveradress kan också anges manuellt i Wi-Fi-portalen.
+Servern hittas automatiskt med mDNS/Bonjour. ESP8266 har inga manuella serverfält eller anslutningskoder; administratören tilldelar station på servern. ESP32:s befintliga installationsflöde är oförändrat.
 
 ## Bygg och ladda firmware
 

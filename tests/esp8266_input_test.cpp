@@ -5,8 +5,64 @@
 #include "../firmware/esp8266/TrainMeetTambox8266/device_settings.h"
 #include "../firmware/esp8266/TrainMeetTambox8266/network_setup.h"
 #include "../firmware/esp8266/TrainMeetTambox8266/web_test_state.h"
+#include "../firmware/esp8266/TrainMeetTambox8266/server_sync.h"
+
+void testServerSync() {
+  ServerSync sync;
+  assert(sync.next(100, false) == ServerSync::Assignment);
+  sync.sent(ServerSync::Assignment, 100);
+  assert(sync.next(5099, true) == ServerSync::None);
+  assert(sync.next(5100, false) == ServerSync::Assignment); // Lost hello/reply.
+  sync.sent(ServerSync::Assignment, 5100);
+  sync.assignmentReceived(5200);
+  assert(sync.next(5200, true) == ServerSync::State);
+  sync.sent(ServerSync::State, 5200);
+  sync.stateReceived(5300);
+  InputLease lease;
+  lease.snapshot(5300, false);
+  // A minute of idle operation: six liveness checks, zero assignments or
+  // replacement snapshots. Both assigned and waiting devices follow this.
+  for (uint32_t now = 15300; now <= 65300; now += 10000) {
+    assert(sync.next(now - 1, false) == ServerSync::None);
+    assert(sync.next(now, false) == ServerSync::State);
+    sync.sent(ServerSync::State, now);
+    sync.stateReceived(now);
+    assert(lease.heartbeat(now));
+    assert(lease.allowed(now));
+  }
+  assert(sync.next(65301, true) == ServerSync::State); // Explicit refresh, not hello.
+  sync.sent(ServerSync::State, 65301);
+  assert(sync.next(70301, false) == ServerSync::State); // Lost status response.
+  sync.assignmentReceived(70302); // Admin pushes a new assignment immediately.
+  assert(sync.next(70302, true) == ServerSync::State);
+  sync.reset(); // Disconnect or gateway restart.
+  assert(sync.next(70303, false) == ServerSync::Assignment);
+  sync.sent(ServerSync::Assignment, 0xfffffff0u);
+  assert(sync.next(10, false) == ServerSync::None);
+  assert(sync.next(5000, false) == ServerSync::Assignment);
+  sync.assignmentReceived(0xfffffff0u);
+  assert(sync.next(10, false) == ServerSync::None);
+  assert(sync.next(10000, false) == ServerSync::State);
+
+  lease.clear(); assert(!lease.heartbeat(1));
+  lease.snapshot(10, false);
+  lease.sent(20); assert(!lease.heartbeat(30)); // Does not ACK a traffic command.
+  lease.acknowledged(); assert(!lease.heartbeat(40));
+  lease.snapshot(50, false); assert(!lease.heartbeat(30050)); // Cannot revive stale state.
+  lease.clear(); assert(!lease.heartbeat(30051));
+}
 
 void testWebInput() {
+  LocalTrainEntry entry;
+  assert(!entry.replace("context", "93"));
+  entry.sync(true, "context", "");
+  assert(entry.replace("context", "93"));
+  assert(entry.value == "93");
+  for (const auto& bad : {"", "123456", "9X", "-93"}) assert(!entry.replace("context", bad));
+  assert(!entry.replace("stale-context", "12"));
+  assert(entry.value == "93");
+  entry.clear();
+  assert(!entry.replace("context", "93"));
   EnrollmentReadiness registration;
   assert(!registration.ready(true));
   registration.observe(true, 1, "box-1", "box-1", "assigned");
@@ -81,7 +137,25 @@ struct FakePortal {
   }
 };
 
+struct DiscoveredIP {
+  std::string address;
+  std::string toString() const { return address; }
+};
+struct DiscoveredServers {
+  DiscoveredIP IP(int i) const { return {addresses[i]}; }
+  unsigned port(int i) const { return ports[i]; }
+  std::string addresses[4]{"192.168.0.200", "0.0.0.0", "192.168.0.160", "192.168.0.100"};
+  unsigned ports[4]{1883, 1883, 1884, 0};
+};
 void testNetworkSetup() {
+  DiscoveredServers servers;
+  assert(TrainMeetNetwork::selectServer(servers, 0, std::string()) == -1);
+  assert(TrainMeetNetwork::selectServer(servers, 4, std::string()) == 2);
+  assert(TrainMeetNetwork::selectServer(servers, 4, std::string("192.168.0.200")) == 0);
+  assert(TrainMeetNetwork::selectServer(servers, 4, std::string("192.168.0.100")) == 2);
+  assert(servers.port(2) == 1884); // Use advertised MQTT port, never the web port.
+  servers.ports[0] = servers.ports[2] = 0;
+  assert(TrainMeetNetwork::selectServer(servers, 4, std::string()) == -1);
   FakeMDNS mdns;
   for (int count : {0, 1, 2}) {
     mdns.answers = count;
@@ -128,6 +202,7 @@ int main() {
   entry.clear(); assert(!entry.active && !entry.canSubmit());
   testNetworkSetup();
   testWebInput();
+  testServerSync();
   const char expected[] = "123A456B789C*0#D";
   for (unsigned index = 0; index < 16; ++index) {
     KeyState state;
