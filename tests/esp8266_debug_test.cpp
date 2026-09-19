@@ -32,6 +32,7 @@ FakeSerial Serial;
 [[maybe_unused]] unsigned long millis() { ++clockReads; return fakeNow; }
 }
 
+#include "../firmware/esp8266/TrainMeetTambox8266/hardware_profile.h"
 #include "../firmware/esp8266/TrainMeetTambox8266/debug_log.h"
 
 #ifndef EXPECTED_DEBUG
@@ -75,6 +76,12 @@ void testNormalLogging() {
     ++effects;
   assert(effects == 2);
   assert(Serial.output.find("must not print") == std::string::npos);
+
+  Serial.clear();
+  const unsigned statusLine = __LINE__ + 1;
+  TMBOX_LOG("USB debug: %s\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");
+  assert(Serial.output == expectedLine(__func__, statusLine,
+         EXPECTED_DEBUG ? "USB debug: on\n" : "USB debug: off\n"));
 }
 
 void testVerboseLogging() {
