@@ -3,9 +3,6 @@
 
 // USB diagnostics: 1 adds uptime, function and source line plus debug events.
 // 0 keeps normal status and the boot-only phone pairing code. Recompile to change.
-#ifndef TAMBOX_DEBUG_ENABLED
-#define TAMBOX_DEBUG_ENABLED 0
-#endif
 
 // NodeMCU 1.0 / ESP-12E or ESP-12F, 4 MB flash. These are GPIO numbers!
 constexpr uint8_t TAMBOX_SDA = 4; // D2
