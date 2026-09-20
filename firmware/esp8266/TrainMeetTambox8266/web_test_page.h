@@ -32,10 +32,10 @@ input{width:100%;background:white;margin:8px 0}section{margin:18px 0}.panel{back
 'use strict';
 const $=id=>document.getElementById(id);let state=null,busy=false,online=false,closed=false,lastReply=0,entryContext=null,entryValue="",generation=0,pollController=null;
 const buttons=[...'123A456B789C*0#D'].map(key=>{const b=document.createElement('button');b.textContent=key;b.type='button';b.disabled=true;b.setAttribute('aria-label','Tangent '+key);b.onclick=()=>press(key);$('keys').append(b);return b;});
-function allowed(key){return !!state&&state.allowedKeys.includes(key)&&!(state.localEntry&&key==='#'&&!entryValue)&&!(state.localEntry&&/^[0-9]$/.test(key)&&entryValue.length>=5);}
+function allowed(key){return !!state&&(state.allowedKeys.includes(key)||(state.serverDriven&&entryValue&&['#','*','B'].includes(key)))&&!(state.localEntry&&!state.serverDriven&&key==='#'&&!entryValue)&&!(state.localEntry&&/^[0-9]$/.test(key)&&entryValue.length>=5);}
 function drawKeys(){for(const b of buttons)b.disabled=busy||!online||!state||!state.webTest||!state.ready||!allowed(b.textContent);}
 function clearEntry(){entryContext=null;entryValue='';}
-function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null)$('line2').textContent=((state.entryLabel||'Tag: ')+entryValue).padEnd(16,' ').slice(0,16);}
+function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null){if(state.serverDriven){const lines=entryValue?state.entryLines:[state.line1,state.line2];$('line1').textContent=entryValue?[...lines[0]].slice(0,5).join('')+entryValue.padEnd(5,'_')+[...lines[0]].slice(10).join(''):lines[0];$('line2').textContent=lines[1];}else $('line2').textContent=((state.entryLabel||'Tag: ')+entryValue).padEnd(16,' ').slice(0,16);}}
 function drawControls(){for(const el of document.querySelectorAll('input,button'))el.disabled=busy;
  $('start').disabled=busy||!online||!state||state.webTest||!state.canStart;$('stop').disabled=busy||!online||!state||!state.webTest;
  $('language').disabled=busy||!online||!state||!state.webTest||!state.ready||!state.languageAvailable||state.languageMenu;drawKeys();}
@@ -64,10 +64,12 @@ function finish(){busy=false;drawControls();}
 async function action(path,body){if(!begin('Kommandot skickas…'))return null;try{const result=await request(path,body);if(path==='/api/logout'){closed=true;signedOut();$('login').textContent='Telefonen är frånkopplad. Ladda om sidan för att ansluta igen.';}else show(result);feedback('message','',false);return result;}catch(e){handleError(e,'message');return null;}finally{finish();}}
 async function press(key){if(!state||!state.ready||!state.webTest||!online||busy||!allowed(key))return;
  if(state.localEntry&&/^[0-9]$/.test(key)){entryValue+=key;drawEntry();drawKeys();return;}
+ if(state.serverDriven&&entryValue){if(key==='*'){clearEntry();entryContext=state.entryContext;drawEntry();drawKeys();return;}if(key==='B'){entryValue=entryValue.slice(0,-1);drawEntry();drawKeys();return;}if(key==='A')clearEntry();else if(key!=='#')return;}
  const command={key,session:state.session,revision:state.revision};
- if(state.localEntry&&key==='#'){command.train_number=entryValue;command.entryContext=entryContext;}
+ if(state.localEntry&&key==='#'&&(!state.serverDriven||entryValue)){command.train_number=entryValue;command.entryContext=entryContext;}
  if(key==='*')clearEntry();
- state.ready=false;await action('/api/key',command);}
+ state.ready=false;const result=await action('/api/key',command);
+ if(result&&command.train_number!==undefined&&result.serverDriven){clearEntry();entryContext=result.entryContext;drawEntry();drawKeys();}}
 $('start').onclick=()=>action('/api/test',{enabled:true});$('stop').onclick=()=>action('/api/test',{enabled:false});
 $('logout').onclick=()=>action('/api/logout',{});
 $('language').onclick=()=>press('#');

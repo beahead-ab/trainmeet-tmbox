@@ -111,7 +111,8 @@ def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
             '#include <Arduino.h>\n'
         ).encode(),
         f"{sketch}/TrainMeetBuild.h": config.encode(),
-        f"{sketch}/TrainMeetFirmware.cpp": b'#include "TrainMeetBuild.h"\n' + source.read_bytes(),
+        f"{sketch}/TrainMeetFirmware.cpp": b'#include "TrainMeetBuild.h"\n' + source.read_bytes().replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h'),
+        f"{sketch}/server_terminal.h": (root / "firmware/common/server_terminal.h").read_bytes(),
     }
     supporting = list(source.parent.glob("*.h"))
     if family == "esp32":
@@ -244,6 +245,11 @@ def platformio_files(root: Path, family: str) -> dict[str, bytes]:
         paths += list((folder / "lib/tmbox_core").glob("*.h"))
         paths += list((folder / "lib/tmbox_core").glob("*.cpp"))
     files = {p.relative_to(folder).as_posix(): p.read_bytes() for p in sorted(set(paths))}
+    # Standalone bundles must not reach outside their extraction directory.
+    name = source_file(root, family).relative_to(folder).as_posix()
+    files[name] = files[name].replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h')
+    header = source_file(root, family).parent.relative_to(folder) / "server_terminal.h"
+    files[header.as_posix()] = (root / "firmware/common/server_terminal.h").read_bytes()
     profiles = [p for p, value in PROFILES.items() if value[0] == family]
     example = profiles[0]
     files["START-HERE.md"] = f"""# TrainMeet TMBox – PlatformIO ({family})

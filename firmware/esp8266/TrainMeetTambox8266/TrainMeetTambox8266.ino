@@ -19,6 +19,7 @@
 #include "web_test_state.h"
 #include "server_sync.h"
 #include "language_menu.h"
+#include "../../common/server_terminal.h"
 
 #ifndef ESP8266
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
@@ -27,6 +28,7 @@
 LiquidCrystal_PCF8574 lcd(TAMBOX_LCD_ADDRESS);
 WiFiClient networkClient;
 MqttClient mqtt(networkClient);
+ServerTerminal terminal;
 WiFiManager wifiManager;
 KeyState keys;
 InputLease lease;
@@ -127,6 +129,7 @@ void invalidate() {
 }
 
 void disconnectServer() {
+  terminal.reset();
   languageReady = false; languageMenu.open = languageMenu.saving = false;
   invalidate(); mqtt.stop(); connectedBefore = false;
   serverEnrollment.clear();
@@ -191,6 +194,16 @@ void requestState() {
 }
 
 void receiveMessage(int size) {
+  if (terminal.started) {
+    if (size < 2 || size > 8192) { disconnectServer(); return; }
+    const String topic = mqtt.messageTopic();
+    const bool retained = mqtt.messageRetain();
+    String body; body.reserve(size);
+    while (mqtt.available()) body += char(mqtt.read());
+    terminal.receive(topic, body, retained);
+    if (lcdFound) terminal.draw(lcd);
+    return;
+  }
   const String topic = mqtt.messageTopic();
   const bool retained = mqtt.messageRetain();
   // Filter unused fields (routes/slots/ack snapshots) before allocating JSON.
@@ -329,6 +342,9 @@ void connectServer() {
   }
   TMBOX_LOG("TrainMeet Server connected; assignment is managed by the server administrator.\n");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
+  terminal.begin(mqtt, deviceId, deviceCode, "NodeMCU ESP8266 16x2", TAMBOX_FIRMWARE_VERSION,
+                 bootId + "-" + String(++commandSequence));
+  return; // Legacy v1 transport below is retained for source compatibility only.
   if (!mqtt.subscribe("tambox/v1/device/" + deviceId + "/assignment", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/snapshot/+", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/ack", 1) ||
@@ -361,6 +377,12 @@ String inputLine2() {
 }
 
 bool sendKey(char key, bool virtualKey) {
+  if (terminal.started) {
+    if (!webSession.permits(virtualKey, keypadOK && lcdFound, millis())) return false;
+    const bool accepted = terminal.press(key);
+    if (lcdFound) terminal.draw(lcd);
+    return accepted;
+  }
   if (languageReady && mqtt.connected() && !lease.waiting &&
       webSession.permits(virtualKey, keypadOK && lcdFound, millis()) &&
       (languageMenu.open || (key == '#' && idleScreen && !trainEntry.active && lease.allowed(millis())))) {
@@ -475,6 +497,7 @@ void loop() {
     const bool available = Wire.endTransmission() == 0;
     if (available != lcdFound) {
       lcdFound = available; lease.clear(); keys.requireRelease(); refreshRequested = true;
+      terminal.digits = ""; terminal.dirty = true; terminal.guard = now + 500;
       shownLine1 = ""; shownLine2 = "";
       if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
       else TMBOX_LOG("LCD disconnected: traffic input disabled.\n");
@@ -487,6 +510,7 @@ void loop() {
     keypadOK = keypadScan(mask);
     if (keypadOK != wasOK) {
       lease.clear(); keys.requireRelease(); refreshRequested = true;
+      terminal.digits = ""; terminal.dirty = true; terminal.guard = now + 500;
     }
     const KeyEvent event = keys.update(mask, keypadOK, now);
 #ifdef TAMBOX_HARDWARE_CHECK
@@ -534,7 +558,10 @@ void loop() {
         mqtt.poll();
         // A callback may just have set lastSnapshot later than the loop's `now`.
         const uint32_t current = millis();
-        if (lease.expired(current) || lease.timedOut(current)) {
+        if (terminal.started) {
+          if (!terminal.tick()) { disconnectServer(); showFrame("SERVER SAKNAS", "FORSOKER IGEN"); nextConnection = current + 1000; }
+          else if (lcdFound) terminal.draw(lcd);
+        } else if (lease.expired(current) || lease.timedOut(current)) {
           TMBOX_DEBUG("Server timeout: snapshot or acknowledgement missing\n");
           disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LAGE")); nextConnection = now + 1000;
         } else {
