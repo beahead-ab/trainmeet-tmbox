@@ -4,6 +4,7 @@
  */
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <EEPROM.h>
 #include <ArduinoMqttClient.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
@@ -17,6 +18,7 @@
 #include "network_setup.h"
 #include "web_test_state.h"
 #include "server_sync.h"
+#include "language_menu.h"
 
 #ifndef ESP8266
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
@@ -33,6 +35,39 @@ bool enteringTrain = false;
 WebTestSession webSession;
 EnrollmentReadiness serverEnrollment;
 ServerSync serverSync;
+tmbox::LanguageMenu languageMenu;
+JsonDocument deviceUi;
+bool languageReady = false, idleScreen = false;
+String meetingTime = "--:--";
+String uiText(const char* key) { return deviceUi["messages"][key] | key; }
+
+// The old connection settings occupied the beginning of EEPROM. Reserve a
+// separate bounded cache at the end; never overwrite those settings.
+void cacheDeviceUI(bool write) {
+  constexpr int offset = 2048, capacity = 2032;
+  EEPROM.begin(4096);
+  if (write) {
+    String body; serializeJson(deviceUi, body);
+    if (body.length() < capacity) {
+      uint32_t hash = 2166136261u;
+      for (size_t i = 0; i < body.length(); ++i) hash = (hash ^ uint8_t(body[i])) * 16777619u;
+      uint32_t oldHash; EEPROM.get(offset + 8, oldHash);
+      if (hash != oldHash) {
+        EEPROM.put(offset, uint32_t(0x544d5549)); EEPROM.put(offset + 4, uint32_t(body.length())); EEPROM.put(offset + 8, hash);
+        for (size_t i = 0; i < body.length(); ++i) EEPROM.write(offset + 12 + i, body[i]);
+        EEPROM.commit();
+      }
+    }
+  } else {
+    uint32_t magic, size, expected; EEPROM.get(offset, magic); EEPROM.get(offset + 4, size); EEPROM.get(offset + 8, expected);
+    if (magic == 0x544d5549 && size > 0 && size < capacity) {
+      String body; body.reserve(size); uint32_t hash = 2166136261u;
+      for (uint32_t i = 0; i < size; ++i) { char c = EEPROM.read(offset + 12 + i); body += c; hash = (hash ^ uint8_t(c)) * 16777619u; }
+      if (hash == expected && deserializeJson(deviceUi, body)) deviceUi.clear();
+    }
+  }
+  EEPROM.end();
+}
 String deviceId, deviceCode, bootId, apName;
 String gatewayHost, panelId, sessionId, allowedKeys, commandId;
 String shownLine1, shownLine2;
@@ -92,6 +127,7 @@ void invalidate() {
 }
 
 void disconnectServer() {
+  languageReady = false; languageMenu.open = languageMenu.saving = false;
   invalidate(); mqtt.stop(); connectedBefore = false;
   serverEnrollment.clear();
   serverSync.reset();
@@ -106,7 +142,7 @@ void startPortal() {
   disconnectServer();
   wifiManager.startConfigPortal(apName.c_str());
   portalActive = wifiManager.getConfigPortalActive();
-  if (portalActive) showFrame("INSTALLERA WIFI", apName);
+  if (portalActive) showFrame(uiText("INSTALLERA WIFI"), apName);
 }
 
 void savePortalSettings() {
@@ -162,6 +198,8 @@ void receiveMessage(int size) {
   JsonDocument filter, message;
   for (const char* key : {"status", "device_id", "protocol_version", "station_id", "panel_id", "traffic_session_id", "revision", "command_id", "reason", "state_token", "request_id"}) filter[key] = true;
   filter["assigned_panel_ids"][0] = true;
+  filter["ui"] = true;
+  filter["clock"]["time"] = true;
   filter["display"]["line1"] = true; filter["display"]["line2"] = true;
   filter["interaction"]["allowed_keys"][0] = true;
   for (const char* key : {"mode", "selected_slot", "owner_client_id", "train_number", "local_train_entry"})
@@ -170,7 +208,19 @@ void receiveMessage(int size) {
     TMBOX_DEBUG("MQTT JSON rejected (payload not logged)\n");
     invalidate(); serverSync.reset(); return;
   }
-  if (topic.endsWith("/assignment")) {
+  if (topic.endsWith("/preferences")) {
+    if (retained) return;
+    if (message["ui"]["version"] == 1 && message["ui"]["messages"].is<JsonObject>()) {
+      deviceUi.set(message["ui"]); cacheDeviceUI(true);
+      languageMenu.options.clear();
+      for (JsonObject option : deviceUi["languages"].as<JsonArray>())
+        languageMenu.options.push_back({option["code"] | "", option["name"] | ""});
+      languageReady = true;
+    }
+    languageMenu.reply(message["request_id"] | "", String(message["status"] | "") == "accepted");
+    keys.requireRelease();
+    if (serverLine1.length()) showFrame(inputLine1(), inputLine2());
+  } else if (topic.endsWith("/assignment")) {
     const String status = message["status"] | "";
     const String nextPanel = message["assigned_panel_ids"][0] | "";
     if (retained || message["protocol_version"] != 1 || deviceId != (message["device_id"] | "") ||
@@ -181,14 +231,14 @@ void receiveMessage(int size) {
     refreshRequested = false;
     TMBOX_DEBUG("Assignment: status=%.32s panel=%.80s\n", status.c_str(), nextPanel.c_str());
     if (status == "assigned" && !nextPanel.length() && String(message["station_id"] | "").length()) {
-      invalidate(); showFrame("V1-PANEL SAKNAS", "KOLLA SERVERN"); return;
+      invalidate(); showFrame(uiText("V1-PANEL SAKNAS"), uiText("KOLLA SERVERN")); return;
     }
     if (status != "assigned" || !nextPanel.length()) {
-      invalidate(); showFrame("KOPPLA BOXEN", deviceCode); return;
+      invalidate(); showFrame(uiText("KOPPLA BOXEN"), deviceCode); return;
     }
     if (panelId != nextPanel) {
       invalidate(); panelId = nextPanel; refreshRequested = true;
-      showFrame("BOX KOPPLAD", "HAMTAR PANEL...");
+      showFrame(uiText("BOX KOPPLAD"), uiText("HAMTAR PANEL..."));
     }
   } else if (topic.indexOf("/snapshot/") >= 0) {
     if (retained || !serverEnrollment.ready(mqtt.connected()) || !panelId.length() || panelId != (message["panel_id"] | "") ||
@@ -217,6 +267,10 @@ void receiveMessage(int size) {
     serverLine1 = lcdLine(message["display"]["line1"].as<String>());
     serverLine2 = lcdLine(message["display"]["line2"].as<String>());
     enteringTrain = String(message["interaction"]["mode"] | "") == "enter_train";
+    idleScreen = String(message["interaction"]["mode"] | "") == "idle";
+    meetingTime = String(message["clock"]["time"] | "--:--").substring(0, 5);
+    // An incoming traffic request takes priority over the presentation menu.
+    if (!idleScreen) languageMenu.open = false;
     const String initial = message["interaction"]["train_number"] | "";
     const String owner = message["interaction"]["owner_client_id"] | "";
     const String context = sessionId + "|" + panelId + "|" +
@@ -240,12 +294,12 @@ void receiveMessage(int size) {
     TMBOX_DEBUG("Command acknowledgement: status=%.32s\n", message["status"] | "");
     // Do not resend unacknowledged input or enable keys until a new snapshot.
     lease.acknowledged(); commandId = ""; refreshRequested = true;
-    if (String(message["status"] | "") == "rejected") showFrame("KOMMANDO NEKAT", "HAMTAR NYTT LAGE");
+    if (String(message["status"] | "") == "rejected") showFrame(uiText("KOMMANDO NEKAT"), uiText("HAMTAR NYTT LAGE"));
   } else if (topic.startsWith("tambox/v1/gateway/") && topic.endsWith("/status")) {
     if (String(message["status"] | "") != "online") {
       serverEnrollment.clear();
       serverSync.reset();
-      invalidate(); showFrame("SERVER BORTA", "FORSOKER IGEN");
+      invalidate(); showFrame(uiText("SERVER BORTA"), uiText("FORSOKER IGEN"));
     } else if (!retained) {
       // A restarted gateway may have different grants/configuration.
       serverEnrollment.clear(); serverSync.reset(); invalidate();
@@ -260,7 +314,7 @@ bool resolveServer() {
   const int count = TrainMeetNetwork::queryServers(MDNS);
   TMBOX_LOG("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
   const int selected = TrainMeetNetwork::selectServer(MDNS, count, gatewayHost);
-  if (selected < 0) { showFrame("SOKER SERVER", deviceCode); return false; }
+  if (selected < 0) { showFrame(uiText("SOKER SERVER"), deviceCode); return false; }
   gatewayHost = MDNS.IP(selected).toString(); gatewayPort = MDNS.port(selected);
   return true;
 }
@@ -268,7 +322,7 @@ bool resolveServer() {
 void connectServer() {
   disconnectServer();
   if (!resolveServer()) return;
-  showFrame("ANSLUTER SERVER", deviceCode);
+  showFrame(uiText("ANSLUTER SERVER"), deviceCode);
   TMBOX_LOG("Connecting to TrainMeet Server %s:%u\n", gatewayHost.c_str(), gatewayPort);
   if (!mqtt.connect(gatewayHost.c_str(), gatewayPort)) {
     TMBOX_LOG("MQTT connection failed: %d\n", mqtt.connectError()); return;
@@ -279,6 +333,7 @@ void connectServer() {
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/snapshot/+", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/ack", 1) ||
       !mqtt.subscribe("tambox/v1/client/" + deviceId + "/state", 1) ||
+      !mqtt.subscribe("tambox/v1/device/" + deviceId + "/preferences", 1) ||
       !mqtt.subscribe("tambox/v1/gateway/+/status", 1)) { disconnectServer(); return; }
   JsonDocument presence;
   presence["status"] = "online"; presence["device_code"] = deviceCode;
@@ -287,19 +342,42 @@ void connectServer() {
 }
 
 String inputLine1() {
-  return enteringTrain && !trainEntry.active ? lcdLine("UPPDATERA SERVER") : serverLine1;
+  if (languageMenu.open) return lcdLine(uiText(languageMenu.saving ? "SAVING..." : languageMenu.failed ? "NOT SAVED #=TRY" : "C=NEXT *=BACK"));
+  return enteringTrain && !trainEntry.active ? lcdLine(uiText("UPPDATERA SERVER")) : serverLine1;
 }
 
 String inputLine2() {
-  if (enteringTrain && !trainEntry.active) return lcdLine("LOKAL INMATNING");
+  if (languageMenu.open) {
+    String name = String(languageMenu.name().c_str()).substring(0, 10);
+    while (name.length() < 11) name += ' ';
+    return lcdLine(name + meetingTime);
+  }
+  if (enteringTrain && !trainEntry.active) return lcdLine(uiText("LOKAL INMATNING"));
   if (!trainEntry.active) return serverLine2;
-  String row = "Tag: " + String(trainEntry.value.c_str());
+  String row = uiText("Tag: ") + String(trainEntry.value.c_str());
   if (trainEntry.value.size() < 5) row += '_';
   while (row.length() < 11) row += ' ';
-  return row + "*=Avb";
+  return lcdLine(row + uiText("*=Avb"));
 }
 
 bool sendKey(char key, bool virtualKey) {
+  if (languageReady && mqtt.connected() && !lease.waiting &&
+      webSession.permits(virtualKey, keypadOK && lcdFound, millis()) &&
+      (languageMenu.open || (key == '#' && idleScreen && !trainEntry.active && lease.allowed(millis())))) {
+    if (!languageMenu.open) languageMenu.begin(deviceUi["language"] | "sv");
+    else {
+      const std::string chosen = languageMenu.press(key);
+      if (!chosen.empty()) {
+        JsonDocument request;
+        String id = bootId + "-language-" + String(++commandSequence);
+        request["request_id"] = id; request["language"] = chosen.c_str();
+        languageMenu.sent(id.c_str(), millis());
+        if (!publish("tambox/v1/device/" + deviceId + "/preferences/set", request))
+          languageMenu.reply(id.c_str(), false);
+      }
+    }
+    keys.requireRelease(); showFrame(inputLine1(), inputLine2()); return true;
+  }
   if (!mqtt.connected() || !lease.allowed(millis()) ||
       !webSession.permits(virtualKey, keypadOK && lcdFound, millis()) ||
       !panelId.length() || !sessionId.length() || allowedKeys.indexOf(key) < 0) {
@@ -328,7 +406,7 @@ bool sendKey(char key, bool virtualKey) {
   command["device_uptime_ms"] = millis();
   lease.sent(millis());
   if (!publish("tambox/v1/client/" + deviceId + "/command", command)) {
-    disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE");
+    disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LAGE"));
     return false;
   }
   if (key == '*') trainEntry.clear();
@@ -358,6 +436,7 @@ void setup() {
   Serial.begin(115200);
   TMBOX_LOG("TrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
   TMBOX_LOG("USB debug: %s\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");
+  cacheDeviceUI(false);
   Wire.begin(TAMBOX_SDA, TAMBOX_SCL); Wire.setClock(100000);
   scanHardware();
   WiFi.mode(WIFI_STA);
@@ -411,7 +490,7 @@ void loop() {
     }
     const KeyEvent event = keys.update(mask, keypadOK, now);
 #ifdef TAMBOX_HARDWARE_CHECK
-    if (!keypadOK) showFrame("KNAPPSATS SAKNAS", "KONTROLLERA I2C");
+    if (!keypadOK) showFrame(uiText("KNAPPSATS SAKNAS"), uiText("KONTROLLERA I2C"));
     if (event.pressed) showFrame("TANGENT", String(event.pressed));
 #else
     if (event.pressed) sendKey(event.pressed, false);
@@ -437,7 +516,7 @@ void loop() {
       if (mdnsStarted) MDNS.close();
       mdnsStarted = false;
     }
-    if (!portalActive) showFrame("NAT SAKNAS", "FORSOKER IGEN");
+    if (!portalActive) showFrame(uiText("NAT SAKNAS"), uiText("FORSOKER IGEN"));
     if (!portalActive && uint32_t(now - wifiLostAt) >= 30000) startPortal();
   } else {
     if (!wifiWasConnected) TMBOX_LOG("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
@@ -445,7 +524,7 @@ void loop() {
     if (mdnsStarted) MDNS.update();
     if (!portalActive) {
       if (!mqtt.connected()) {
-        if (connectedBefore) { disconnectServer(); showFrame("SERVER BORTA", "FORSOKER IGEN"); }
+        if (connectedBefore) { disconnectServer(); showFrame(uiText("SERVER BORTA"), uiText("FORSOKER IGEN")); }
         if (due(now, nextConnection)) {
           connectServer();
           connectionFailures = min(connectionFailures + 1, 4u);
@@ -457,7 +536,7 @@ void loop() {
         const uint32_t current = millis();
         if (lease.expired(current) || lease.timedOut(current)) {
           TMBOX_DEBUG("Server timeout: snapshot or acknowledgement missing\n");
-          disconnectServer(); showFrame("INGET SERVER-SVAR", "KONTROLLERA LAGE"); nextConnection = now + 1000;
+          disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LAGE")); nextConnection = now + 1000;
         } else {
           const auto request = serverSync.next(current, refreshRequested);
           if (request == ServerSync::Assignment) hello();
@@ -467,13 +546,15 @@ void loop() {
         // every 10 ms, especially when testing a bare NodeMCU over USB.
         // Traffic input remains guarded by both hardware checks in sendKey().
         if (mqtt.connected() && lease.fresh && !webSession.enabled) {
-          if (!lcdFound) showFrame("DISPLAY SAKNAS", "KONTROLLERA I2C");
-          else if (!keypadOK) showFrame("KNAPPSATS SAKNAS", "KONTROLLERA I2C");
+          if (!lcdFound) showFrame(uiText("DISPLAY SAKNAS"), uiText("KONTROLLERA I2C"));
+          else if (!keypadOK) showFrame(uiText("KNAPPSATS SAKNAS"), uiText("KONTROLLERA I2C"));
         }
       }
     }
   }
   wifiWasConnected = wifiConnected;
+  languageMenu.tick(millis());
+  if (languageMenu.open) showFrame(inputLine1(), inputLine2());
   tickWebTest();
 #endif
   delay(2); // ESP8266 Wi-Fi + watchdog must get CPU time.

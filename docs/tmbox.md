@@ -264,7 +264,9 @@ för föregående skärm inte råkar tolkas mot den nya.
 > enda gång i `firmware/esp32/lib/tmbox_core/navigation.cpp`, och `MER` finns
 > inte i någon ruta i `test_native/golden_frames.txt`. Rutorna nedan som visar
 > `D=MER`, och `D=NÄRMAR SIG` i avsnitt 10, beskriver alltså avsedd funktion —
-> inte vad en box gör idag. Tangenten sitter i knappsatsen och gör ingenting.
+> inte vad en box gör idag. D har nu en separat presentationsfunktion:
+> från översikten öppnar den språkval när servern har levererat språkpaketet.
+> Den är fortfarande inte ett trafikkommando och inte en mer-/ankomstfunktion.
 > Native-testerna och guldfilerna visar vad som faktiskt är byggt.
 
 **Säkerhetsregel:** `#` får aldrig lämna ett operativt beslut — `KLART`,

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 namespace tmbox {
 
@@ -71,6 +72,9 @@ struct Clock {
 
 /// The `config` topic, cached whole. Changes only on publish.
 struct StationConfig {
+  // Copy comes from the local server, not the browser's/admin's language.
+  std::string language = "sv";
+  std::map<std::string, std::string> messages;
   std::string station_id;
   std::string code;
   std::string name;

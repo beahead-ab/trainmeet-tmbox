@@ -6,7 +6,11 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -I$(CORE) -I.
 CORE_SRC := $(CORE)/navigation.cpp $(CORE)/renderer.cpp $(CORE)/text.cpp $(CORE)/model.cpp \
             $(CORE)/attention.cpp
 
-test: run-renderer run-navigation run-attention run-firmware-calls run-meet-scope check-golden
+test: run-renderer run-navigation run-attention run-firmware-calls run-meet-scope run-language-menu check-golden
+
+run-language-menu: build/test_language_menu
+	./build/test_language_menu
+	diff -u $(CORE)/language_menu.h ../../esp8266/TrainMeetTambox8266/language_menu.h
 
 run-renderer: build/test_renderer
 	./build/test_renderer
@@ -39,9 +43,9 @@ check-golden: build/dump_golden build/dump_traces build/dump_attention
 
 # One pattern rule rather than four near-identical ones: a duplicate target is
 # silent, and a silent duplicate is how check-golden stopped running once.
-build/%: %.cpp $(CORE_SRC)
+build/%: %.cpp $(CORE_SRC) $(wildcard $(CORE)/*.h)
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $(filter %.cpp,$^) -o $@
 
 clean:
 	rm -rf build

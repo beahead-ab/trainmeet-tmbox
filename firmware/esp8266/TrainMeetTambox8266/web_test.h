@@ -99,8 +99,14 @@ void webStatus() {
   data["canStart"] = webSnapshotReady();
   data["ready"] = webSnapshotReady() && webSession.enabled;
   String webKeys = allowedKeys;
+  if (languageReady && idleScreen && !trainEntry.active) webKeys += '#';
+  if (languageMenu.open) webKeys = languageMenu.saving ? "" : "C#*";
   if (enteringTrain && !trainEntry.active) webKeys = "*";
   data["allowedKeys"] = webKeys;
+  data["language"] = deviceUi["language"] | "sv";
+  data["languageMenu"] = languageMenu.open;
+  data["languageAvailable"] = languageReady && idleScreen && !trainEntry.active;
+  data["entryLabel"] = uiText("Tag: ");
   data["localEntry"] = trainEntry.active;
   data["entryContext"] = trainEntry.entryContext().c_str();
   data["entryValue"] = trainEntry.value.c_str();
