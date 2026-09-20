@@ -3,6 +3,7 @@ name: Build TMBox firmware
 on:
   push:
   pull_request:
+  workflow_call:
 
 jobs:
   build:
@@ -28,6 +29,11 @@ jobs:
       - name: Build supported profiles
         working-directory: firmware/esp32
         run: pio run -e esp32-benny -e esp32-classic-safe -e esp32-s3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webflash-esp32-s3
+          path: firmware/esp32/.pio/build/esp32-s3/webflash/
+          if-no-files-found: error
   esp8266:
     runs-on: ubuntu-latest
     steps:
@@ -46,3 +52,38 @@ jobs:
         with:
           name: trainmeet-tmbox-nodemcu-esp8266
           path: firmware/esp8266/.pio/build/*/firmware.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webflash-nodemcu-i2c
+          path: firmware/esp8266/.pio/build/nodemcu-i2c/webflash/
+          if-no-files-found: error
+  installer:
+    needs: [build, esp8266]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: installer/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: npm ci --prefix installer
+      - run: npm test --prefix installer
+      - run: npm run build --prefix installer
+      - uses: actions/download-artifact@v4
+        with:
+          name: webflash-esp32-s3
+          path: firmware-builds/esp32-s3
+      - uses: actions/download-artifact@v4
+        with:
+          name: webflash-nodemcu-i2c
+          path: firmware-builds/nodemcu-i2c
+      - run: python scripts/package_installer.py --builds firmware-builds
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trainmeet-tmbox-installer
+          path: dist/installer/
+          if-no-files-found: error

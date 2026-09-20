@@ -33,6 +33,7 @@
 #include "renderer.h"
 #include "meet_scope.h"
 #include "language_menu.h"
+#include "../common/server_terminal.h"
 
 constexpr char FIRMWARE_VERSION[] = "0.6.0";
 constexpr char DISCOVERY_SERVICE[] = "tmbox";
@@ -70,6 +71,7 @@ Keypad keypad = Keypad(makeKeymap(keyMap), rowPins, colPins, ROWS, COLS);
 WiFiManager wifiManager;
 WiFiClient networkClient;
 MqttClient mqttClient(networkClient);
+ServerTerminal terminal;
 Preferences preferences;
 tmbox::LanguageMenu languageMenu;
 std::map<std::string, std::string> deviceMessages;
@@ -234,6 +236,17 @@ void loop() {
 
   processWiFi();
   processGateway();
+  if (terminal.started) {
+    mqttClient.poll();
+    if (!terminal.tick()) { disconnectMqtt(); showScreen(tmbox::Screen::SeekingServer); }
+    else {
+      const char key = keypad.getKey();
+      if (key) terminal.press(key);
+      terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
+    }
+    delay(10);
+    return;
+  }
   if (scopeRefreshRequested && mqttClient.connected() && millis() >= scopeRefreshAt) {
     scopeRefreshRequested = false;
     scopeRefreshAt = millis() + 2000;
@@ -411,6 +424,9 @@ bool connectMqtt() {
   meetScope.reset();
   invalidateStationCache();
 
+  terminal.begin(mqttClient, deviceId, deviceCode, "ESP32 TMBox 16x2", FIRMWARE_VERSION,
+                 deviceId + "-" + String(esp_random(), HEX) + "-" + String(millis()));
+  return true; // Legacy v2 local renderer below is deprecated for normal operation.
   mqttClient.subscribe(assignmentTopic, 1);
   mqttClient.subscribe(configTopic, 1);
   mqttClient.subscribe(snapshotTopic, 1);
@@ -424,6 +440,7 @@ bool connectMqtt() {
 }
 
 void disconnectMqtt() {
+  terminal.reset();
   languageReady = false;
   languageMenu.open = languageMenu.saving = false;
   if (!mqttClient.connected()) return;
@@ -545,11 +562,21 @@ void sendCommand(const tmbox::Command& command) {
 }
 
 void onMqttMessage(int messageSize) {
+  if (messageSize < 1 || messageSize > 8192) {
+    while (mqttClient.available()) mqttClient.read();
+    return;
+  }
   const String topic = mqttClient.messageTopic();
   String payload;
   payload.reserve(messageSize);
   while (mqttClient.available()) {
     payload += (char)mqttClient.read();
+  }
+
+  if (terminal.started) {
+    terminal.receive(topic, payload, mqttClient.messageRetain());
+    terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
+    return;
   }
 
   if (topic.endsWith("/preferences")) {
@@ -758,6 +785,7 @@ void showNetworkState() {
 }
 
 void drawScreen() {
+  if (terminal.started && terminal.fresh) { terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS); return; }
   stationConfig.language = deviceLanguage;
   if (stationConfig.messages != deviceMessages) stationConfig.messages = deviceMessages;
   tmbox::Frame frame =

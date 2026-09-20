@@ -9,6 +9,7 @@ String webToken;
 bool testWebRunning = false;
 
 void stopVirtualInput() {
+  terminal.digits = ""; terminal.dirty = true;
   webSession.enabled = false;
   trainEntry.clear();
   lease.clear(); keys.requireRelease(); refreshRequested = true;
@@ -78,12 +79,29 @@ bool readWebBody(JsonDocument& data) {
 }
 
 bool webSnapshotReady() {
+  if (terminal.started) return terminal.ready() && terminal.hasEntry();
   return WiFi.status() == WL_CONNECTED && mqtt.connected() && panelId.length() &&
          sessionId.length() && lease.allowed(millis());
 }
 
 void webStatus() {
   JsonDocument data;
+  if (terminal.started) {
+    data["serverDriven"] = true;
+    data["deviceCode"] = deviceCode; data["deviceId"] = deviceId;
+    data["firmware"] = TAMBOX_FIRMWARE_VERSION; data["ip"] = WiFi.localIP().toString();
+    data["connected"] = mqtt.connected(); data["panel"] = terminal.frame["station_code"] | "";
+    data["session"] = terminal.token(); data["revision"] = terminal.frame["revision"] | 0;
+    data["lcd"] = lcdFound; data["keypad"] = keypadOK;
+    data["webTest"] = webSession.enabled && webSession.valid(millis());
+    data["waiting"] = terminal.pending.length() > 0; data["fresh"] = terminal.fresh;
+    data["canStart"] = webSnapshotReady(); data["ready"] = webSnapshotReady() && webSession.enabled;
+    data["allowedKeys"] = terminal.allowed(); data["languageAvailable"] = false;
+    data["localEntry"] = terminal.hasEntry(); data["entryContext"] = terminal.context();
+    data["entryValue"] = terminal.digits; data["entryLines"] = terminal.frame["entry"]["lines"];
+    data["line1"] = terminal.line(0); data["line2"] = terminal.line(1);
+    webJson(200, data); return;
+  }
   data["deviceCode"] = deviceCode; data["deviceId"] = deviceId;
   data["firmware"] = TAMBOX_FIRMWARE_VERSION;
   data["ip"] = WiFi.localIP().toString();
@@ -152,6 +170,7 @@ void setupWebTest() {
       TMBOX_DEBUG("Web test enabled\n");
       // A fresh snapshot is required after changing input source.
       trainEntry.clear(); lease.clear(); keys.requireRelease(); refreshRequested = true;
+      terminal.digits = ""; terminal.dirty = true; terminal.guard = millis() + 500;
     } else { stopVirtualInput(); webSession.touch(millis()); TMBOX_DEBUG("Web test disabled\n"); }
     webStatus();
   });
@@ -159,6 +178,20 @@ void setupWebTest() {
     if (!webAuthorize(true)) return;
     JsonDocument data; if (!readWebBody(data)) return;
     const String key = data["key"] | "";
+    if (terminal.started) {
+      if (key.length() != 1 || !strchr(TAMBOX_KEYS, key[0]) ||
+          String(data["session"] | "") != terminal.token() ||
+          !webSession.permits(true, false, millis())) {
+        webError(409, "Läs den aktuella displayen och försök igen."); return;
+      }
+      if (key[0] >= '0' && key[0] <= '9') { webError(400, "Siffror stannar i telefonen tills #."); return; }
+      if (data.containsKey("train_number") && (key[0] != '#' ||
+          !terminal.replaceDigits(data["entryContext"] | "", data["train_number"] | ""))) {
+        webError(409, "Inmatningen är inte aktuell."); return;
+      }
+      if (!sendKey(key[0], true)) { webError(409, "Invänta aktuell skärmbild."); return; }
+      webSession.touch(millis()); webStatus(); return;
+    }
     if (key.length() != 1 || !strchr(TAMBOX_KEYS, key[0]) ||
         !data["session"].is<const char*>() || sessionId != data["session"].as<String>() ||
         !data["revision"].is<long>() || data["revision"].as<long>() != revision) {

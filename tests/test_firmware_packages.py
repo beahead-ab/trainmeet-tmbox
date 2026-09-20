@@ -68,7 +68,9 @@ class FirmwarePackageTests(unittest.TestCase):
         for profile, (family, sketch, *_rest) in package.PROFILES.items():
             files = package.arduino_files(ROOT, profile)
             source = package.source_file(ROOT, family)
-            self.assertEqual(b'#include "TrainMeetBuild.h"\n' + source.read_bytes(), files[f'{sketch}/TrainMeetFirmware.cpp'])
+            source_body = source.read_bytes().replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h')
+            self.assertEqual(b'#include "TrainMeetBuild.h"\n' + source_body, files[f'{sketch}/TrainMeetFirmware.cpp'])
+            self.assertEqual((ROOT / 'firmware/common/server_terminal.h').read_bytes(), files[f'{sketch}/server_terminal.h'])
             for path in source.parent.glob('*.h'):
                 self.assertEqual(path.read_bytes(), files[f'{sketch}/{path.name}'])
             if family == 'esp32':
@@ -94,6 +96,8 @@ class FirmwarePackageTests(unittest.TestCase):
             files = package.platformio_files(ROOT, family)
             self.assertEqual(['src/main.cpp'], [p for p in files if p.startswith('src/')])
             self.assertIn('platformio.ini', files)
+            self.assertNotIn(b'../../scripts/', files['platformio.ini'])
+            self.assertNotIn(b'export_web_firmware', files['platformio.ini'])
             self.assertNotIn('.git', files)
             self.assertFalse(any('.pio/' in p or 'node_modules' in p for p in files))
             self.assertEqual(1, len([p for p in files if p.endswith('.ino')]))

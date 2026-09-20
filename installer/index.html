@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="referrer" content="no-referrer">
+  <title>Installera din TMBox · TrainMeet</title>
+  <link rel="icon" href="assets/trainmeet-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><img src="assets/trainmeet-logo.png" width="36" height="36" alt=""><span>TrainMeet <span class="brand-product">TMBox</span></span></a>
+    <a class="quiet-link" href="https://github.com/beahead-ab/trainmeet-tmbox">GitHub ↗</a>
+  </header>
+  <main class="layout">
+    <aside class="guide-nav" aria-label="Installationssteg">
+      <p class="eyebrow">Kom igång</p>
+      <h1>En box.<br> Din station.</h1>
+      <p class="intro">Från tomt kort till ansluten TMBox, ett steg i taget.</p>
+      <ol id="step-list"></ol>
+      <div class="nav-note"><span class="dot"></span><span>Träffen körs lokalt.<br>Cloud behövs inte under drift.</span></div>
+      <a class="quiet-link" href="Installationsguide.md" download>Ladda ner hela guiden ↓</a>
+    </aside>
+    <div class="workspace">
+      <div class="progress-caption"><span id="step-count"></span><span class="pill warning">Förhandsversion · bänktest återstår</span></div>
+      <div class="progress" aria-hidden="true"><span id="progress-fill"></span></div>
+      <section id="step-content" aria-labelledby="step-title"></section>
+      <nav class="bottom-nav" aria-label="Stegnavigering">
+        <button id="back" class="button secondary" type="button">← Tillbaka</button>
+        <button id="next" class="button primary" type="button">Fortsätt →</button>
+      </nav>
+      <p id="session-note" class="fine-print">Guiden sparar inga lösenord och skickar inga trafikkommandon. Du väljer själv när USB-installationen ska starta. <a href="Installationsguide.md" download>Ladda ner guiden</a>.</p>
+    </div>
+  </main>
+  <noscript>Aktivera JavaScript för steg-för-steg-guiden. Du kan också <a href="Installationsguide.md">läsa installationsguiden som text</a>.</noscript>
+</body>
+</html>

@@ -1,10 +1,13 @@
 # TrainMeet TMBox firmware
 
-Firmwaren gör TMBox v2 till en lokal klient för TrainMeet Server över
-protokoll v2. Servern äger alla trafikbeslut. Boxen cachar stationens
-konfiguration och aktuella snapshot i RAM, navigerar lokalt och skickar bara
-kompletta kommandon. Produktens beteende beskrivs i
-[`docs/tmbox.md`](../../docs/tmbox.md).
+Vill du slippa kompilera? Börja med den gemensamma
+[installationsguiden med färdig USB-firmware](../../docs/INSTALLATION.md).
+
+Från firmware 0.7.0 används samma serverstyrda 16×2-profil som på ESP8266.
+Server 1.10.0 eller senare krävs och ska uppdateras först. Servern äger
+trafikbeslut, skärmar, språk och tangentfunktioner. Boxen hanterar hårdvara,
+transport och lokal sifferbuffring. [Aktuell användning](../../README.md).
+Den äldre lokala kärnan och dess golden-filer är kompatibilitetsunderlag.
 
 ## Referenshårdvara
 
