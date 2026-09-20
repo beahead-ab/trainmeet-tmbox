@@ -1,190 +1,99 @@
 # TrainMeet TMBox
 
-Detta repo innehåller två fysiska klienter till
-[TrainMeet Server](https://github.com/beahead-ab/trainmeet-server):
-**ESP32-S3 med 20×4 LCD och direktkopplad knappsats**, samt
-**NodeMCU/ESP8266 med 16×2 LCD och PCF8574-knappsats på I²C**.
-Båda är passiva trafikklienter. Servern fattar trafikbesluten; skillnaderna
-ligger i hårdvara och lokalt gränssnitt. ESP32 använder MQTT v2, NodeMCU MQTT v1.
+ESP8266 och ESP32 kör samma serverstyrda TMBox-funktioner. **Från firmware
+0.7.0 krävs TrainMeet Server 1.10.0 eller senare. Uppdatera servern först.**
+Vi börjar med 16 tecken × 2 rader även på en större fysisk display.
 
-Repot innehåller inte iPhone-appen. Den utvecklas separat i [trainmeet-iphone](https://github.com/beahead-ab/trainmeet-iphone).
+Servern äger trafikbeslut, skärmar, språk och tangenternas betydelse.
+Firmwaren visar bilden, håller sifferinmatning lokalt och hanterar hårdvara,
+nätverk och återanslutning. A–D är funktionsknappar, inte destinationer.
 
-## Börja här — installationsguide utan programmering
+## Benny: hämta och installera
 
-[**Läs installationsguiden →**](docs/INSTALLATION.md)
+1. Uppdatera den lokala servern till minst **1.10.0**. Avsluta aktiva äldre
+   klareringar före övergången; ingen träffdata ska nollställas.
+2. Öppna [Nedladdningar / Releases](https://github.com/beahead-ab/trainmeet-tmbox/releases)
+   och välj **Arduino IDE – NodeMCU ESP8266** för NodeMCU-kortet. Paketets
+   namn innehåller `arduino-ide-nodemcu-i2c`. Välj inte GitHubs generiska
+   ”Source code (zip)”. [Detaljerad paketguide](docs/FIRMWARE-DOWNLOADS.md).
+3. Packa upp hela paketet och öppna dess `.ino` i Arduino IDE. Behåll alla
+   stödfiler tillsammans. Följ paketets kort- och biblioteksanvisningar.
+4. Ladda via USB. Boxen hittar servern på samma Wi-Fi; admin tilldelar
+   station i serverns **Inställningar → TMBox och TKL**.
+5. Prova först på testträff: begär, godkänn, avgå, ta emot och återtag före
+   avgång. Ett godkänt bygge är inte ett genomfört hårdvaruprov.
 
-Den svenska webbguiden under [`installer/`](installer/) leder genom fem steg:
-välj rätt box → installera färdig firmware via USB → anslut Wi-Fi → välj
-server/station → kontrollera på testbänk. Den innehåller också hjälp för
-Windows, Mac och Linux/Raspberry Pi OS Desktop.
+För ESP32 väljer du paketet som matchar kortet: ESP32-S3, `esp32-benny` eller
+`esp32-classic-safe`. **En vanlig ESP32 är inte en ESP32-S3.**
+Den svenska [USB-installationsguiden](docs/INSTALLATION.md) finns också som
+separat förhandsversionspaket. Ingen fysisk enhet fjärrflashas av en serverrelease.
 
-GitHub-byggjobbet skapar paketet **trainmeet-tmbox-installer** med guiden,
-båda firmwarebilderna, chipmanifest och kontrollsummor. Publiceringsjobbet
-kan ge samma paket som en nedladdningsbar förhandsutgåva; en offentlig
-webbadress är ännu inte aktiverad. Enbart guidekällkoden innehåller inga
-binärer och kan därför inte installera ett kort.
+## Användning
 
-**Ingen fysisk hårdvara är verifierad ännu.** USB-flödet är för nyinstallation
-och kan ersätta befintligt program och inställningar. Samkörning mellan
-ESP8266, ESP32 och TKL kräver den nya gemensamma serverlogiken, som fortfarande
-är en utvecklingsversion och inte ingår i Server 1.4.1.
-Se [serverkraven i guiden](docs/INSTALLATION.md#vilken-serverversion).
-
-## ESP32-S3: grundprincip
-
-TMBoxen fattar inga trafikbeslut. Den cachar sin tilldelade stations konfiguration och aktuella läge lokalt i RAM, bläddrar i den cachen direkt utan nätverksfördröjning, och pratar bara på tråden när den skickar ett komplett kommando (inga tangenttryckningar en och en). Om Wi-Fi eller MQTT försvinner väntar boxen, återansluter och hämtar ett nytt fullständigt läge.
-
-Varje box har ett permanent id och en kort kod, exempelvis `TMBOX-A7K2C3`. Vid start visas koden på displayen. I serverns webbadmin kopplar administratören koden till en station. Klienten behöver inget lösenord.
-
-## ESP32-S3: Wi-Fi vid första start
-
-1. Boxen försöker ansluta till senast sparade Wi-Fi.
-2. Om nätet saknas skapar den tillfälligt nätverket `TrainMeet-XXXXXX`.
-3. Anslut med en telefon och välj träffens Wi-Fi i portalen.
-4. Uppgifterna lagras i ESP32:ans beständiga minne.
-5. Håll `*` i fem sekunder för att rensa Wi-Fi och börja om.
-
-Servern hittas automatiskt med mDNS/Bonjour. ESP8266 har inga manuella serverfält eller anslutningskoder; administratören tilldelar station på servern. ESP32:s befintliga installationsflöde är oförändrat.
-
-## Bygg och ladda firmware
-
-**Färdiga källkodspaket:** öppna
-[Nedladdningar / Releases](https://github.com/beahead-ab/trainmeet-tmbox/releases)
-och välj ett **Arduino IDE-** eller **PlatformIO-paket** under Assets.
-[Välj rätt paket och följ steg-för-steg-guiden](docs/FIRMWARE-DOWNLOADS.md).
-Arduino-paketet innehåller alla egna stödfiler och ingen PlatformIO-startfil
-som kan ge dubbelkompilering. Välj inte ”Source code (zip)” för detta flöde.
-
-[PlatformIO](https://platformio.org/) är den rekommenderade vägen:
-
-```sh
-cd firmware/esp32
-pio run -e esp32-s3
-pio run -e esp32-s3 -t upload
-```
-
-Det finns tre hårdvaruprofiler:
-
-- **`esp32-s3` är TMBox v2** och byggmålet som gäller. ESP32-S3-DevKitC-1-N8R2,
-  20×4-display på `0x27` bakom en nivåomvandlare, passiv 4×4-matris direkt på
-  GPIO, summer och statuslysdiod. Fullständig specifikation i
-  [docs/TMBOX-V2-HARDWARE.md](docs/TMBOX-V2-HARDWARE.md).
-- `esp32-benny` och `esp32-classic-safe` beskriver klassisk ESP32 och behålls
-  för den som ska få igång ett kort som råkar finnas. De är inte produkten.
-
-> **TMBox v1 Legacy.** Den tidigare generationens boxar är ESP8266
-> (ESP-12F) nodeMCU V3 med knappsatsen på ett PCF8574 över I2C. De behåller
-> sin befintliga firmware; ESP32-S3:s v2-kod portas inte till dem.
-> Hårdvaran är dokumenterad i
-> [docs/TMBOX-V1-LEGACY.md](docs/TMBOX-V1-LEGACY.md).
-
-Arduino IDE använder det särskilda [Arduino-paketet](docs/FIRMWARE-DOWNLOADS.md),
-inte en lös `.ino` ur repot. Komplett koppling av display, tangentbord, ström
-och nivåanpassning finns i [WIRING.md](firmware/esp32/WIRING.md).
-
-## Valfri NodeMCU / ESP8266-variant (MQTT v1)
-
-För ett separat NodeMCU-kort finns nu en **egen v1-klient** med PCF8574-knappsats
-på I²C och 16×2 LCD. Den använder TrainMeet Servers äldre, driftsatta
-`tambox/v1`-protokoll, inte v2:s lokala navigering eller v2-simulator.
-Befintliga boxar med `mqttTamBox` uppdateras inte automatiskt.
-
-Se [NodeMCU-guiden](firmware/esp8266/README.md) för koppling, Arduino IDE,
-PlatformIO och ett separat hårdvarutest. Ingen fysisk box är verifierad ännu.
-
-```sh
-cd firmware/esp8266
-pio run -e nodemcu-hardware-check
-pio run -e nodemcu-i2c
-```
-
-D2/GPIO4 är SDA, D1/GPIO5 är SCL. Standardadresserna är `0x20` för knappsatsen
-och `0x27` för LCD:n. Kontrollera matrisordning och nivåomvandling innan laddning.
-Detta ändrar inte v2-profilen eller dess protokoll.
-
-## Status
-
-Firmwaren pratar protokoll v2 på riktigt: stabil enhetsidentitet,
-mDNS-upptäckt, stationstilldelning och RAM-cachad config/snapshot.
-
-**Kommandosidan är komplett.** Kärnan i
-[`firmware/esp32/lib/tmbox_core/`](firmware/esp32/lib/tmbox_core/) bär hela
-den lokala logiken, testad i CI utan hårdvara:
-
-| Del | Vad den gör |
+| Tangent eller händelse | Beteende |
 |---|---|
-| Navigation | 19 skärmar, bläddring i stationsöversikt och rörelsedetalj, §5 inmatningslås på 500 ms |
-| Tåguppslag | fyra siffror knappas in, servern svarar med träffar, träffarna bläddras |
-| Spårväljare | välj spår ur stationens katalog; servern avgör om det är ledigt |
-| Anslutningsväljare | klareringsbegäran namnger sin sträcka — boxen gissar aldrig |
-| Klarering | inkorg, godkänn på `A`, neka på `B`, aldrig på `#` |
-| Linjen ledig | inkorg och kvittering |
-| Uppmärksamhet | vad som förtjänar en signal, och framför allt vad som inte gör det |
+| Skriv tågnummer, sedan `#` | Siffrorna hålls lokalt; servern hittar rätt avgång och nästa station |
+| `C` / `D` | Föregående/nästa val eller kommande avgång |
+| `#` | Primär åtgärd som visas, exempelvis begär, godkänn, avgå eller mottaget |
+| `*` | Tillbaka/avbryt; i rätt trafiksituation neka eller återta före avgång |
+| `A` | Snabbväg till förfrågningskön där den visas |
+| Inkommande förfrågan | Öppnas automatiskt när boxen är ledig; köindikering vid flera |
+| Mottaget hos grannen | Kort besked till avsändaren, sedan försvinner det avslutade tåget |
+| `*` från översikt | Språkval, bläddra med C/D och spara med `#` |
 
-Tre guldfiler binder varje annan implementation till den här:
-`golden_frames.txt` (60 rutor i alla fyra geometrier), `golden_traces.txt`
-(12 tangentsekvenser) och `golden_attention.txt` (tre händelseförlopp).
-Simulatorn under server.trainmeet.app speglar alla tre, och serverns testsvit
-faller om de skiljer sig.
+Följ alltid skärmens aktuella tangentbeskrivningar. Godkännande är inte
+avgång; avgång bekräftas först när tåget faktiskt lämnar. När tåget har
+lämnat kan avsändaren inte återta det. Mottagaren kan ange avvikande spår
+i samband med ankomst. Admin kan också skicka ett språkval till boxen.
 
-### Vad som återstår
+Klockan visas till höger på rad två. Endast aktuella texter och nödvändiga
+specialtecken laddas från servern, inklusive ÅÄÖ. En tom översta rad är tom.
+Språk eller trafikregler behöver därför normalt ingen ny firmware efter
+denna engångsuppgradering till den serverstyrda profilen.
 
-Referenskonstruktionen är fastställd och firmwaren är testad utan hårdvara.
-Nästa steg är att bygga den första v2-prototypen och verifiera inkoppling,
-display, knappsats, summer, Wi-Fi, antennläge och kapsling i bänktest. Å, Ä och
-Ö translittereras tills de egendefinierade displaytecknen har verifierats.
+## Nätverk och station
 
-Bänktestlistan för det som kräver en människa och fysisk utrustning finns i
-[docs/BANKTEST.md](docs/BANKTEST.md). Se [docs/tmbox.md](docs/tmbox.md) för
-fullständig definition of done.
+Vid första start väljer du träffens 2,4 GHz-Wi-Fi i boxens portal.
+Servern upptäcks lokalt med mDNS; webbporten 8787 är inte MQTT-porten 1883.
+NodeMCU har inga manuella IP-/portfält. Servern väljer station efter boxens
+permanenta ID. Boxen väntar och kan inte påverka trafik före tilldelningen.
+ESP32 behåller sitt befintliga Wi-Fi-installationsflöde.
+
+Ingen upprepning av stationsuppdrag var tionde sekund behövs. Servern
+skickar ändrade bilder; små liveness-kvitton kontrollerar anslutningen.
+Vid avbrott spärras trafikknapparna och inga gamla kommandon återspelas.
+MQTT-brokern ska inte exponeras oskyddad mot internet.
+
+## Webbklient och provbänk
+
+- [Webb-TMBox](https://server.trainmeet.app/tmbox/) är en riktig klient på
+  testservern. Starta utan inloggning, visa koden för admin och invänta station.
+- [Provbänken](https://server.trainmeet.app/tmbox-lab/) använder isolerad
+  demotrafik. Den påverkar aldrig träffen, även när du nollställer enheter.
+- På din lokala server finns samma sökvägar efter uppgraderingen.
+
+Serverns `terminal16.py` och `terminal16_runtime.py` är numera auktoritativa
+för skärmar och trafikflöden. `firmware/common/server_terminal.h` är den
+gemensamma transporten för de fysiska korten. Den äldre lokala ESP32-kärnan
+och dess golden-filer behålls för kompatibilitet och regressionstester,
+men definierar inte det nya operatörsflödet.
+
+## Hårdvara och byggning
+
+- [ESP8266: koppling, LiquidCrystal_PCF8574 och hårdvarutest](firmware/esp8266/README.md)
+- [ESP32: byggning och koppling](firmware/esp32/README.md)
+- [ESP32-S3 referensprofil](docs/TMBOX-V2-HARDWARE.md)
+- [Äldre boxarnas hårdvara](docs/TMBOX-V1-LEGACY.md)
+
+De historiska namnen V1/V2 i hårdvarudokument betyder inte två olika nya
+trafikprodukter. En firmwareversion byggs för flera kort. Samma 16×2-logik
+gäller nu för båda; framtida funktioner kan kräva starkare hårdvara.
 
 ## Versionsnummer
 
-`VERSION` i rotens enda auktoritativa fil, och den sätts automatiskt vid varje
-merge till main. `FIRMWARE_VERSION` i skissen härleds ur den, så numret en box
-rapporterar i sitt `hello` och numret i repot är samma sak — det var två
-oberoende påståenden förut, vilket är precis den sorts glidning som gör att
-man inte kan avgöra vilken firmware som faktiskt ligger i lådan.
+`VERSION` är auktoritativ och uppdateras automatiskt vid merge till main.
+FIRMWARE_VERSION och paketen härleds från den. Bidragsgivare ska normalt
+inte sätta ett eget nytt versionsnummer i sina pull requests.
+Kompilering, paketering och automatiska tester är inte fysiska bänktester.
 
-Firmwaren står kvar under 1.0 med flit. Ingen version av den har körts på
-riktig hårdvara. Den dagen en box gör det och fungerar är 1.0.0 rimligt; att
-kalla den 1.0 innan dess vore att påstå något vi inte vet.
-
-## Ändringar ska synas i simulatorn
-
-Varje funktionell ändring i TMBox ska slå igenom i simulatorn på
-TrainMeet Server, under **TMBox v2**. Det är där funktionerna testas: hela
-kommandosidan går att köra där, i vilken som helst av de fyra geometrierna,
-utan en enda box.
-
-Det är inte en hederssak utan mekaniskt tvingat. Skärmarna och
-tillståndsmaskinen bor i [`firmware/esp32/lib/tmbox_core/`](firmware/esp32/lib/tmbox_core/)
-och publicerar tre filer:
-
-| Fil | Vad den håller fast |
-|---|---|
-| `golden_frames.txt` | varje skärm, tecken för tecken, i 16×2, 20×2, 16×4 och 20×4 |
-| `golden_traces.txt` | vad varje tangentsekvens gör: skärmbyten och kommandon |
-| `golden_attention.txt` | vad som förtjänar en signal — och framför allt vad som inte gör det |
-
-Simulatorns `tmbox-render.js`, `tmbox-nav.js` och `tmbox-attention.js` i
-trainmeet-server måste reproducera alla tre exakt. Gör de inte det faller
-serverns testsvit.
-
-**Arbetsgången när en skärm eller en tangent ändras:**
-
-1. Ändra i `lib/tmbox_core/` och kör `make -C firmware/esp32/test_native test`
-2. `make -C firmware/esp32/test_native golden` skriver om de gyllene filerna
-3. Kopiera de gyllene filerna till `tests/` i trainmeet-server
-4. Spegla ändringen i `tmbox-render.js`, `tmbox-nav.js` eller `tmbox-attention.js`
-5. Kör serverns svit — den säger vilken ruta, spår eller signal som flyttade sig
-
-Ordningen är inte godtycklig: firmwaren är originalet, simulatorn speglar.
-
-## Dokumentation
-
-Den fullständiga produktbeskrivningen — namngivning, arkitektur, protokoll,
-skärmflöden, tester och definition of done — finns i [docs/tmbox.md](docs/tmbox.md).
-[docs/architecture.md](docs/architecture.md) beskriver det äldre, fortfarande
-driftsatta MQTT v1-protokollet. En samlad dokumentationsöversikt finns i
-[docs/README.md](docs/README.md).
+Repot innehåller inte iPhone-appen. Se [dokumentationsöversikten](docs/README.md).

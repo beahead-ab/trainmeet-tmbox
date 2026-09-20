@@ -30,7 +30,7 @@ antagen `install.trainmeet.app`-adress innan den har publicerats.
 
 | Välj i guiden | Exakt profil | Display | Knappsats |
 |---|---|---|---|
-| NodeMCU · ESP8266 | NodeMCU 1.0, ESP-12E/ESP-12F, 4 MB | 16×2, I²C `0x27` | PCF8574 `0x20`, rader P0–P3, kolumner P4–P7 |
+| NodeMCU · ESP8266 | NodeMCU 1.0, ESP-12E/ESP-12F, 4 MB | 16×2, I²C `0x27` | PCF8574 `0x20`, kolumner P0–P3, rader P4–P7 |
 | TMBox · ESP32-S3 | ESP32-S3-DevKitC-1-N8R2 | 20×4, I²C `0x27` | Passiv 4×4-matris direkt på GPIO |
 
 **En vanlig ESP32 är inte en ESP32-S3.** USB-verktyget kontrollerar chipfamiljen,
@@ -114,31 +114,20 @@ Om verktyget anger fel chipfamilj: avbryt och kontrollera modell och vald port.
 3. Anslut telefonen till boxens nät. Godkänn att vara kvar utan internet.
 4. Om portalen inte öppnas, skriv **http://192.168.4.1** på telefonen.
 5. Välj träffens **2,4 GHz-Wi-Fi** och ange dess lösenord.
-6. Ange vid behov TrainMeet Servers **lokala IP-adress**, utan `http://`,
-   webbport eller sökväg. Exempel: `192.168.2.160` — byt till din servers adress.
+6. Låt boxen hitta den lokala servern automatiskt. NodeMCU har inga manuella IP-/portfält.
 7. Spara och anslut telefonen till det vanliga nätet igen.
 
 Gör detta på en betrodd plats; boxens tillfälliga installationsnät är öppet.
 Wi-Fi sätts via boxens portal. **Improv Serial/Wi-Fi-inställning direkt via USB
 är ännu inte implementerat** och guiden låtsas inte kunna läsa anslutningsstatus.
 
-### Serveradress och portar
+### Server och portar
 
-| Fält/anslutning | Vad du anger |
-|---|---|
-| Boxens serverfält | Serverns lokala IP eller värdnamn, exempelvis `192.168.2.160` |
-| MQTT | Normalt `1883`, inte webbporten. Separat portfält på NodeMCU. ESP32-S3 använder 1883 vid manuell adress. |
-| Webbadress i din webbläsare | Exempelvis `http://192.168.2.160:8787` |
-| Cloud | Används för config, inte som boxens trafikserver |
-
-Automatisk upptäckt använder mDNS, `_tambox._tcp`, på det lokala nätet.
-NodeMCU väljer automatiskt bara vid en enda server. ESP32-S3 väljer i denna
-firmware första hittade server. **Ange därför alltid rätt IP manuellt när
-flera servrar finns.** En isolerad gäst-Wi-Fi eller multicastspärr kan hindra
-upptäckt. IP-adress är då bättre än `.local`.
-
-Att serverns webbadmin går att nå via HTTPS betyder inte att MQTT är nåbart.
-**Öppna inte en lösenordslös MQTT-port mot internet.**
+Servern upptäcks med mDNS på samma Wi-Fi. MQTT använder normalt port 1883,
+webbadmin normalt 8787. En isolerad gäst-Wi-Fi eller multicastspärr kan hindra
+upptäckt. Kontrollera nätet i stället för att ange webbporten i enheten.
+ESP32 behåller sitt befintliga installationsflöde med valfri manuell server.
+Ingen box kan välja sin egen station. **Öppna inte MQTT oskyddat mot internet.**
 
 ### Öppna installationen igen
 
@@ -146,7 +135,7 @@ Att serverns webbadmin går att nå via HTTPS betyder inte att MQTT är nåbart.
 - **ESP32-S3:** håll `*` eller den separata provisioneringsknappen i fem sekunder.
   Detta raderar Wi-Fi och serverval och startar om boxen. Träffen i servern berörs inte.
 
-## 4. Välj station i TrainMeet Server
+## 4. Administratören tilldelar station i TrainMeet Server
 
 1. Öppna **din servers webbadmin**, inte Cloud eller boxens Wi-Fi-portal.
 2. Logga in som administratör. Ny server: skapa eget konto och aktivera träffens config först.
@@ -155,23 +144,16 @@ Att serverns webbadmin går att nå via HTTPS betyder inte att MQTT är nåbart.
 5. Tilldela rätt station och spara.
 6. Kontrollera att rätt stationsnamn och aktuellt läge visas på boxen.
 
-För NodeMCU måste stationen ha en entydig logisk A–D-panel. Om displayen visar
-`V1-PANEL SAKNAS`, kontrollera serverversion och panelkoppling. Vid flera paneler
-behövs uttrycklig v1-paneltilldelning, inte en gissning från klienten.
+Boxen rapporterar sitt permanenta ID och inväntar administratören.
+Stationsbyte görs i serverns inställningar, aldrig på boxen eller i Cloud.
+Ingen gammal A–D-panel krävs för den nya serverstyrda 16×2-profilen.
 
 ### Vilken serverversion?
 
-Server **1.4.1** innehåller rättningen som kopplar NodeMCU till stationens
-entydiga v1-panel. Den innehåller däremot **inte** den nya gemensamma trafiklogiken
-för samkörning av ESP8266, ESP32 och TKL.
-
-Den gemensamma trafiklogiken är i nuläget testad i
-[utvecklingsrevision ca77f74](https://github.com/beahead-ab/trainmeet-server/tree/ca77f74889060f4905ca90802c8509d4f47e619a).
-Den är inte driftsatt bara för
-att denna guide finns. Använd en kontrollerad testserver tills en granskad
-serverutgåva inkluderar ändringen och hårdvaran är provkörd. Avsluta äldre
-pågående trafikärenden före serverövergången; läs
-[kompatibilitetsnoteringen](https://github.com/beahead-ab/trainmeet-server/blob/ca77f74889060f4905ca90802c8509d4f47e619a/docs/shared-traffic.md).
+**Firmware 0.7.0 kräver Server 1.10.0 eller senare. Uppdatera servern först.**
+Båda korten får texter och logik från servern. På 20×4-skärm används tills
+vidare 16×2 yta. Avsluta äldre pågående klareringar före första uppgraderingen;
+servern vägrar att tappa dem. Prova den nya firmwaren på fysisk testbänk.
 
 ## 5. Kontrollera — när du har hårdvaran
 
@@ -184,8 +166,7 @@ pågående trafikärenden före serverövergången; läs
       som ska användas tillsammans.
 
 Kontrollera tangenter i hårdvarutest eller separat testträff, inte genom att
-trycka godkännande-/avgångsknappar under trafikdrift. ESP32:s D-tangent saknar
-ännu åtgärd i den vanliga navigeringen; knapptest och trafikfunktion är olika saker.
+trycka godkännande-/avgångsknappar under trafikdrift. C/D bläddrar i serverns aktuella val; knapptest och trafikfunktion är olika saker.
 Guidens kryssrutor är egna markeringar, inte automatiska godkännanden.
 
 Efter installation behöver datorn inte vara kvar. Ge boxen stabil USB-ström,

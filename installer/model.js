@@ -4,13 +4,13 @@ export const profiles = {
     board: 'NodeMCU 1.0 · ESP-12E / ESP-12F · 4 MB',
     keypad: '4 × 4 knappar via PCF8574 på I²C', code: 'TBX-XXXXXX',
     wiring: 'D2 / GPIO4 → SDA · D1 / GPIO5 → SCL',
-    connections: [['LCD', '0x27 · via nivåomvandlare till 5 V'], ['Knappsats', 'PCF8574 0x20 · på 3,3 V-sidan'], ['Matris', 'Rader P0–P3 · kolumner P4–P7']],
+    connections: [['LCD', '0x27 · via nivåomvandlare till 5 V'], ['Knappsats', 'PCF8574 0x20 · på 3,3 V-sidan'], ['Matris', 'Kolumner P0–P3 · rader P4–P7']],
     docs: 'firmware/esp8266/README.md',
     reset: 'Håll * i fem sekunder för att öppna installationsnätet igen. De sparade nätuppgifterna raderas inte av detta.',
-    server: 'Lämna adressen tom bara om det finns en enda server på nätet. Annars anger du dess lokala IP-adress. MQTT-porten anges separat, normalt 1883.',
+    server: 'Servern hittas automatiskt på samma lokala nät. NodeMCU har inga manuella server- eller portfält.',
   },
   'esp32-s3': {
-    title: 'TMBox · ESP32-S3', chip: 'ESP32-S3', screen: '20 × 4 tecken',
+    title: 'TMBox · ESP32-S3', chip: 'ESP32-S3', screen: '20 × 4 LCD · visar nu 16 × 2',
     board: 'ESP32-S3-DevKitC-1-N8R2',
     keypad: '4 × 4 knappar direkt på GPIO', code: 'TMBOX-XXXXXX',
     wiring: 'GPIO8 → SDA · GPIO9 → SCL',
@@ -21,7 +21,7 @@ export const profiles = {
   },
 };
 
-export const steps = ['Välj box', 'Installera via USB', 'Anslut Wi-Fi', 'Välj station', 'Kontrollera'];
+export const steps = ['Välj box', 'Installera via USB', 'Wi-Fi och server', 'Invänta station', 'Kontrollera'];
 
 export function safeServerURL(raw) {
   const value = raw.trim();

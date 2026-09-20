@@ -52,13 +52,13 @@ function usb() {
 
 function wifi() {
   const profile = profiles[state.id];
-  return heading('Ge boxen ett nätverk', 'Boxen öppnar ett eget tillfälligt installationsnät när inget sparat Wi-Fi fungerar. En telefon är praktisk för detta steg.') +
+  return heading('Anslut till träffens lokala server', 'På boxen ställer du in Wi-Fi. Den lokala servern hittas automatiskt. Ingen station väljs på boxen eller i installationsguiden. En telefon är praktisk för detta steg.') +
     `<div class="card"><ol class="tasks"><li>Behåll USB-strömmen och vänta på uppstart.<p>Anteckna boxens kod: <code>${profile.code}</code>. Koden kommer från hårdvaran och används senare i servern.</p></li>
       <li>Anslut telefonen till <code>TrainMeet-XXXXXX</code>.<p>Välj att stanna ansluten även om telefonen varnar för ”inget internet”. Gör detta på en betrodd plats; installationsnätet är tillfälligt och öppet.</p></li>
       <li>Öppna installationsportalen.<p>Om den inte kommer upp automatiskt, skriv <code>http://192.168.4.1</code> i telefonens webbläsare.</p></li>
       <li>Välj träffens <strong>2,4 GHz-Wi-Fi</strong> och ange dess lösenord.<p>Servern och boxen ska finnas på samma lokala nät. Ett isolerat gästnät fungerar normalt inte.</p></li>
-      <li>Kontrollera serveradressen och spara.<p>${profile.server}</p><p>Skriv bara IP eller värdnamn, utan <code>http://</code>, sökväg eller webbport. Adressen kan till exempel vara <code>192.168.2.160</code> — använd din egen servers adress.</p></li>
-      <li>Anslut telefonen till det vanliga Wi-Fi-nätet igen.<p>Boxen försöker nu kontakta servern. Installationsguiden behöver inte hållas öppen.</p></li></ol></div>
+      <li>Spara nätverket och låt boxen hitta servern.<p>${profile.server}</p></li>
+      <li>Anslut telefonen till det vanliga Wi-Fi-nätet igen.<p>Boxen kontaktar servern med sitt permanenta enhets-ID och inväntar administratörens stationstilldelning. Installationsguiden behöver inte hållas öppen.</p></li></ol></div>
     <div class="notice"><strong>Inte Cloud-adressen.</strong> Boxen pratar MQTT direkt med TrainMeet Server, oavsett om servern är en Raspberry Pi, Mac, PC eller Linux-dator. MQTT-porten är normalt <strong>1883</strong>; webbadmin använder normalt <strong>8787</strong>.</div>
     <details><summary>Byta nätverk eller börja om?</summary><p>${profile.reset}</p></details>
     <p class="fine-print">Wi-Fi anges i boxens portal, inte i denna webbsida. USB-konfiguration via Improv Serial är ännu inte implementerad. Guiden kan därför inte automatiskt bekräfta anslutningen.</p>`;
@@ -66,20 +66,27 @@ function wifi() {
 
 function station() {
   const profile = profiles[state.id];
-  return heading('Koppla boxen till en station', 'Nu tar TrainMeet Server över. Det är servern som har träffen, tidtabellen och alla trafikregler — boxen är dess klient.') +
-    `<div class="card"><h3>Öppna din server</h3><p class="status">Serverns webbadress, inte Cloud och inte boxens installationsportal. Exemplet nedan är ingen förvald server.</p>
+  return heading('Administratören tilldelar stationen', 'Det här steget gör träffens lokala administratör i TrainMeet Server. Boxen identifierar sig och väntar; den väljer eller gissar aldrig sin station.') +
+    `<div class="card"><h3>Du vid boxen: lämna dess kod till administratören</h3>
+      <ol class="tasks"><li>Läs av boxens kortkod: <code>${profile.code}</code>.<p>Kortkoden hjälper administratören att hitta rätt box. Bakom den finns boxens permanenta, hårdvarubaserade enhets-ID — inte en förvald station.</p></li>
+      <li>Låt boxen vara ansluten till den lokala servern.<p>Utan tilldelning väntar den på administratören och kan inte användas för trafik. Det behövs inget adminkonto eller stationsval på boxen.</p></li>
+      <li>Kontrollera stationen när administratören är klar.<p>Servern skickar tilldelningen och stationsinformationen till boxen, exempelvis Charlottendal (CDA). Om stationen är fel kontaktar du administratören.</p></li></ol>
+      <p class="fine-print">Detta är en instruktion, inte en avläsning av boxens aktuella anslutningsstatus.</p></div>
+    <details><summary>För träffens lokala administratör</summary>
+      <p>Öppna den lokala TrainMeet Servers webbadmin — inte Cloud eller boxens Wi-Fi-portal. Adressfältet nedan skapar bara en länk; det konfigurerar inte boxen.</p>
       <form id="server-form"><label class="field">TrainMeet Servers webbadress<input id="server-url" type="text" inputmode="url" autocomplete="off" placeholder="http://192.168.2.160:8787" value="${escape(state.server)}"></label>
-        <button class="button secondary" type="submit">Visa serverlänk</button><p id="url-error" class="error" role="alert"></p><div id="server-link"></div></form></div>
+        <button class="button secondary" type="submit">Visa serverlänk</button><p id="url-error" class="error" role="alert"></p><div id="server-link"></div></form>
     <ol class="tasks"><li>Logga in som administratör på servern.<p>Om servern är ny: skapa ditt eget adminkonto, hämta eller importera en träff och aktivera dess config först.</p></li>
-      <li>Öppna administrationen för boxar/enheter.<p>Hitta boxen med samma kod som på displayen: <code>${profile.code}</code>. Menynamnet kan skilja mellan serverversioner.</p></li>
-      <li>Tilldela rätt station och spara.<p>Stationen måste finnas i den aktiva träffen. På boxen ska rätt stationsnamn och aktuell information visas.</p></li>
-      ${state.id === 'nodemcu-i2c' ? '<li>Kontrollera den logiska A–D-panelen.<p>NodeMCU behöver en entydig v1-panel för stationen. Visas <code>V1-PANEL SAKNAS</code>: kontrollera panelen och serverversionen. Om stationen har flera paneler krävs uttrycklig tilldelning; boxen väljer inte åt dig.</p></li>' : ''}</ol>
-    <div class="notice warning"><strong>Gemensam trafiklogik måste finnas i servern.</strong> Server 1.4.1 har NodeMCU-tilldelningsrättningen men inte hela samkörningen mellan 8266, ESP32 och TKL. Den finns ännu bara i en utvecklingsversion. Använd en kontrollerad testserver tills den är släppt och provkörd. <a href="https://github.com/beahead-ab/trainmeet-server/blob/ca77f74889060f4905ca90802c8509d4f47e619a/docs/shared-traffic.md" target="_blank" rel="noopener noreferrer">Läs kompatibilitetsnoteringen ↗</a></div>
-    <details><summary>Servern syns i webbläsaren men boxen hittar den inte?</summary><p>Att HTTPS fungerar betyder inte att MQTT fungerar. Kontrollera lokalt nät, brandvägg, MQTT-broker och att servern lyssnar på LAN. Ange lokal IP om mDNS inte passerar nätverket. Öppna inte en lösenordslös MQTT-port mot internet.</p></details>`;
+      <li>Öppna administrationen för boxar/enheter.<p>Leta upp boxens permanenta enhets-ID. Använd kortkoden <code>${profile.code}</code> för att stämma av att det är rätt fysisk box. Menynamnet kan skilja mellan serverversioner.</p></li>
+      <li>Koppla detta enhets-ID till rätt station och spara.<p>Exempel: denna box ska vara Charlottendal (CDA). Kopplingen lagras i den lokala servern; stationen måste finnas i den aktiva träffen.</p></li>
+      <li>Bekräfta att rätt station visas på boxen.<p>Senare stationsbyten görs också här i serverns admin, utan att byta boxens ID eller kompilera om dess program. Vid återanslutning är det serverns tilldelning som gäller.</p></li>
+      </ol></details>
+    <div class="notice warning"><strong>Servern först.</strong> Firmware 0.7.0 kräver TrainMeet Server 1.10.0 eller senare. Båda korten använder samma serverstyrda 16×2-flöde. Avsluta äldre klareringar före serveruppgraderingen. Prova sedan hela trafikärendet på en testträff.</div>
+    <details><summary>Servern syns i webbläsaren men boxen hittar den inte?</summary><p>Att HTTPS fungerar betyder inte att MQTT fungerar. Kontrollera lokalt nät, brandvägg, MQTT-broker och att servern lyssnar på LAN. Kontrollera att mDNS får passera och att boxen inte ligger på ett isolerat gästnät. Öppna inte en lösenordslös MQTT-port mot internet.</p></details>`;
 }
 
 const checklist = [
-  ['display', 'Rätt stationsnamn visas och hela displayen går att läsa.'],
+  ['display', 'Stationen som den lokala administratören har tilldelat visas och hela displayen går att läsa.'],
   ['keys', 'Alla knappar är kontrollerade på testbänk och ger rätt tecken, utan dubbeltryck.'],
   ['reconnect', 'Efter omstart återkommer samma boxkod och rätt station. Vid bortkopplad server spärras trafikåtgärder.'],
   ['traffic', 'Ett helt trafikärende är provkört mellan stationer på en testträff, inklusive ESP8266, ESP32 eller TKL som ska användas tillsammans.'],
@@ -89,7 +96,7 @@ function check() {
     `<div class="card"><h3>${profiles[state.id].title}</h3><p class="status">${availableRelease(catalog, state.id) ? `Firmware ${catalog.version}` : 'Guide utan firmwarefiler'} · Ingen hårdvara har verifierats automatiskt.</p>
       <label class="check"><input id="installed" type="checkbox" ${state.installed ? 'checked' : ''}><span>Jag har sett att USB-installationen lyckades och boxen startade om.</span></label>
       ${checklist.map(([id, text]) => `<label class="check"><input type="checkbox" data-check="${id}" ${state.checks.has(id) ? 'checked' : ''}><span>${text}</span></label>`).join('')}
-      <p class="fine-print">Testa knappsatsen på en separat testträff eller med hårdvarutestet, inte genom att trycka alla knappar under pågående trafik. ESP32:s D-tangent har ännu ingen åtgärd i den vanliga navigeringen.</p>
+      <p class="fine-print">Testa knappsatsen på en separat testträff eller med hårdvarutestet, inte genom att trycka alla knappar under pågående trafik. Följ serverns aktuella tangentbeskrivningar; C/D bläddrar i valen.</p>
       <a href="${repo + (state.id === 'nodemcu-i2c' ? 'firmware/esp8266/README.md#3-testa-först-display-och-knappsats' : 'docs/BANKTEST.md')}" target="_blank" rel="noopener noreferrer">Fullständig bänktestlista ↗</a>
     </div><div id="summary" aria-live="polite"></div>
     <p class="status">Efter installationen kan datorn kopplas bort. Boxen behöver fortsatt stabil USB-ström, Wi-Fi och kontakt med TrainMeet Server. Servern fattar trafikbesluten för båda boxmodellerna.</p>`;

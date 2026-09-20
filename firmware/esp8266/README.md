@@ -23,32 +23,21 @@ tangenthantering och erbjuder de kompilerade `.bin`-filerna som byggartefakt.
 Ett godkänt bygge är **inte ett fysiskt hårdvarutest**. Följ kontrollen nedan
 på just din display, knappsatsmodul och kablage innan trafikdrift.
 
-Den befintliga ESP32-varianten ligger kvar oförändrad i `firmware/esp32`.
+Från 0.7.0 delar ESP8266 och ESP32 serverstyrd 16×2-logik. Server 1.10.0 eller senare krävs.
 
 ### Lokal tågnummerinmatning
 
-Efter val av sträcka med A–D stannar tågnumrets siffror i boxen. `#` skickar
-hela numret i ett enda bekräftat kommando; `*` avbryter inmatningen. Samma
-funktion används av I²C-knappsatsen och telefonens webbtest. Telefonen behåller
-siffrorna i webbläsaren: ett enda anrop med hela tågnumret skickas vid `#`.
-Boxen validerar aktuell inmatningskontext och skickar ett MQTT-kommando.
-`*` skickar avbryt utan siffror. Statusavläsning fortsätter under inmatningen.
-Trafikbeslut (klart, nekat, avgått, ankommit) ligger fortfarande på de A/B-val
-som visas på skärmen; `#` betyder inte att tåget automatiskt har avgått.
+Skriv tågnummer direkt. Siffrorna stannar lokalt tills `#`, även i telefonens
+webbtest. Servern avgör nästa station, aktuella åtgärder och displaytexter.
+A–D är funktionsknappar, inte destinationer. Följ skärmens tangentbeskrivning.
+`*` avbryter inmatning och `B` suddar en siffra. Ingen siffra skickas separat.
 
-Uppdatera **servern först**, till en version som annonserar
-`interaction.local_train_entry` och accepterar `train_number` med `key: "#"`.
-Mot äldre server visar boxen **UPPDATERA SERVER** i stället för att i tysthet
-återgå till att skicka siffror. Äldre boxar kan fortsätta använda tangentprotokollet
-med den nya servern. Avbruten anslutning, ändrad station/sträcka eller nytt
-inmatningsläge rensar oskickad text; inga trafikkommandon spelas upp automatiskt.
-
-**Detta är en separat MQTT v1-klient, inte en portning av TMBox v2.**
-Display och tillåtna tangenter kommer från serverns `tambox/v1`-protokoll.
-Den innehåller inte v2:s lokala menyer, summer-/LED-policy eller v2-simulator.
-Befintliga legacy-boxar med `mqttTamBox` ändras inte automatiskt. Laddar du
-denna firmware via USB ersätts kortets nuvarande program: prova på ett separat
-kort först och behåll originalets firmware och inställningar för återgång.
+Uppdatera **servern först till minst 1.10.0**. Den gemensamma transporten
+använder `tmbox/terminal/device/<id>/`, inte det äldre `tambox/v1`-flödet.
+Vid avbrott spärras trafikåtgärder; inga gamla kommandon återspelas.
+[Gemensam användning och uppgraderingsordning](../../README.md).
+Befintliga boxar måste få den nya firmwaren via USB en gång. Senare språk-
+och flödesändringar kommer normalt från servern.
 
 De dokumenterade legacy-boxarna använder just PCF8574 `0x20`, LCD `0x27`,
 D2/SDA och D1/SCL. Matrisledningarnas ordning är däremot inte verifierad här.

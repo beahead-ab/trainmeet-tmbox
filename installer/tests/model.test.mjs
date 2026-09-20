@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
-import { profiles, safeServerURL, availableRelease, canInstall, verifyImage } from '../model.js';
+import { readFile } from 'node:fs/promises';
+import { profiles, steps, safeServerURL, availableRelease, canInstall, verifyImage } from '../model.js';
 
 const catalog = { schema: 1, version: '0.3.2', profiles: [{
   id: 'nodemcu-i2c', chipFamily: 'ESP8266', hardwareTested: false,
@@ -14,6 +15,15 @@ test('only the two explicit wiring profiles are offered', () => {
   assert.deepEqual(Object.keys(profiles), ['nodemcu-i2c', 'esp32-s3']);
   assert.match(profiles['nodemcu-i2c'].keypad, /PCF8574/);
   assert.match(profiles['esp32-s3'].keypad, /GPIO/);
+});
+test('installer separates device setup from local administrator assignment', async () => {
+  assert.equal(steps[2], 'Wi-Fi och server');
+  assert.equal(steps[3], 'Invänta station');
+  const ui = await readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(ui, /Administratören tilldelar stationen/);
+  assert.match(ui, /För träffens lokala administratör/);
+  assert.match(ui, /Kopplingen lagras i den lokala servern/);
+  assert.doesNotMatch(ui, /<(?:input|select)[^>]*(?:id|name)=["']station/);
 });
 test('source preview and missing images cannot enable USB install', () => {
   assert.equal(availableRelease(null, 'nodemcu-i2c'), null);
