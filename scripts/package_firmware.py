@@ -137,7 +137,7 @@ def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
                 else "klassisk ESP32, 16×2 LCD och direktkopplad knappsats" if family == "esp32"
                 else "NodeMCU ESP8266, 16×2 LCD och separat PCF8574-knappsats via I²C")
     warning = ("Detta är ENDAST hårdvarutestet. Det ansluter inte till servern. Installera nodemcu-i2c efter bänktestet."
-               if profile == "nodemcu-hardware-check" else "Detta är huvudprogrammet för anslutning till den lokala TrainMeet Server.")
+               if profile == "nodemcu-hardware-check" else "Detta är huvudprogrammet. Kräver TrainMeet Server 1.10.0 eller senare: uppdatera servern först. ESP8266 och ESP32 använder samma serverstyrda 16×2-flöde.")
     python_note = ('''På Linux behöver ESP32-kortstödets verktyg även Python-paketen för esptool.
 Om `No module named serial` visas, skapa en isolerad verktygsmiljö:
 
@@ -253,6 +253,9 @@ def platformio_files(root: Path, family: str) -> dict[str, bytes]:
     profiles = [p for p, value in PROFILES.items() if value[0] == family]
     example = profiles[0]
     files["START-HERE.md"] = f"""# TrainMeet TMBox – PlatformIO ({family})
+
+**Huvudprogrammet kräver Server 1.10.0 eller senare. Uppdatera servern först.**
+ESP8266 och ESP32 använder samma serverstyrda 16×2-flöde. Hårdvarutestet är fristående.
 
 1. Packa upp hela paketet i en ny mapp. Öppna mappen med `platformio.ini`
    i Visual Studio Code + PlatformIO. Detta paket är INTE för Arduino IDE.

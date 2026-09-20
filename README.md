@@ -14,7 +14,7 @@ nätverk och återanslutning. A–D är funktionsknappar, inte destinationer.
    klareringar före övergången; ingen träffdata ska nollställas.
 2. Öppna [Nedladdningar / Releases](https://github.com/beahead-ab/trainmeet-tmbox/releases)
    och välj **Arduino IDE – NodeMCU ESP8266** för NodeMCU-kortet. Paketets
-   namn innehåller `arduino-ide-nodemcu-i2c`. Välj inte GitHubs generiska
+   namn innehåller `arduino-nodemcu-i2c`. Välj inte GitHubs generiska
    ”Source code (zip)”. [Detaljerad paketguide](docs/FIRMWARE-DOWNLOADS.md).
 3. Packa upp hela paketet och öppna dess `.ino` i Arduino IDE. Behåll alla
    stödfiler tillsammans. Följ paketets kort- och biblioteksanvisningar.

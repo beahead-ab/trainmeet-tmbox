@@ -1,5 +1,8 @@
 # Ladda ner TrainMeet TMBox
 
+**Från firmware 0.7.0: uppdatera Server till minst 1.10.0 först.** ESP8266
+och ESP32 använder samma serverstyrda 16×2-flöde. Fysisk provkörning återstår.
+
 Öppna **[GitHub Releases](https://github.com/beahead-ab/trainmeet-tmbox/releases)**
 och välj den senaste versionen med paketen nedan under **Assets**.
 Välj först kort, sedan utvecklingsmiljö. Ladda inte ner ”Source code (zip)”
@@ -66,13 +69,13 @@ Arduino- och PlatformIO-paketen **genereras från samma källkod och version**.
 Ingen separat firmwarevariant underhålls för Arduino IDE. `PACKAGE.json`
 anger källrevision och kontrollsummor; `SHA256SUMS.txt` hör till nedladdningarna.
 Källorna för ESP8266 respektive ESP32 är fortfarande olika hårdvaruklienter
-som talar med samma lokala TrainMeet Server. Paketeringen ändrar inte protokoll.
+som använder samma serverstyrda terminaltransport från firmware 0.7.0.
 
 **ESP8266:** använder [LiquidCrystal_PCF8574 **2.3.0** av Matthias Hertel](https://github.com/mathertel/LiquidCrystal_PCF8574/tree/2.3.0)
 i både Arduino Library Manager och PlatformIO. Välj detta bibliotek för NodeMCU,
 inte LiquidCrystal I2C.
 
-**ESP32 är oförändrad; dess LCD-versionsnummer skiljer mellan katalogerna:** Arduino
+**ESP32:s LCD-bibliotek är oförändrat; versionsnumret skiljer mellan katalogerna:** Arduino
 Library Manager har LiquidCrystal I2C **1.1.2**, medan PlatformIO-paketet heter
 LiquidCrystal_I2C **1.1.4**. Den äldre guiden angav felaktigt 1.1.4 även för
 Arduino IDE. Nu står respektive systems byggtestade version i START-HERE.
