@@ -35,7 +35,7 @@
 #include "language_menu.h"
 #include "../common/server_terminal.h"
 
-constexpr char FIRMWARE_VERSION[] = "0.6.0";
+constexpr char FIRMWARE_VERSION[] = "0.7.0";
 constexpr char DISCOVERY_SERVICE[] = "tmbox";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
 constexpr unsigned long SAVED_WIFI_WINDOW_MS = 15000;
