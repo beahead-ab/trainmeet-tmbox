@@ -246,6 +246,10 @@ def platformio_files(root: Path, family: str) -> dict[str, bytes]:
         paths += list((folder / "lib/tmbox_core").glob("*.cpp"))
     files = {p.relative_to(folder).as_posix(): p.read_bytes() for p in sorted(set(paths))}
     # Standalone bundles must not reach outside their extraction directory.
+    # Web-installer export is a repository release step, not part of compiling
+    # a standalone source download. Its ../../scripts path cannot travel here.
+    files["platformio.ini"] = files["platformio.ini"].replace(
+        b"extra_scripts = post:../../scripts/export_web_firmware.py\n", b"")
     name = source_file(root, family).relative_to(folder).as_posix()
     files[name] = files[name].replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h')
     header = source_file(root, family).parent.relative_to(folder) / "server_terminal.h"

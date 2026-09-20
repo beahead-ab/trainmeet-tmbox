@@ -96,6 +96,8 @@ class FirmwarePackageTests(unittest.TestCase):
             files = package.platformio_files(ROOT, family)
             self.assertEqual(['src/main.cpp'], [p for p in files if p.startswith('src/')])
             self.assertIn('platformio.ini', files)
+            self.assertNotIn(b'../../scripts/', files['platformio.ini'])
+            self.assertNotIn(b'export_web_firmware', files['platformio.ini'])
             self.assertNotIn('.git', files)
             self.assertFalse(any('.pio/' in p or 'node_modules' in p for p in files))
             self.assertEqual(1, len([p for p in files if p.endswith('.ino')]))
