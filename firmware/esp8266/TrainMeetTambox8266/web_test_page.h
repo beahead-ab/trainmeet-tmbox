@@ -22,6 +22,7 @@ input{width:100%;background:white;margin:8px 0}section{margin:18px 0}.panel{back
 <div id="controls" hidden><section class="panel"><div id="identity"></div><div id="link" class="muted"></div>
 <p id="mode" class="mode">Webbtest avstängt</p><p class="warning">Knapparna påverkar den anslutna träffen på riktigt. Använd en testträff. Stationen tilldelas i TrainMeet Server.</p>
 <div class="row"><button id="start" class="primary">Aktivera webbtest</button><button id="stop">Avsluta webbtest</button></div></section>
+<button id="language" type="button">Språk / Language (#)</button>
 <section class="box" aria-label="Virtuell TMBox"><div class="bezel"><div class="lcd" role="status" aria-live="polite"><div id="line1">                </div><div id="line2">                </div></div></div>
 <div id="keys" class="keys" aria-label="Knappsats"></div><div class="brand">TRAINMEET · TMBOX</div></section>
 <p id="status" class="status"></p><p id="hardware" class="status muted"></p>
@@ -34,9 +35,10 @@ const buttons=[...'123A456B789C*0#D'].map(key=>{const b=document.createElement('
 function allowed(key){return !!state&&state.allowedKeys.includes(key)&&!(state.localEntry&&key==='#'&&!entryValue)&&!(state.localEntry&&/^[0-9]$/.test(key)&&entryValue.length>=5);}
 function drawKeys(){for(const b of buttons)b.disabled=busy||!online||!state||!state.webTest||!state.ready||!allowed(b.textContent);}
 function clearEntry(){entryContext=null;entryValue='';}
-function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null)$('line2').textContent=('Tag: '+entryValue).padEnd(16,' ').slice(0,16);}
+function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null)$('line2').textContent=((state.entryLabel||'Tag: ')+entryValue).padEnd(16,' ').slice(0,16);}
 function drawControls(){for(const el of document.querySelectorAll('input,button'))el.disabled=busy;
- $('start').disabled=busy||!online||!state||state.webTest||!state.canStart;$('stop').disabled=busy||!online||!state||!state.webTest;drawKeys();}
+ $('start').disabled=busy||!online||!state||state.webTest||!state.canStart;$('stop').disabled=busy||!online||!state||!state.webTest;
+ $('language').disabled=busy||!online||!state||!state.webTest||!state.ready||!state.languageAvailable||state.languageMenu;drawKeys();}
 function show(s){
  if(!s.connected||!s.webTest||!s.localEntry)clearEntry();
  else if(entryContext!==s.entryContext){entryContext=s.entryContext;entryValue=s.entryValue||'';}
@@ -68,6 +70,7 @@ async function press(key){if(!state||!state.ready||!state.webTest||!online||busy
  state.ready=false;await action('/api/key',command);}
 $('start').onclick=()=>action('/api/test',{enabled:true});$('stop').onclick=()=>action('/api/test',{enabled:false});
 $('logout').onclick=()=>action('/api/logout',{});
+$('language').onclick=()=>press('#');
 // No overlapping polling or retries of commands. A timer only reads status.
 async function poll(){if(!closed&&!busy&&!document.hidden)await refresh();setTimeout(poll,1000);}poll();
 setInterval(()=>{if(!busy&&online&&Date.now()-lastReply>3000)lost();},500);

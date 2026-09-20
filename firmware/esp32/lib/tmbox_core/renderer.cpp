@@ -109,6 +109,10 @@ Frame render(const Geometry& geometry,
              const ViewState& view,
              const StationConfig& config,
              const Snapshot& snapshot) {
+  const auto tr = [&config](const std::string& key) -> std::string {
+    const auto item = config.messages.find(key);
+    return item == config.messages.end() ? key : item->second;
+  };
   std::vector<std::string> lines;
 
   switch (view.screen) {
@@ -116,39 +120,39 @@ Frame render(const Geometry& geometry,
       lines = {"TRAINMEET TMBOX", view.device_code};
       break;
     case Screen::NoNetwork:
-      lines = {"NAT SAKNAS", "FORSOKER IGEN"};
+      lines = {tr("NAT SAKNAS"), tr("FORSOKER IGEN")};
       break;
     case Screen::SetupPortal:
-      lines = {"INSTALLERA WIFI", view.access_point_name};
+      lines = {tr("INSTALLERA WIFI"), view.access_point_name};
       break;
     case Screen::SeekingServer:
-      lines = {"SOKER SERVER", view.device_code};
+      lines = {tr("SOKER SERVER"), view.device_code};
       break;
     case Screen::ServerGone:
-      lines = {"SERVER BORTA", "FORSOKER IGEN"};
+      lines = {tr("SERVER BORTA"), tr("FORSOKER IGEN")};
       break;
     case Screen::AwaitingAssignment:
       // The firmware says KOPPLA BOXEN for any assignment status but assigned,
       // and shows the code the administrator has to type into the server.
-      lines = {"KOPPLA BOXEN", view.device_code};
+      lines = {tr("KOPPLA BOXEN"), view.device_code};
       break;
     case Screen::LoadingStation:
       // The station is known but its config and state have not arrived. An
       // empty overview would claim there are no trains today, which is a
       // different thing from not knowing yet.
-      lines = {"STATION KOPPLAD", "HAMTAR DATA..."};
+      lines = {tr("STATION KOPPLAD"), tr("HAMTAR DATA...")};
       break;
     case Screen::ResettingNetwork:
-      lines = {"NATVERK RADERAS", view.device_code};
+      lines = {tr("NATVERK RADERAS"), view.device_code};
       break;
     case Screen::Sending:
-      lines = {"SKICKAR...", ""};
+      lines = {tr("SKICKAR..."), ""};
       break;
     case Screen::CommandAccepted:
-      lines = {"KOMMANDO OK", ""};
+      lines = {tr("KOMMANDO OK"), ""};
       break;
     case Screen::CommandRejected:
-      lines = {"KOMMANDO NEKAT", rejection_word(view.reason)};
+      lines = {tr("KOMMANDO NEKAT"), tr(rejection_word(view.reason))};
       break;
 
     case Screen::StationOverview: {
@@ -158,8 +162,10 @@ Frame render(const Geometry& geometry,
       // geometry; an operator learns where to look once.
       lines.push_back(spread(label, clock, geometry.cols));
       lines.push_back(snapshot.movements.empty()
-                          ? "INGA TAG IDAG"
-                          : std::to_string(snapshot.movements.size()) + " TAG  C=BLADDRA");
+                          ? tr("INGA TAG IDAG")
+                          : std::to_string(snapshot.movements.size()) + tr(" TAG  C=BLADDRA"));
+      if (config.messages.count("C=TAG D=SPRAK"))
+        lines.back() = tr("C=TAG D=SPRAK");
       if (geometry.tall()) {
         // Four rows have room to show what is coming without browsing.
         for (std::size_t index = 0;
@@ -174,7 +180,7 @@ Frame render(const Geometry& geometry,
     case Screen::MovementDetail: {
       if (view.selected_movement < 0
           || static_cast<std::size_t>(view.selected_movement) >= snapshot.movements.size()) {
-        lines = {"INGET TAG VALT", "*=TILLBAKA"};
+        lines = {tr("INGET TAG VALT"), tr("*=TILLBAKA")};
         break;
       }
       const Movement& movement = snapshot.movements[view.selected_movement];
@@ -184,45 +190,45 @@ Frame render(const Geometry& geometry,
 
       const Primary primary = primary_action_for(movement);
       std::string actions;
-      if (!primary.label.empty()) actions = "A=" + primary.label;
+      if (!primary.label.empty()) actions = "A=" + tr(primary.label);
       if (movement.allows("train.track.change")) {
         if (!actions.empty()) actions += "  ";
-        actions += "B=ANDRA";
+        actions += tr("B=ANDRA");
       }
-      if (actions.empty()) actions = "INGET TILLATET";
+      if (actions.empty()) actions = tr("INGET TILLATET");
       lines.push_back(actions);
 
       if (geometry.tall()) {
-        lines.push_back(std::string("FORARE ") + (movement.crew_ready ? "PA PLATS" : "SAKNAS"));
-        lines.push_back("C=NASTA  *=TILLBAKA");
+        lines.push_back(std::string(tr("FORARE ")) + (movement.crew_ready ? tr("PA PLATS") : tr("SAKNAS")));
+        lines.push_back(tr("C=NASTA  *=TILLBAKA"));
       }
       break;
     }
 
     case Screen::TrackPicker: {
       if (config.tracks.empty()) {
-        lines.push_back("VALJ SPAR");
-        lines.push_back("INGA SPAR");
+        lines.push_back(tr("VALJ SPAR"));
+        lines.push_back(tr("INGA SPAR"));
         break;
       }
       const std::size_t index =
           view.selected_track >= 0 && static_cast<std::size_t>(view.selected_track) < config.tracks.size()
               ? static_cast<std::size_t>(view.selected_track)
               : 0;
-      lines.push_back(spread("VALJ SPAR", config.tracks[index].display_label, geometry.cols));
-      lines.push_back("A=VALJ  C=NASTA");
+      lines.push_back(spread(tr("VALJ SPAR"), config.tracks[index].display_label, geometry.cols));
+      lines.push_back(tr("A=VALJ  C=NASTA"));
       if (geometry.tall()) {
-        lines.push_back(std::to_string(index + 1) + " AV "
+        lines.push_back(std::to_string(index + 1) + tr(" AV ")
                         + std::to_string(config.tracks.size()));
-        lines.push_back("*=TILLBAKA");
+        lines.push_back(tr("*=TILLBAKA"));
       }
       break;
     }
 
     case Screen::ConnectionPicker: {
       if (config.connections.empty()) {
-        lines.push_back("BEGAR MOT");
-        lines.push_back("INGEN GRANNE");
+        lines.push_back(tr("BEGAR MOT"));
+        lines.push_back(tr("INGEN GRANNE"));
         break;
       }
       const std::size_t index =
@@ -232,31 +238,31 @@ Frame render(const Geometry& geometry,
               : 0;
       const Connection& connection = config.connections[index];
       lines.push_back(connection.display_side == "left"
-          ? spread(connection.other_station_code, "BEGAR MOT", geometry.cols)
-          : spread("BEGAR MOT", connection.other_station_code, geometry.cols));
-      lines.push_back("A=BEGAR  C=NASTA");
+          ? spread(connection.other_station_code, tr("BEGAR MOT"), geometry.cols)
+          : spread(tr("BEGAR MOT"), connection.other_station_code, geometry.cols));
+      lines.push_back(tr("A=BEGAR  C=NASTA"));
       if (geometry.tall()) {
-        lines.push_back(std::to_string(index + 1) + " AV "
+        lines.push_back(std::to_string(index + 1) + tr(" AV ")
                         + std::to_string(config.connections.size()));
-        lines.push_back("*=TILLBAKA");
+        lines.push_back(tr("*=TILLBAKA"));
       }
       break;
     }
 
     case Screen::TrainLookup: {
       // The cursor shows there is more to type; an empty field still says so.
-      lines.push_back(spread("TAG", view.lookup_digits + "_", geometry.cols));
-      lines.push_back("A=SOK  B=SUDDA");
+      lines.push_back(spread(tr("TAG"), view.lookup_digits + "_", geometry.cols));
+      lines.push_back(tr("A=SOK  B=SUDDA"));
       if (geometry.tall()) {
-        lines.push_back("SIFFROR PA TANGENT");
-        lines.push_back("*=AVBRYT");
+        lines.push_back(tr("SIFFROR PA TANGENT"));
+        lines.push_back(tr("*=AVBRYT"));
       }
       break;
     }
 
     case Screen::LookupResults: {
       if (view.lookup_matches.empty()) {
-        lines = {"INGEN TRAFF", "*=TILLBAKA"};
+        lines = {tr("INGEN TRAFF"), tr("*=TILLBAKA")};
         break;
       }
       const std::size_t index =
@@ -266,26 +272,26 @@ Frame render(const Geometry& geometry,
               : 0;
       const LookupMatch& match = view.lookup_matches[index];
       lines.push_back(match.train_number + " "
-                      + std::to_string(view.lookup_matches.size()) + " TRAFFAR");
+                      + std::to_string(view.lookup_matches.size()) + tr(" TRAFFAR"));
       // Choosing which movement to look at is not an operative decision, so
       // `#` may carry it. Nothing here changes state.
-      lines.push_back("C=NASTA #=VALJ");
+      lines.push_back(tr("C=NASTA #=VALJ"));
       if (geometry.tall()) {
         const std::string time = match.departure_time.empty() ? match.arrival_time
                                                               : match.departure_time;
-        const std::string what = match.departure_time.empty() ? "ANK" : "AVG";
+        const std::string what = match.departure_time.empty() ? tr("ANK") : tr("AVG");
         lines.push_back(spread(what + " " + time,
                                std::to_string(index + 1) + "/"
                                    + std::to_string(view.lookup_matches.size()),
                                geometry.cols));
-        lines.push_back("*=TILLBAKA");
+        lines.push_back(tr("*=TILLBAKA"));
       }
       break;
     }
 
     case Screen::ClearanceInbox: {
       if (snapshot.clearances.empty()) {
-        lines = {"INGA ARENDEN", "*=TILLBAKA"};
+        lines = {tr("INGA ARENDEN"), tr("*=TILLBAKA")};
         break;
       }
       const std::size_t index =
@@ -293,21 +299,21 @@ Frame render(const Geometry& geometry,
               ? static_cast<std::size_t>(view.selected_case)
               : 0;
       const Clearance& clearance = snapshot.clearances[index];
-      lines.push_back("KLARERING " + clearance_word(clearance.status));
+      lines.push_back(tr("KLARERING ") + tr(clearance_word(clearance.status)));
       // A settles it and B refuses it; # never leaves an operative decision.
-      lines.push_back("A=KLART  B=EJ");
+      lines.push_back(tr("A=KLART  B=EJ"));
       if (geometry.tall()) {
         const std::string from = other_station_code(config, clearance.connection_id);
-        lines.push_back("FRAN " + (from.empty() ? clearance.from_station_id : from));
-        lines.push_back(std::to_string(index + 1) + " AV "
-                        + std::to_string(snapshot.clearances.size()) + "  *=TILLBAKA");
+        lines.push_back(tr("FRAN ") + (from.empty() ? clearance.from_station_id : from));
+        lines.push_back(std::to_string(index + 1) + tr(" AV ")
+                        + std::to_string(snapshot.clearances.size()) + tr("  *=TILLBAKA"));
       }
       break;
     }
 
     case Screen::LineInbox: {
       if (snapshot.line_messages.empty()) {
-        lines = {"INGA MEDDELANDEN", "*=TILLBAKA"};
+        lines = {tr("INGA MEDDELANDEN"), tr("*=TILLBAKA")};
         break;
       }
       const std::size_t index =
@@ -315,14 +321,14 @@ Frame render(const Geometry& geometry,
               ? static_cast<std::size_t>(view.selected_case)
               : 0;
       const LineMessage& message = snapshot.line_messages[index];
-      lines.push_back("LINJEN LEDIG");
+      lines.push_back(tr("LINJEN LEDIG"));
       // One-sided information: it carries no decision, so the only answer is
       // that it was shown.
-      lines.push_back("A=KVITTERA");
+      lines.push_back(tr("A=KVITTERA"));
       if (geometry.tall()) {
         const std::string from = other_station_code(config, message.connection_id);
-        lines.push_back("FRAN " + (from.empty() ? message.from_station_id : from));
-        lines.push_back("*=TILLBAKA");
+        lines.push_back(tr("FRAN ") + (from.empty() ? message.from_station_id : from));
+        lines.push_back(tr("*=TILLBAKA"));
       }
       break;
     }

@@ -32,6 +32,7 @@
 #include "navigation.h"
 #include "renderer.h"
 #include "meet_scope.h"
+#include "language_menu.h"
 
 constexpr char FIRMWARE_VERSION[] = "0.5.0";
 constexpr char DISCOVERY_SERVICE[] = "tmbox";
@@ -70,6 +71,32 @@ WiFiManager wifiManager;
 WiFiClient networkClient;
 MqttClient mqttClient(networkClient);
 Preferences preferences;
+tmbox::LanguageMenu languageMenu;
+std::map<std::string, std::string> deviceMessages;
+std::string deviceLanguage = "sv";
+bool languageReady = false;
+uint32_t languageSequence = 0;
+
+bool loadDeviceUI(JsonVariantConst ui) {
+  if (ui["version"] != 1 || !ui["language"].is<const char*>() || !ui["messages"].is<JsonObjectConst>()) return false;
+  const JsonArrayConst options = ui["languages"].as<JsonArrayConst>();
+  bool found = false;
+  if (options.size() == 0 || options.size() > 5) return false;
+  for (JsonObjectConst option : options) {
+    const String code = option["code"] | "", name = option["name"] | "";
+    if (code.length() != 2 || name.length() == 0 || name.length() > 12) return false;
+    found = found || code == ui["language"].as<const char*>();
+  }
+  if (!found) return false;
+  deviceLanguage = ui["language"].as<const char*>();
+  deviceMessages.clear();
+  for (JsonPairConst item : ui["messages"].as<JsonObjectConst>())
+    if (item.value().is<const char*>()) deviceMessages[item.key().c_str()] = item.value().as<const char*>();
+  languageMenu.options.clear();
+  for (JsonObjectConst option : ui["languages"].as<JsonArrayConst>())
+    languageMenu.options.push_back({option["code"] | "", option["name"] | ""});
+  return true;
+}
 
 WiFiManagerParameter* gatewayParameter = nullptr;
 String deviceId;
@@ -167,6 +194,7 @@ void setup() {
   keypad.addEventListener(keypadEvent);
 
   preferences.begin("trainmeet", false);
+  { JsonDocument cached; if (!deserializeJson(cached, preferences.getString("device-ui", ""))) loadDeviceUI(cached.as<JsonVariantConst>()); }
   configuredGatewayHost = preferences.getString("gateway", "");
   buildIdentity();
   bootAt = millis();
@@ -219,6 +247,27 @@ void loop() {
   }
 
   char key = keypad.getKey();
+  languageMenu.tick(millis());
+  if (key && ackMessageUntil == 0 && mqttClient.connected() && languageReady
+      && (languageMenu.open || (key == 'D' &&
+          (navigation.view().screen == tmbox::Screen::StationOverview ||
+           navigation.view().screen == tmbox::Screen::AwaitingAssignment)))) {
+    if (!languageMenu.open) languageMenu.begin(deviceLanguage);
+    else {
+      const std::string chosen = languageMenu.press(key);
+      if (!chosen.empty()) {
+        JsonDocument request;
+        String id = deviceId + "-language-" + String(millis()) + "-" + String(++languageSequence);
+        request["request_id"] = id; request["language"] = chosen.c_str();
+        languageMenu.sent(id.c_str(), millis());
+        String body; serializeJson(request, body);
+        mqttClient.beginMessage(("tmbox/v2/device/" + deviceId + "/preferences/set").c_str(), body.length(), false, 1);
+        mqttClient.print(body); mqttClient.endMessage();
+      }
+    }
+    key = 0; drawScreen();
+  }
+  if (languageMenu.open) { key = 0; drawScreen(); }
   // No write is accepted until a fresh, authoritative config and snapshot have
   // arrived: acting on a stale cache is how a box sends a decision about a
   // train that is no longer there.
@@ -366,6 +415,7 @@ bool connectMqtt() {
   mqttClient.subscribe(configTopic, 1);
   mqttClient.subscribe(snapshotTopic, 1);
   mqttClient.subscribe(ackTopic, 1);
+  mqttClient.subscribe("tmbox/v2/device/" + deviceId + "/preferences", 1);
   publishHello();
   publishPresence("online");
   signalAttention(attention.observe_link(true));
@@ -374,6 +424,8 @@ bool connectMqtt() {
 }
 
 void disconnectMqtt() {
+  languageReady = false;
+  languageMenu.open = languageMenu.saving = false;
   if (!mqttClient.connected()) return;
   publishPresence("offline");
   mqttClient.stop();
@@ -500,7 +552,18 @@ void onMqttMessage(int messageSize) {
     payload += (char)mqttClient.read();
   }
 
-  if (topic.endsWith("/assignment")) {
+  if (topic.endsWith("/preferences")) {
+    if (mqttClient.messageRetain()) return;
+    JsonDocument document;
+    if (deserializeJson(document, payload)) return;
+    if (loadDeviceUI(document["ui"])) {
+      languageReady = true;
+      String cached; serializeJson(document["ui"], cached);
+      if (preferences.getString("device-ui", "") != cached) preferences.putString("device-ui", cached);
+    }
+    languageMenu.reply(document["request_id"] | "", String(document["status"] | "") == "accepted");
+    drawScreen();
+  } else if (topic.endsWith("/assignment")) {
     handleAssignment(payload);
   } else if (topic.endsWith("/config")) {
     handleConfig(payload);
@@ -695,8 +758,18 @@ void showNetworkState() {
 }
 
 void drawScreen() {
-  const tmbox::Frame frame =
+  stationConfig.language = deviceLanguage;
+  if (stationConfig.messages != deviceMessages) stationConfig.messages = deviceMessages;
+  tmbox::Frame frame =
       tmbox::render(displayGeometry, navigation.view(), stationConfig, stationSnapshot);
+  if (languageMenu.open) {
+    const std::string key = languageMenu.saving ? "SAVING..." : languageMenu.failed ? "NOT SAVED #=TRY" : "C=NEXT *=BACK";
+    const auto found = deviceMessages.find(key);
+    const std::string name = languageMenu.name().substr(0, displayGeometry.cols - 6);
+    const std::string clock = stationSnapshot.clock.time.empty() ? "--:--" : stationSnapshot.clock.time.substr(0, 5);
+    const std::string choice = name + std::string(displayGeometry.cols - name.size() - clock.size(), ' ') + clock;
+    frame = tmbox::frame_of(displayGeometry, {found == deviceMessages.end() ? key : found->second, choice, "LANGUAGE", stationSnapshot.clock.time});
+  }
   for (uint8_t row = 0; row < displayGeometry.rows; ++row) {
     // Only write a line that actually changed. An I2C display is slow enough
     // that redrawing an unchanged frame is visible as a flicker.
