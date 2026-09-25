@@ -68,10 +68,12 @@ class FirmwarePackageTests(unittest.TestCase):
         for profile, (family, sketch, *_rest) in package.PROFILES.items():
             files = package.arduino_files(ROOT, profile)
             source = package.source_file(ROOT, family)
-            source_body = source.read_bytes().replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h')
+            source_body = package.localize_common_includes(source.read_bytes())
             self.assertEqual(b'#include "TrainMeetBuild.h"\n' + source_body, files[f'{sketch}/TrainMeetFirmware.cpp'])
             self.assertEqual((ROOT / 'firmware/common/server_terminal.h').read_bytes(), files[f'{sketch}/server_terminal.h'])
             for path in source.parent.glob('*.h'):
+                self.assertEqual(package.localize_common_includes(path.read_bytes()), files[f'{sketch}/{path.name}'])
+            for path in (ROOT / 'firmware/common').glob('*.h'):
                 self.assertEqual(path.read_bytes(), files[f'{sketch}/{path.name}'])
             if family == 'esp32':
                 for path in (ROOT / 'firmware/esp32/lib/tmbox_core').iterdir():
