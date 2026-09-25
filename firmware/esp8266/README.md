@@ -201,6 +201,10 @@ protokoll. Att serverns webbsida går att nå via HTTPS betyder inte att dess
 MQTT-broker automatiskt är nåbar; boxen behöver en direkt LAN-anslutning till
 brokern. **Öppna inte en lösenordslös MQTT-port mot internet.**
 
+När admin har tilldelat station sparar boxen serverns ID, inte dess IP-adress.
+En ny box inväntar hjälp om flera servrar hittas. Båda chipfamiljerna använder
+samma regel; se [installationsguiden](../../docs/INSTALLATION.md#3-koppla-boxen-till-wi-fi).
+
 Håll `*` i fem sekunder för att öppna installationen igen och byta Wi-Fi-nät.
 Det raderar inte boxens identitet eller serverns träff. Nätuppgifter sparas
 av Wi-Fi-systemet. Servern upptäcks på nytt vid återanslutning. Konfigurera det

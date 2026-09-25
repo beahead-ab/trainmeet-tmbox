@@ -52,6 +52,12 @@ snapshot. Saknas Wi-Fi öppnas nätet `TrainMeet-XXXXXX` för provisionering.
 Nät- och serveravbrott är normala tillstånd: boxen återansluter med backoff
 och tillåter inga skrivande kommandon innan färsk serverdata har hämtats.
 
+Ingen serveradress eller port matas in. ESP32 använder samma serverval som
+ESP8266: en ensam upptäckt server före första tilldelningen, därefter sparat
+server-ID oavsett IP-adress. Flera servrar är ett tydligt vänteläge, inte ett
+slumpmässigt val. Håll `*` fem sekunder för Wi-Fi-inställningar utan radering.
+Avsiktligt serverbyte görs med kryssrutan i portalen; se installationsguiden.
+
 Renderare, navigation, kommandon och uppmärksamhetspolicy ligger i
 `lib/tmbox_core/` och verifieras utan hårdvara genom native-tester och
 guldfiler. Fysisk verifiering görs med

@@ -20,6 +20,7 @@
 #include "server_sync.h"
 #include "language_menu.h"
 #include "../../common/server_terminal.h"
+#include "../../common/server_discovery_arduino.h"
 
 #ifndef ESP8266
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
@@ -72,6 +73,9 @@ void cacheDeviceUI(bool write) {
 }
 String deviceId, deviceCode, bootId, apName;
 String gatewayHost, panelId, sessionId, allowedKeys, commandId;
+String rememberedServerId, discoveredServerId;
+WiFiManagerParameter forgetServer("forgetserver", "Byt TrainMeet Server (behall Wi-Fi)", "1", 1, "type=\"checkbox\"", WFM_LABEL_AFTER);
+bool forgetServerRequested = false;
 String shownLine1, shownLine2;
 String serverLine1, serverLine2;
 String stateToken, stateRequestId;
@@ -143,15 +147,27 @@ void startPortal() {
   stopWebTestServer(); // The setup portal and test page share port 80.
 #endif
   disconnectServer();
+  forgetServer.setValue("1", 1);
   wifiManager.startConfigPortal(apName.c_str());
   portalActive = wifiManager.getConfigPortalActive();
   if (portalActive) showFrame(uiText("INSTALLERA WIFI"), apName);
+}
+
+void saveServerBinding(const String& id) {
+  EEPROM.begin(4096);
+  EEPROM.put(1024, TrainMeetNetwork::bindingRecord(id.c_str()));
+  EEPROM.commit(); EEPROM.end();
+  rememberedServerId = id;
 }
 
 void savePortalSettings() {
   if (!saveRequested) return;
   saveRequested = false;
   disconnectServer(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
+  // The portal can switch networks between two loop iterations. Recreate
+  // mDNS even when the main loop did not observe a disconnected Wi-Fi state.
+  if (mdnsStarted) MDNS.close();
+  mdnsStarted = false;
   portalActive = TrainMeetNetwork::finishSavedPortal(wifiManager, WiFi.status() == WL_CONNECTED);
 }
 
@@ -324,11 +340,15 @@ bool resolveServer() {
   // Legacy EEPROM addresses are deliberately ignored. The local administrator
   // assigns this ID; operators never select hosts, ports or stations.
   if (!mdnsStarted) return false;
-  const int count = TrainMeetNetwork::queryServers(MDNS);
-  TMBOX_LOG("Discovery _%s._tcp: %d server(s)\n", TrainMeetNetwork::DISCOVERY_SERVICE, count);
-  const int selected = TrainMeetNetwork::selectServer(MDNS, count, gatewayHost);
-  if (selected < 0) { showFrame(uiText("SOKER SERVER"), deviceCode); return false; }
-  gatewayHost = MDNS.IP(selected).toString(); gatewayPort = MDNS.port(selected);
+  const auto servers = TrainMeetNetwork::discoverServers();
+  const auto selected = TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str());
+  if (selected.index < 0) {
+    showFrame(selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "FLERA SERVRAR" : "SOKER SERVER",
+              selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "BE ADMIN HJALPA" : deviceCode);
+    return false;
+  }
+  const auto& server = servers[selected.index];
+  gatewayHost = server.host.c_str(); gatewayPort = server.port; discoveredServerId = server.id.c_str();
   return true;
 }
 
@@ -459,6 +479,8 @@ void setup() {
   TMBOX_LOG("TrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
   TMBOX_LOG("USB debug: %s\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");
   cacheDeviceUI(false);
+  { TrainMeetNetwork::ServerBindingRecord saved{}; EEPROM.begin(4096); EEPROM.get(1024, saved); EEPROM.end();
+    rememberedServerId = TrainMeetNetwork::bindingId(saved).c_str(); }
   Wire.begin(TAMBOX_SDA, TAMBOX_SCL); Wire.setClock(100000);
   scanHardware();
   WiFi.mode(WIFI_STA);
@@ -478,6 +500,8 @@ void setup() {
   setupWebTest();
   wifiManager.setConfigPortalBlocking(false); wifiManager.setConnectTimeout(15);
   wifiManager.setSaveConfigCallback([]() { saveRequested = true; });
+  wifiManager.addParameter(&forgetServer);
+  wifiManager.setSaveParamsCallback([]() { forgetServerRequested = String(forgetServer.getValue()) == "1"; });
   mqtt.setId(deviceId); mqtt.setCleanSession(true); mqtt.setKeepAliveInterval(10000);
   mqtt.setConnectionTimeout(3000); mqtt.onMessage(receiveMessage);
   const String will = "{\"status\":\"offline\",\"device_code\":\"" + deviceCode + "\"}";
@@ -527,7 +551,9 @@ void loop() {
   }
 #ifndef TAMBOX_HARDWARE_CHECK
   if (portalActive) {
-    wifiManager.process(); savePortalSettings();
+    wifiManager.process();
+    if (forgetServerRequested) { forgetServerRequested = false; saveServerBinding(""); discoveredServerId = ""; gatewayHost = ""; }
+    savePortalSettings();
     // Also handle the portal's explicit exit, even while Wi-Fi is offline.
     if (!wifiManager.getConfigPortalActive()) {
       portalActive = false; nextConnection = millis();
@@ -560,7 +586,11 @@ void loop() {
         const uint32_t current = millis();
         if (terminal.started) {
           if (!terminal.tick()) { disconnectServer(); showFrame("SERVER SAKNAS", "FORSOKER IGEN"); nextConnection = current + 1000; }
-          else if (lcdFound) terminal.draw(lcd);
+          else {
+            if (terminal.fresh && String(terminal.frame["station_code"] | "").length() &&
+                rememberedServerId != discoveredServerId) saveServerBinding(discoveredServerId);
+            if (lcdFound) terminal.draw(lcd);
+          }
         } else if (lease.expired(current) || lease.timedOut(current)) {
           TMBOX_DEBUG("Server timeout: snapshot or acknowledgement missing\n");
           disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LAGE")); nextConnection = now + 1000;

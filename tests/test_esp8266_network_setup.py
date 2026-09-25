@@ -11,23 +11,39 @@ SKETCH = ROOT / "firmware/esp8266/TrainMeetTambox8266"
 
 class NetworkSetupTest(unittest.TestCase):
     def test_same_discovery_service_as_esp32(self):
-        esp32 = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
-        esp8266 = (SKETCH / "network_setup.h").read_text()
-        for source in (esp32, esp8266):
-            self.assertRegex(source, r'DISCOVERY_SERVICE\[\]\s*=\s*"tmbox"')
+        common = (ROOT / "firmware/common/server_discovery.h").read_text()
+        self.assertRegex(common, r'DISCOVERY_SERVICE\[\]\s*=\s*"tmbox"')
+        for path in (ROOT / "firmware/esp32/TrainMeetTMBox.ino", SKETCH / "TrainMeetTambox8266.ino"):
+            source = path.read_text()
+            self.assertIn("TrainMeetNetwork::discoverServers()", source)
+            self.assertIn("TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str())", source)
+            self.assertNotIn("resetSettings()", source)
+            self.assertNotIn("configuredGatewayHost", source)
+            self.assertIn('terminal.frame["station_code"]', source)
 
     def test_automatic_server_uses_tested_query_without_manual_override(self):
         source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
-        self.assertEqual(source.count("TrainMeetNetwork::queryServers(MDNS)"), 1)
+        self.assertEqual(source.count("TrainMeetNetwork::discoverServers()"), 1)
         self.assertNotIn("MDNS.queryService(", source)
         self.assertNotIn("settings.host", source)
-        self.assertNotIn("WiFiManagerParameter", source)
-        self.assertIn("TrainMeetNetwork::selectServer(MDNS, count, gatewayHost)", source)
+        self.assertNotIn("gatewayParameter", source)
+        self.assertIn("TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str())", source)
         # Service-name repair must never rename the existing wire protocol.
         self.assertIn('"tambox/v1/device/"', source)
         self.assertNotIn("tmbox/v1/", source)
         self.assertNotIn("wifiManager.stopConfigPortal()", source)
         self.assertIn("TrainMeetNetwork::finishSavedPortal(", source)
+
+    def test_esp32_resolves_identity_before_every_new_connection(self):
+        source = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
+        gateway = source.split("void processGateway() {", 1)[1].split("bool discoverGateway()", 1)[0]
+        self.assertNotIn("gatewayHost.isEmpty()", gateway)
+        self.assertLess(gateway.index("discoverGateway()"), gateway.index("connectMqtt()"))
+        self.assertIn("|| portalActive", gateway)
+        self.assertIn("MDNS.end()", source.split("void processSavedParameters() {", 1)[1])
+        esp8266 = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        save = esp8266.split("void savePortalSettings() {", 1)[1].split("bool publish", 1)[0]
+        self.assertIn("MDNS.close()", save)
 
     def test_discovery_documentation_matches_server(self):
         readme = (ROOT / "firmware/esp8266/README.md").read_text()
