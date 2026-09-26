@@ -58,6 +58,10 @@ def source_file(root: Path, family: str) -> Path:
     return root / "firmware/esp8266/TrainMeetTambox8266/TrainMeetTambox8266.ino"
 
 
+def localize_common_includes(content: bytes) -> bytes:
+    return content.replace(b'../../common/', b'').replace(b'../common/', b'')
+
+
 def esp8266_debug_instructions(hardware_file: str) -> bytes:
     return f"""
 ## Frivilligt debugläge för ESP8266
@@ -111,10 +115,9 @@ def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
             '#include <Arduino.h>\n'
         ).encode(),
         f"{sketch}/TrainMeetBuild.h": config.encode(),
-        f"{sketch}/TrainMeetFirmware.cpp": b'#include "TrainMeetBuild.h"\n' + source.read_bytes().replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h'),
-        f"{sketch}/server_terminal.h": (root / "firmware/common/server_terminal.h").read_bytes(),
+        f"{sketch}/TrainMeetFirmware.cpp": b'#include "TrainMeetBuild.h"\n' + localize_common_includes(source.read_bytes()),
     }
-    supporting = list(source.parent.glob("*.h"))
+    supporting = list(source.parent.glob("*.h")) + list((root / "firmware/common").glob("*.h"))
     if family == "esp32":
         supporting += list((root / "firmware/esp32/lib/tmbox_core").glob("*.h"))
         supporting += list((root / "firmware/esp32/lib/tmbox_core").glob("*.cpp"))
@@ -122,7 +125,7 @@ def arduino_files(root: Path, profile: str) -> dict[str, bytes]:
         name = f"{sketch}/{path.name}"
         if name in files:
             raise ValueError(f"Duplicate sketch file: {name}")
-        files[name] = path.read_bytes()
+        files[name] = localize_common_includes(path.read_bytes())
     core, version, index = CORES[family]
     libraries = dependencies(root, family)
     yaml = (
@@ -250,10 +253,10 @@ def platformio_files(root: Path, family: str) -> dict[str, bytes]:
     # a standalone source download. Its ../../scripts path cannot travel here.
     files["platformio.ini"] = files["platformio.ini"].replace(
         b"extra_scripts = post:../../scripts/export_web_firmware.py\n", b"")
-    name = source_file(root, family).relative_to(folder).as_posix()
-    files[name] = files[name].replace(b'../../common/server_terminal.h', b'server_terminal.h').replace(b'../common/server_terminal.h', b'server_terminal.h')
-    header = source_file(root, family).parent.relative_to(folder) / "server_terminal.h"
-    files[header.as_posix()] = (root / "firmware/common/server_terminal.h").read_bytes()
+    files = {name: localize_common_includes(body) for name, body in files.items()}
+    for common in (root / "firmware/common").glob("*.h"):
+        header = source_file(root, family).parent.relative_to(folder) / common.name
+        files[header.as_posix()] = common.read_bytes()
     profiles = [p for p, value in PROFILES.items() if value[0] == family]
     example = profiles[0]
     files["START-HERE.md"] = f"""# TrainMeet TMBox – PlatformIO ({family})

@@ -34,9 +34,9 @@
 #include "meet_scope.h"
 #include "language_menu.h"
 #include "../common/server_terminal.h"
+#include "../common/server_discovery_arduino.h"
 
 constexpr char FIRMWARE_VERSION[] = "0.7.0";
-constexpr char DISCOVERY_SERVICE[] = "tmbox";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
 constexpr unsigned long SAVED_WIFI_WINDOW_MS = 15000;
 constexpr unsigned long LOST_WIFI_PORTAL_DELAY_MS = 30000;
@@ -100,11 +100,12 @@ bool loadDeviceUI(JsonVariantConst ui) {
   return true;
 }
 
-WiFiManagerParameter* gatewayParameter = nullptr;
+WiFiManagerParameter forgetServer("forgetserver", "Byt TrainMeet Server (behall Wi-Fi)", "1", 1, "type=\"checkbox\"", WFM_LABEL_AFTER);
+bool forgetServerRequested = false;
 String deviceId;
 String deviceCode;
 String accessPointName;
-String configuredGatewayHost;
+String rememberedServerId, discoveredServerId;
 String gatewayHost;
 uint16_t gatewayPort = DEFAULT_MQTT_PORT;
 
@@ -197,24 +198,19 @@ void setup() {
 
   preferences.begin("trainmeet", false);
   { JsonDocument cached; if (!deserializeJson(cached, preferences.getString("device-ui", ""))) loadDeviceUI(cached.as<JsonVariantConst>()); }
-  configuredGatewayHost = preferences.getString("gateway", "");
+  rememberedServerId = preferences.getString("server-id", "");
+  if (!TrainMeetNetwork::validServerId(rememberedServerId.c_str())) rememberedServerId = "";
+  // Old manual IP settings are deliberately ignored, not migrated into identity.
   buildIdentity();
   bootAt = millis();
   showScreen(tmbox::Screen::Identity);
 
-  static char gatewayBuffer[64];
-  configuredGatewayHost.toCharArray(gatewayBuffer, sizeof(gatewayBuffer));
-  static WiFiManagerParameter serverField(
-    "server",
-    "Raspberry Pi-adress (valfritt)",
-    gatewayBuffer,
-    sizeof(gatewayBuffer) - 1
-  );
-  gatewayParameter = &serverField;
-  wifiManager.addParameter(gatewayParameter);
+  wifiManager.setDebugOutput(false);
+  wifiManager.addParameter(&forgetServer);
   wifiManager.setConfigPortalBlocking(false);
   wifiManager.setConnectTimeout(15);
-  wifiManager.setSaveParamsCallback([]() { saveParametersRequested = true; });
+  wifiManager.setSaveConfigCallback([]() { saveParametersRequested = true; });
+  wifiManager.setSaveParamsCallback([]() { forgetServerRequested = String(forgetServer.getValue()) == "1"; });
   wifiManager.setAPCallback([](WiFiManager*) { portalActive = true; });
 
   WiFi.mode(WIFI_STA);
@@ -226,6 +222,7 @@ void setup() {
   mqttClient.setConnectionTimeout(4 * 1000UL);
   mqttClient.setCleanSession(true);
   beginSavedWiFiAttempt();
+  if (!WiFi.SSID().length()) startSetupPortal();
 }
 
 void loop() {
@@ -240,6 +237,11 @@ void loop() {
     mqttClient.poll();
     if (!terminal.tick()) { disconnectMqtt(); showScreen(tmbox::Screen::SeekingServer); }
     else {
+      if (terminal.fresh && String(terminal.frame["station_code"] | "").length() &&
+          rememberedServerId != discoveredServerId) {
+        preferences.putString("server-id", discoveredServerId);
+        rememberedServerId = discoveredServerId;
+      }
       const char key = keypad.getKey();
       if (key) terminal.press(key);
       terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
@@ -314,17 +316,17 @@ void processWiFi() {
   const unsigned long now = millis();
   if (portalActive) {
     wifiManager.process();
+    portalActive = wifiManager.getConfigPortalActive();
+    processSavedParameters();
   }
 
   if (WiFi.status() == WL_CONNECTED) {
     wifiLostAt = 0;
-    if (portalActive) {
-      stopSetupPortal();
-    }
     return;
   }
 
   disconnectMqtt();
+  if (mdnsStarted) { MDNS.end(); mdnsStarted = false; }
   if (wifiLostAt == 0) {
     wifiLostAt = now;
     showNetworkState();
@@ -345,36 +347,34 @@ void processWiFi() {
 void startSetupPortal() {
   if (portalActive) return;
   disconnectMqtt();
+  forgetServer.setValue("1", 1);
   WiFi.mode(WIFI_AP_STA);
   wifiManager.startConfigPortal(accessPointName.c_str());
-  portalActive = true;
+  portalActive = wifiManager.getConfigPortalActive();
   showScreen(tmbox::Screen::SetupPortal);
 }
 
 void stopSetupPortal() {
   if (!portalActive) return;
-  wifiManager.stopConfigPortal();
+  TrainMeetNetwork::finishSavedPortal(wifiManager, true);
   portalActive = false;
 }
 
 void processGateway() {
   const unsigned long now = millis();
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED || portalActive) return;
 
   if (mqttClient.connected()) {
     return;
   }
 
-  if (gatewayHost.isEmpty()) {
-    if (now < nextDiscoveryAt) return;
-    if (!discoverGateway()) {
-      showScreen(tmbox::Screen::SeekingServer);
-      nextDiscoveryAt = now + DISCOVERY_RETRY_MS;
-      return;
-    }
+  if (now < nextDiscoveryAt || now < nextMqttAttemptAt) return;
+  // Always re-resolve the identity before a new MQTT connection. A former IP
+  // might now belong to a different server after DHCP reassignment.
+  if (!discoverGateway()) {
+    nextDiscoveryAt = now + DISCOVERY_RETRY_MS;
+    return;
   }
-
-  if (now < nextMqttAttemptAt) return;
   if (connectMqtt()) {
     mqttRetryDelay = MQTT_RETRY_MIN_MS;
     failedMqttAttempts = 0;
@@ -386,31 +386,28 @@ void processGateway() {
   nextMqttAttemptAt = now + mqttRetryDelay;
   mqttRetryDelay = min(mqttRetryDelay * 2UL, MQTT_RETRY_MAX_MS);
   showScreen(tmbox::Screen::ServerGone);
-  if (failedMqttAttempts >= 3 && configuredGatewayHost.isEmpty()) {
-    gatewayHost = "";
-    failedMqttAttempts = 0;
-    nextDiscoveryAt = now + DISCOVERY_RETRY_MS;
-  }
 }
 
 bool discoverGateway() {
-  if (!configuredGatewayHost.isEmpty()) {
-    gatewayHost = configuredGatewayHost;
-    gatewayPort = DEFAULT_MQTT_PORT;
-    return true;
-  }
-
   if (!mdnsStarted) {
     mdnsStarted = MDNS.begin(deviceId.c_str());
   }
   if (!mdnsStarted) return false;
 
-  const int count = MDNS.queryService(DISCOVERY_SERVICE, "tcp");
-  if (count < 1) return false;
-  IPAddress resolvedIp = MDNS.IP(0);
-  gatewayHost = resolvedIp.toString();
-  gatewayPort = MDNS.port(0);
-  return gatewayHost != "0.0.0.0" && gatewayPort > 0;
+  const auto servers = TrainMeetNetwork::discoverServers();
+  const auto selected = TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str());
+  if (selected.index < 0) {
+    showScreen(tmbox::Screen::SeekingServer);
+    if (selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous) {
+      lcd.clear(); lcd.setCursor(0, 0); lcd.print("FLERA SERVRAR");
+      lcd.setCursor(0, 1); lcd.print("BE ADMIN HJALPA");
+      for (auto& line : drawnLines) line = "";
+    }
+    return false;
+  }
+  const auto& server = servers[selected.index];
+  gatewayHost = server.host.c_str(); gatewayPort = server.port; discoveredServerId = server.id.c_str();
+  return true;
 }
 
 bool connectMqtt() {
@@ -752,13 +749,16 @@ void handleAck(const String& payload) {
 
 
 void processSavedParameters() {
-  if (!saveParametersRequested || gatewayParameter == nullptr) return;
+  if (forgetServerRequested) {
+    forgetServerRequested = false;
+    preferences.remove("server-id"); rememberedServerId = ""; discoveredServerId = ""; gatewayHost = "";
+  }
+  if (!saveParametersRequested) return;
   saveParametersRequested = false;
-  configuredGatewayHost = String(gatewayParameter->getValue());
-  configuredGatewayHost.trim();
-  preferences.putString("gateway", configuredGatewayHost);
-  gatewayHost = configuredGatewayHost;
-  nextMqttAttemptAt = 0;
+  disconnectMqtt(); gatewayHost = ""; nextMqttAttemptAt = nextDiscoveryAt = 0;
+  if (mdnsStarted) MDNS.end();
+  mdnsStarted = false;
+  portalActive = TrainMeetNetwork::finishSavedPortal(wifiManager, WiFi.status() == WL_CONNECTED);
 }
 
 void keypadEvent(KeypadEvent key) {
@@ -769,14 +769,9 @@ void keypadEvent(KeypadEvent key) {
 
 void resetNetworkConfiguration() {
   resetNetworkRequested = false;
-  showScreen(tmbox::Screen::ResettingNetwork);
-  disconnectMqtt();
-  preferences.remove("gateway");
-  configuredGatewayHost = "";
-  gatewayHost = "";
-  wifiManager.resetSettings();
-  delay(800);
-  ESP.restart();
+  // Holding * opens setup. Only an explicit portal choice forgets the server;
+  // neither the working Wi-Fi nor the permanent device identity is erased.
+  startSetupPortal();
 }
 
 void showNetworkState() {

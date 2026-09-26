@@ -114,7 +114,7 @@ Om verktyget anger fel chipfamilj: avbryt och kontrollera modell och vald port.
 3. Anslut telefonen till boxens nät. Godkänn att vara kvar utan internet.
 4. Om portalen inte öppnas, skriv **http://192.168.4.1** på telefonen.
 5. Välj träffens **2,4 GHz-Wi-Fi** och ange dess lösenord.
-6. Låt boxen hitta den lokala servern automatiskt. NodeMCU har inga manuella IP-/portfält.
+6. Låt boxen hitta den lokala servern automatiskt. Ingen av modellerna har manuella IP-/portfält.
 7. Spara och anslut telefonen till det vanliga nätet igen.
 
 Gör detta på en betrodd plats; boxens tillfälliga installationsnät är öppet.
@@ -126,27 +126,45 @@ Wi-Fi sätts via boxens portal. **Improv Serial/Wi-Fi-inställning direkt via US
 Servern upptäcks med mDNS på samma Wi-Fi. MQTT använder normalt port 1883,
 webbadmin normalt 8787. En isolerad gäst-Wi-Fi eller multicastspärr kan hindra
 upptäckt. Kontrollera nätet i stället för att ange webbporten i enheten.
-ESP32 behåller sitt befintliga installationsflöde med valfri manuell server.
 Ingen box kan välja sin egen station. **Öppna inte MQTT oskyddat mot internet.**
+
+ESP8266 och ESP32 använder samma regel: en ny box ansluter när exakt en server
+upptäcks. Vid flera servrar visas **FLERA SERVRAR / BE ADMIN HJALPA**. Administratören
+behöver då se till att bara avsedd server annonseras på boxens nät vid första
+anslutningen. Boxen väljer inte slumpmässigt första svaret.
+
+Efter stationstilldelning sparas serverns annonserade ID på boxen. Om serverns
+IP-adress ändras hittas den igen, men boxen byter inte till en annan server om
+den sparade saknas. Stationstilldelningen ligger fortfarande på servern.
+Uppdatera servern före denna firmware: den nya serverkoden sparar ett unikt
+installations-ID; äldre servrar använder datornamnet, som inte är garanterat unikt.
+ID:t är hjälp för serverval på ett betrott lokalnät, inte kryptografisk autentisering.
 
 ### Öppna installationen igen
 
-- **NodeMCU:** håll `*` i fem sekunder. Portalen öppnas utan att sparade nätuppgifter raderas.
-- **ESP32-S3:** håll `*` eller den separata provisioneringsknappen i fem sekunder.
-  Detta raderar Wi-Fi och serverval och startar om boxen. Träffen i servern berörs inte.
+- **Båda modellerna:** håll `*` i fem sekunder. Portalen öppnas utan att sparade
+  Wi-Fi-uppgifter eller serverval raderas. Spara nya nätuppgifter eller avsluta portalen.
+- Vill du avsiktligt byta server: markera **Byt TrainMeet Server (behall Wi-Fi)**
+  i portalen och spara. Markeringen är avstängd från början. Boxens identitet,
+  språkcache och trafikdata på servern raderas inte. Den nya serverns admin
+  tilldelar station. Finns flera servrar gäller regeln ovan.
 
 ## 4. Administratören tilldelar station i TrainMeet Server
 
 1. Öppna **din servers webbadmin**, inte Cloud eller boxens Wi-Fi-portal.
 2. Logga in som administratör. Ny server: skapa eget konto och aktivera träffens config först.
 3. Öppna administrationen för boxar/enheter. Menynamnet kan skilja mellan versioner.
-4. Hitta boxen med koden som står på dess display.
-5. Tilldela rätt station och spara.
+4. Välj boxen i listan; ej tilldelade klienter visas först.
+5. Klicka **Tilldela station**, välj station och spara. Enhetskoden visas redan
+   och behöver inte skrivas av. För en tilldelad box heter knappen **Ändra station**.
 6. Kontrollera att rätt stationsnamn och aktuellt läge visas på boxen.
 
 Boxen rapporterar sitt permanenta ID och inväntar administratören.
 Stationsbyte görs i serverns inställningar, aldrig på boxen eller i Cloud.
 Ingen gammal A–D-panel krävs för den nya serverstyrda 16×2-profilen.
+Borttagna klienter återaktiveras endast med det separata valet
+**Återanslut borttagen klient → Återanslut med enhetskod**. Automatisk upptäckt
+återställer aldrig en borttagen klients behörighet.
 
 ### Vilken serverversion?
 

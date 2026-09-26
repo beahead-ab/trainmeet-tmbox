@@ -117,16 +117,6 @@ void testWebInput() {
   throttle.failed(60104); assert(!throttle.blocked(60104));
 }
 
-struct FakeMDNS {
-  int answers = 0;
-  int queryService(const char* service, const char* protocol, unsigned timeout) {
-    assert(std::string(service) == "tmbox");
-    assert(std::string(protocol) == "tcp");
-    assert(timeout == 1000);
-    return answers;
-  }
-};
-
 struct FakePortal {
   bool active;
   unsigned stops = 0;
@@ -137,30 +127,35 @@ struct FakePortal {
   }
 };
 
-struct DiscoveredIP {
-  std::string address;
-  std::string toString() const { return address; }
-};
-struct DiscoveredServers {
-  DiscoveredIP IP(int i) const { return {addresses[i]}; }
-  unsigned port(int i) const { return ports[i]; }
-  std::string addresses[4]{"192.168.0.200", "0.0.0.0", "192.168.0.160", "192.168.0.100"};
-  unsigned ports[4]{1883, 1883, 1884, 0};
-};
 void testNetworkSetup() {
-  DiscoveredServers servers;
-  assert(TrainMeetNetwork::selectServer(servers, 0, std::string()) == -1);
-  assert(TrainMeetNetwork::selectServer(servers, 4, std::string()) == 2);
-  assert(TrainMeetNetwork::selectServer(servers, 4, std::string("192.168.0.200")) == 0);
-  assert(TrainMeetNetwork::selectServer(servers, 4, std::string("192.168.0.100")) == 2);
-  assert(servers.port(2) == 1884); // Use advertised MQTT port, never the web port.
-  servers.ports[0] = servers.ports[2] = 0;
-  assert(TrainMeetNetwork::selectServer(servers, 4, std::string()) == -1);
-  FakeMDNS mdns;
-  for (int count : {0, 1, 2}) {
-    mdns.answers = count;
-    assert(TrainMeetNetwork::queryServers(mdns) == count);
-  }
+  using namespace TrainMeetNetwork;
+  std::vector<Server> servers{{"one", "192.168.0.200", 1883}, {"two", "192.168.0.160", 1884}};
+  assert(selectServer({}, "").status == DiscoveryStatus::Missing);
+  assert(selectServer(servers, "").status == DiscoveryStatus::Ambiguous);
+  assert(selectServer(servers, "one").index == 0);
+  assert(selectServer(servers, "two").index == 1);
+  assert(selectServer(servers, "absent").index == -1);
+  servers.erase(servers.begin());
+  assert(selectServer(servers, "").index == 0);
+  assert(servers[0].port == 1884);
+  servers[0].host = "192.168.0.99"; // DHCP change, same installation.
+  assert(selectServer(servers, "two").index == 0);
+  servers.push_back(servers[0]);
+  assert(selectServer(servers, "two").index == 0); // Duplicate advertisement.
+  servers.back().host = "192.168.0.100";
+  assert(selectServer(servers, "two").status == DiscoveryStatus::Ambiguous);
+  assert(selectServer({{"", "192.168.0.160", 1883}}, "").index == -1);
+  assert(selectServer({{"one", "0.0.0.0", 1883}, {"two", "192.168.0.160", 0}}, "").index == -1);
+  assert(selectServer(std::vector<Server>(MAX_SERVERS + 1, {"one", "192.168.0.160", 1883}), "one").index == -1);
+  assert(serverIdFromTxt("protocol=2;server_id=abcd-1234") == "abcd-1234");
+  assert(serverIdFromTxt("server_id=one;protocol=2") == "one");
+  assert(serverIdFromTxt(nullptr).empty());
+  assert(serverIdFromTxt("server_id=<invalid>").empty());
+  auto record = bindingRecord("one");
+  assert(bindingId(record) == "one");
+  record.id[0] = 'x'; assert(bindingId(record).empty());
+  assert(bindingId(bindingRecord("")).empty());
+  assert(bindingId(bindingRecord(std::string(97, 'x'))).empty());
   // process() already closed the portal after a successful Wi-Fi connection.
   FakePortal automatic{false};
   assert(!TrainMeetNetwork::finishSavedPortal(automatic, true));
