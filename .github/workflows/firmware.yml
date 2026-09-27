@@ -29,6 +29,10 @@ jobs:
       - name: Build supported profiles
         working-directory: firmware/esp32
         run: pio run -e esp32-benny -e esp32-classic-safe -e esp32-s3
+      - name: Verify shared server-driven terminal contract
+        # The pinned ArduinoJson dependency is now available from the build.
+        # Unlike source-only runs, CI must fail rather than skip this test.
+        run: TMBOX_REQUIRE_TERMINAL_TESTS=1 python -m unittest discover -s tests -p test_server_terminal.py
       - uses: actions/upload-artifact@v4
         with:
           name: webflash-esp32-s3
