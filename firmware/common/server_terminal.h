@@ -5,12 +5,31 @@
 
 // Shared by ESP8266 and ESP32. No routes, train states or action names.
 // The server supplies pixels, text and key meanings; only digits stay here.
+//
+// A slow answer is not a dead server. Until 0.7.1 a command without an ack
+// within five seconds dropped the whole session: the box disconnected,
+// searched for the server again and sent a new hello. Measured on 2026-09-30,
+// that was how a slow server turned into every box falling over at once, and
+// every reconnect added more work for the server to catch up on. Now a command
+// waits as long as the server keeps answering presence. Only silence - no
+// alive or frame for fifteen seconds - ends a session.
 class ServerTerminal {
  public:
+  static constexpr uint32_t WAITING_SHOWN_MS = 1500;
+  // A lost ack must not lock the keypad for as long as the session lives. The
+  // command is given up, the session is not; digits stay for another try, and
+  // the server's view token decides whether that try still applies.
+  static constexpr uint32_t COMMAND_GIVE_UP_MS = 30000;
+  static constexpr uint32_t UNANSWERED_SHOWN_MS = 3000;
+
   JsonDocument frame;
   String prefix, boot, digits, pending, nonce, message;
-  uint32_t sequence = 0, seen = 0, ping = 0, sent = 0, guard = 0;
-  bool started = false, fresh = false, dirty = true;
+  // Drawn on the second row while a command waits, so an operator does not
+  // take a slow answer for a missed key, and briefly after one is given up.
+  // Set by the sketch in its own language; empty means nothing is drawn.
+  String waitingText, unansweredText;
+  uint32_t sequence = 0, seen = 0, ping = 0, sent = 0, guard = 0, unansweredAt = 0;
+  bool started = false, fresh = false, dirty = true, waitingDrawn = false, unanswered = false;
   MqttClient* client = nullptr;
 
   bool publish(const char* leaf, JsonDocument& body) {
@@ -20,7 +39,11 @@ class ServerTerminal {
     if (!client->beginMessage((prefix + leaf).c_str(), encoded.length(), false, 1)) return false;
     client->print(encoded); return client->endMessage() == 1;
   }
-  void reset() { fresh = started = false; dirty = true; digits = pending = ""; frame.clear(); }
+  void reset() {
+    fresh = started = false; dirty = true; digits = pending = ""; frame.clear();
+    waitingDrawn = unanswered = false;
+  }
+  bool waiting() const { return pending.length() && uint32_t(millis() - sent) >= WAITING_SHOWN_MS; }
   void begin(MqttClient& mqtt, const String& id, const String& code, const char* model, const char* version, const String& connectionId) {
     reset(); client = &mqtt; prefix = "tmbox/terminal/device/" + id + "/";
     boot = connectionId; started = true; seen = ping = millis();
@@ -74,7 +97,7 @@ class ServerTerminal {
       if (String(doc["command_id"] | "") != pending) return;
       const String status = doc["status"] | "";
       if (status == "accepted" || status == "duplicate") digits = "";
-      pending = ""; message = doc["message"] | "";
+      pending = ""; waitingDrawn = false; message = doc["message"] | "";
       guard = millis() + 500;
     }
     if (context() != String(doc["frame"]["entry"]["context"] | "")) digits = "";
@@ -104,22 +127,33 @@ class ServerTerminal {
     pending = boot + "-" + String(++sequence);
     command["command_id"] = pending; command["view_token"] = token(); command["key"] = name;
     if (key == '#' && digits.length()) { command["train_number"] = digits; command["entry_context"] = context(); }
-    sent = millis(); dirty = true;
+    sent = millis(); dirty = true; waitingDrawn = false; unanswered = false;
     if (!publish("command", command)) { pending = ""; fresh = false; return false; }
     return true;
   }
   bool tick() {
     if (!started) return false;
     const uint32_t now = millis();
-    if (!client || !client->connected() || uint32_t(now-seen) >= 15000 || (pending.length() && uint32_t(now-sent) >= 5000)) {
+    if (!client || !client->connected() || uint32_t(now-seen) >= 15000) {
       fresh = false; digits = pending = ""; dirty = true; return false;
     }
+    if (pending.length()) {
+      const uint32_t age = uint32_t(now - sent);
+      if (age >= COMMAND_GIVE_UP_MS) {
+        pending = ""; waitingDrawn = false; unanswered = true; unansweredAt = now;
+        guard = now + 500; dirty = true;
+      } else if (age >= WAITING_SHOWN_MS && !waitingDrawn) {
+        waitingDrawn = true; dirty = true;
+      }
+    }
+    if (unanswered && uint32_t(now - unansweredAt) >= UNANSWERED_SHOWN_MS) { unanswered = false; dirty = true; }
     if (uint32_t(now-ping) >= 5000) {
       ping = now; nonce = boot + "-p" + String(++sequence);
       JsonDocument request; request["nonce"] = nonce; publish("presence", request);
     }
     return true;
   }
+  static const String& empty() { static const String none; return none; }
   String line(uint8_t row) const { return frame["lines"][row] | ""; }
   String allowed() const {
     String result;
@@ -130,6 +164,7 @@ class ServerTerminal {
   template <class LCD> void draw(LCD& lcd, uint8_t cols=16, uint8_t rows=2) {
     if (!fresh || !dirty) return;
     JsonVariantConst view = digits.length() ? frame["entry"].as<JsonVariantConst>() : frame.as<JsonVariantConst>();
+    const String& overlay = waiting() ? waitingText : (unanswered ? unansweredText : empty());
     for (JsonObjectConst glyph : view["lcd"]["glyphs"].as<JsonArrayConst>()) {
       uint8_t bits[8]; for (uint8_t i=0;i<8;++i) bits[i]=glyph["rows"][i].as<uint8_t>();
       lcd.createChar(glyph["slot"].as<uint8_t>(), bits);
@@ -139,6 +174,7 @@ class ServerTerminal {
       for (uint8_t c=0;c<cols;++c) {
         uint8_t value = (r<2 && c<16) ? view["lcd"]["cells"][r][c].as<uint8_t>() : ' ';
         if (digits.length() && r==0 && c>=5 && c<10) value = (c-5<digits.length()) ? digits[c-5] : '_';
+        if (r == 1 && c < 16 && overlay.length()) value = c < overlay.length() ? uint8_t(overlay[c]) : ' ';
         lcd.write(value);
       }
     }

@@ -54,6 +54,22 @@ struct Fixture {
   JsonDocument last() const {
     JsonDocument doc; CHECK(!deserializeJson(doc, mqtt.messages.back().body)); return doc;
   }
+  String answered;
+  // Time passes in quarter seconds; a live server answers each new presence.
+  // False as soon as the terminal gives up its session.
+  bool wait(uint32_t ms, bool serverAnswers = true) {
+    for (uint32_t step = 0; step < ms; step += 250) {
+      hostMillis += 250;
+      if (!terminal.tick()) return false;
+      if (serverAnswers && terminal.nonce.length() && terminal.nonce != answered) {
+        answered = terminal.nonce;
+        JsonDocument alive; alive["boot"] = "boot-1"; alive["nonce"] = terminal.nonce;
+        String payload; serializeJson(alive, payload);
+        terminal.receive(terminal.prefix + "alive", payload, false);
+      }
+    }
+    return true;
+  }
 };
 
 struct LCD {
@@ -160,10 +176,33 @@ void disconnect_and_reconnect_never_replay_commands() {
   f.receive(screen(), "frame", "", "accepted", "boot-2");
   CHECK(f.terminal.fresh); CHECK(f.commands() == 1);
 }
-void unanswered_command_times_out_without_retry() {
+// Until 0.7.1 five seconds without an ack dropped the whole session. Against a
+// slow server that turned into every box reconnecting at once, which only gave
+// the server more to catch up on (measured 2026-09-30).
+void a_slow_answer_keeps_the_session() {
+  Fixture f; CHECK(f.terminal.press('9')); CHECK(f.terminal.press('#'));
+  const auto pending = f.terminal.pending;
+  CHECK(f.wait(20000)); CHECK(f.terminal.fresh);
+  CHECK(f.terminal.pending == pending); CHECK(f.terminal.digits == "9");
+  CHECK(!f.terminal.press('#')); CHECK(f.commands() == 1);
+  f.receive(screen(), "ack", pending, "accepted");
+  CHECK(f.terminal.pending.empty()); CHECK(f.terminal.digits.empty()); CHECK(f.commands() == 1);
+}
+void silence_still_ends_the_session_while_waiting() {
   Fixture f; CHECK(f.terminal.press('#'));
-  hostMillis += 5001; CHECK(!f.terminal.tick()); CHECK(!f.terminal.ready());
+  CHECK(!f.wait(15000, false)); CHECK(!f.terminal.ready());
   CHECK(f.terminal.pending.empty()); CHECK(f.commands() == 1);
+}
+void a_lost_answer_gives_up_the_command_not_the_session() {
+  Fixture f; CHECK(f.terminal.press('9')); CHECK(f.terminal.press('#'));
+  const auto lost = f.terminal.pending;
+  CHECK(f.wait(ServerTerminal::COMMAND_GIVE_UP_MS - 500)); CHECK(f.terminal.pending == lost);
+  CHECK(f.wait(500)); CHECK(f.terminal.fresh);
+  CHECK(f.terminal.pending.empty()); CHECK(f.terminal.digits == "9");
+  CHECK(f.commands() == 1);                       // never retried by the box itself
+  CHECK(f.wait(500)); CHECK(f.terminal.press('#')); CHECK(f.commands() == 2);
+  f.receive(screen(), "ack", lost, "accepted");   // the late answer to the lost one
+  CHECK(f.terminal.pending.length()); CHECK(f.terminal.digits == "9");
 }
 void presence_requires_matching_nonce() {
   Fixture f; hostMillis = 6100; CHECK(f.terminal.tick());
@@ -232,6 +271,33 @@ void larger_physical_display_does_not_invent_another_profile() {
   f.terminal.draw(lcd, 20, 4); CHECK(lcd.writes == 80);
 }
 
+std::string row(const LCD& lcd, int r) {
+  return std::string(lcd.cells[r].begin(), lcd.cells[r].begin() + 16);
+}
+void waiting_is_shown_until_the_answer() {
+  Fixture f; f.terminal.waitingText = "VANTAR PA SVAR"; LCD lcd;
+  f.terminal.draw(lcd); const auto idle = row(lcd, 1);
+  CHECK(idle == "Nr# C/D    12:34");
+  CHECK(f.terminal.press('#')); f.terminal.draw(lcd); CHECK(row(lcd, 1) == idle);
+  CHECK(f.wait(1000)); f.terminal.draw(lcd); CHECK(row(lcd, 1) == idle);
+  CHECK(f.wait(750)); f.terminal.draw(lcd); CHECK(row(lcd, 1) == "VANTAR PA SVAR  ");
+  const auto writes = lcd.writes; CHECK(f.wait(2000)); f.terminal.draw(lcd);
+  CHECK(lcd.writes == writes);                    // drawn once, not every loop
+  f.receive(screen(), "ack", f.terminal.pending, "accepted"); f.terminal.draw(lcd);
+  CHECK(row(lcd, 1) == idle);
+}
+void no_text_no_overlay() {
+  Fixture f; LCD lcd; CHECK(f.terminal.press('#'));
+  CHECK(f.wait(5000)); f.terminal.draw(lcd); CHECK(row(lcd, 1) == "Nr# C/D    12:34");
+}
+void a_given_up_command_is_said_briefly() {
+  Fixture f; f.terminal.unansweredText = "INGET SVAR"; LCD lcd;
+  CHECK(f.terminal.press('#')); CHECK(f.wait(ServerTerminal::COMMAND_GIVE_UP_MS));
+  f.terminal.draw(lcd); CHECK(row(lcd, 1) == "INGET SVAR      ");
+  CHECK(f.wait(ServerTerminal::UNANSWERED_SHOWN_MS)); f.terminal.draw(lcd);
+  CHECK(row(lcd, 1) == "Nr# C/D    12:34");
+}
+
 int main() {
   using Test = void (*)();
   const Test tests[] = {hello_and_presence_are_not_assignments, digits_stay_local_until_confirm,
@@ -239,7 +305,9 @@ int main() {
     older_views_and_revisions_do_not_roll_back, changed_station_meet_or_reset_clears_input,
     accepted_and_duplicate_ack_clear_input_and_guard_double_press, rejected_ack_retains_correctable_input,
     unrelated_ack_boot_and_retained_frame_are_ignored, disconnect_and_reconnect_never_replay_commands,
-    unanswered_command_times_out_without_retry, presence_requires_matching_nonce, publish_failure_disables_input,
+    a_slow_answer_keeps_the_session, silence_still_ends_the_session_while_waiting,
+    a_lost_answer_gives_up_the_command_not_the_session, waiting_is_shown_until_the_answer, no_text_no_overlay,
+    a_given_up_command_is_said_briefly, presence_requires_matching_nonce, publish_failure_disables_input,
     no_entry_no_digits_and_only_server_keys, malformed_frames_cannot_replace_display,
     raw_lcd_glyphs_and_clock_survive_local_input, larger_physical_display_does_not_invent_another_profile};
   try {

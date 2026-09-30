@@ -421,6 +421,11 @@ bool connectMqtt() {
   meetScope.reset();
   invalidateStationCache();
 
+  const auto text = [](const char* key) {
+    const auto found = deviceMessages.find(key);
+    return String(found == deviceMessages.end() ? key : found->second.c_str());
+  };
+  terminal.waitingText = text("VANTAR PA SVAR"); terminal.unansweredText = text("INGET SVAR");
   terminal.begin(mqttClient, deviceId, deviceCode, "ESP32 TMBox 16x2", FIRMWARE_VERSION,
                  deviceId + "-" + String(esp_random(), HEX) + "-" + String(millis()));
   return true; // Legacy v2 local renderer below is deprecated for normal operation.
