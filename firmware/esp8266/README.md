@@ -339,9 +339,16 @@ anslutning, stationstilldelning eller MQTT-protokoll.
   men kringgår aldrig kravet på en aktuell serveranslutning.
 - Inget aktuellt serversvar inom 30 sekunder spärrar också knapparna, även om
   MQTT-brokern fortfarande svarar. Serverns offline-meddelande spärrar direkt.
-- Ett skickat kommando väntar på kvittens och därefter aktuellt läge. Efter
-  fem sekunder utan kvittens återansluter boxen; tangenttrycket köas inte om.
+- Ett skickat kommando väntar på kvittens så länge servern svarar på
+  kontaktkontrollen. Efter en och en halv sekund visas `VANTAR PA SVAR` på
+  andra raden. Först om servern tystnar helt i 15 sekunder kopplar boxen ner
+  och ansluter igen. Kommer ingen kvittens på 30 sekunder ges kommandot upp
+  men inte anslutningen: `INGET SVAR` visas kort och inmatade siffror står kvar
+  för ett nytt försök. Boxen skickar aldrig om ett tangenttryck själv.
   Kontrollera serverns läge eftersom kommandot kan ha hunnit utföras.
+  (Till och med 0.7.1 återanslöt boxen redan efter fem sekunder utan
+  kvittens, vilket mot en långsam server fick alla boxar att tappa kontakten
+  samtidigt.)
 - Dublettkontroll, serverrevision och behörig panel kontrolleras av servern.
 - Pågående trafik använder **inte TrainMeet Cloud**, och boxen hämtar inte
   träffkonfigurationen själv.

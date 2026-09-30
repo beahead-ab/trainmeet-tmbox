@@ -362,6 +362,7 @@ void connectServer() {
   }
   TMBOX_LOG("TrainMeet Server connected; assignment is managed by the server administrator.\n");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
+  terminal.waitingText = uiText("VANTAR PA SVAR"); terminal.unansweredText = uiText("INGET SVAR");
   terminal.begin(mqtt, deviceId, deviceCode, "NodeMCU ESP8266 16x2", TAMBOX_FIRMWARE_VERSION,
                  bootId + "-" + String(++commandSequence));
   return; // Legacy v1 transport below is retained for source compatibility only.
