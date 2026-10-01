@@ -267,7 +267,7 @@ void receiveMessage(int size) {
     }
     if (panelId != nextPanel) {
       invalidate(); panelId = nextPanel; refreshRequested = true;
-      showFrame(uiText("BOX KOPPLAD"), uiText("HAMTAR PANEL..."));
+      showFrame(uiText("BOX KOPPLAD"), uiText("HÄMTAR PANEL..."));
     }
   } else if (topic.indexOf("/snapshot/") >= 0) {
     if (retained || !serverEnrollment.ready(mqtt.connected()) || !panelId.length() || panelId != (message["panel_id"] | "") ||
@@ -323,12 +323,12 @@ void receiveMessage(int size) {
     TMBOX_DEBUG("Command acknowledgement: status=%.32s\n", message["status"] | "");
     // Do not resend unacknowledged input or enable keys until a new snapshot.
     lease.acknowledged(); commandId = ""; refreshRequested = true;
-    if (String(message["status"] | "") == "rejected") showFrame(uiText("KOMMANDO NEKAT"), uiText("HAMTAR NYTT LAGE"));
+    if (String(message["status"] | "") == "rejected") showFrame(uiText("KOMMANDO NEKAT"), uiText("HÄMTAR NYTT LÄGE"));
   } else if (topic.startsWith("tambox/v1/gateway/") && topic.endsWith("/status")) {
     if (String(message["status"] | "") != "online") {
       serverEnrollment.clear();
       serverSync.reset();
-      invalidate(); showFrame(uiText("SERVER BORTA"), uiText("FORSOKER IGEN"));
+      invalidate(); showFrame(uiText("SERVER BORTA"), uiText("FÖRSÖKER IGEN"));
     } else if (!retained) {
       // A restarted gateway may have different grants/configuration.
       serverEnrollment.clear(); serverSync.reset(); invalidate();
@@ -343,8 +343,8 @@ bool resolveServer() {
   const auto servers = TrainMeetNetwork::discoverServers();
   const auto selected = TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str());
   if (selected.index < 0) {
-    showFrame(selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "FLERA SERVRAR" : "SOKER SERVER",
-              selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "BE ADMIN HJALPA" : deviceCode);
+    showFrame(selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "FLERA SERVRAR" : "SÖKER SERVER",
+              selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "BE ADMIN HJÄLPA" : deviceCode);
     return false;
   }
   const auto& server = servers[selected.index];
@@ -362,7 +362,7 @@ void connectServer() {
   }
   TMBOX_LOG("TrainMeet Server connected; assignment is managed by the server administrator.\n");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
-  terminal.waitingText = uiText("VANTAR PA SVAR"); terminal.unansweredText = uiText("INGET SVAR");
+  terminal.waitingText = uiText("VÄNTAR PÅ SVAR"); terminal.unansweredText = uiText("INGET SVAR");
   terminal.begin(mqtt, deviceId, deviceCode, "NodeMCU ESP8266 16x2", TAMBOX_FIRMWARE_VERSION,
                  bootId + "-" + String(++commandSequence));
   return; // Legacy v1 transport below is retained for source compatibility only.
@@ -449,7 +449,7 @@ bool sendKey(char key, bool virtualKey) {
   command["device_uptime_ms"] = millis();
   lease.sent(millis());
   if (!publish("tambox/v1/client/" + deviceId + "/command", command)) {
-    disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LAGE"));
+    disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LÄGE"));
     return false;
   }
   if (key == '*') trainEntry.clear();
@@ -494,7 +494,7 @@ void setup() {
   showFrame("TRAINMEET TMBOX", deviceCode);
 #ifdef TAMBOX_HARDWARE_CHECK
   WiFi.mode(WIFI_OFF);
-  showFrame("HARDVARUTEST", keypadOK ? "TRYCK ALLA 16" : "KNAPPSATS SAKNAS");
+  showFrame("HÅRDVARUTEST", keypadOK ? "TRYCK ALLA 16" : "KNAPPSATS SAKNAS");
 #else
   // Use our bounded USB diagnostics; the library can expose network settings.
   wifiManager.setDebugOutput(false);
@@ -567,7 +567,7 @@ void loop() {
       if (mdnsStarted) MDNS.close();
       mdnsStarted = false;
     }
-    if (!portalActive) showFrame(uiText("NAT SAKNAS"), uiText("FORSOKER IGEN"));
+    if (!portalActive) showFrame(uiText("NÄT SAKNAS"), uiText("FÖRSÖKER IGEN"));
     if (!portalActive && uint32_t(now - wifiLostAt) >= 30000) startPortal();
   } else {
     if (!wifiWasConnected) TMBOX_LOG("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
@@ -575,7 +575,7 @@ void loop() {
     if (mdnsStarted) MDNS.update();
     if (!portalActive) {
       if (!mqtt.connected()) {
-        if (connectedBefore) { disconnectServer(); showFrame(uiText("SERVER BORTA"), uiText("FORSOKER IGEN")); }
+        if (connectedBefore) { disconnectServer(); showFrame(uiText("SERVER BORTA"), uiText("FÖRSÖKER IGEN")); }
         if (due(now, nextConnection)) {
           connectServer();
           connectionFailures = min(connectionFailures + 1, 4u);
@@ -586,7 +586,7 @@ void loop() {
         // A callback may just have set lastSnapshot later than the loop's `now`.
         const uint32_t current = millis();
         if (terminal.started) {
-          if (!terminal.tick()) { disconnectServer(); showFrame("SERVER SAKNAS", "FORSOKER IGEN"); nextConnection = current + 1000; }
+          if (!terminal.tick()) { disconnectServer(); showFrame("SERVER SAKNAS", "FÖRSÖKER IGEN"); nextConnection = current + 1000; }
           else {
             if (terminal.fresh && String(terminal.frame["station_code"] | "").length() &&
                 rememberedServerId != discoveredServerId) saveServerBinding(discoveredServerId);
@@ -594,7 +594,7 @@ void loop() {
           }
         } else if (lease.expired(current) || lease.timedOut(current)) {
           TMBOX_DEBUG("Server timeout: snapshot or acknowledgement missing\n");
-          disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LAGE")); nextConnection = now + 1000;
+          disconnectServer(); showFrame(uiText("INGET SERVER-SVAR"), uiText("KONTROLLERA LÄGE")); nextConnection = now + 1000;
         } else {
           const auto request = serverSync.next(current, refreshRequested);
           if (request == ServerSync::Assignment) hello();
