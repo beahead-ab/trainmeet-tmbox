@@ -349,6 +349,9 @@ anslutning, stationstilldelning eller MQTT-protokoll.
   (Till och med 0.7.1 återanslöt boxen redan efter fem sekunder utan
   kvittens, vilket mot en långsam server fick alla boxar att tappa kontakten
   samtidigt.)
+- Efter ett skärmbyte väntar bara tangenter som utför en trafikåtgärd en halv
+  sekund, så ett tryck avsett för förra bilden inte utför något på den nya.
+  Bläddring, siffror och tågsökning svarar direkt.
 - Dublettkontroll, serverrevision och behörig panel kontrolleras av servern.
 - Pågående trafik använder **inte TrainMeet Cloud**, och boxen hämtar inte
   träffkonfigurationen själv.

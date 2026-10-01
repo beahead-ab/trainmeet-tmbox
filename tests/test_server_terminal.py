@@ -46,7 +46,7 @@ class ServerTerminalTest(unittest.TestCase):
                 print(build.stderr, file=sys.stderr)
             result = subprocess.run([binary], capture_output=True, text=True, timeout=30)
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertIn("PASS 23 shared terminal contract scenarios", result.stdout)
+            self.assertIn("PASS 29 shared terminal contract scenarios", result.stdout)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,12 @@ class ServerTerminal {
   // the server's view token decides whether that try still applies.
   static constexpr uint32_t COMMAND_GIVE_UP_MS = 30000;
   static constexpr uint32_t UNANSWERED_SHOWN_MS = 3000;
+  // A press meant for the previous screen must not act on the new one. After
+  // a screen change - a new view token or new key meanings - keys that act on
+  // traffic wait this long. Browsing, digits and train search never wait;
+  // until 0.7.2 every key waited after every answer, which made browsing
+  // slow. A key without the server's "acts" flag counts as acting.
+  static constexpr uint32_t GUARD_MS = 500;
 
   JsonDocument frame;
   String prefix, boot, digits, pending, nonce, message;
@@ -54,7 +60,15 @@ class ServerTerminal {
     publish("hello", hello);
   }
   bool ready() const { return started && fresh && client && client->connected() && pending.length() == 0 &&
-      uint32_t(millis() - seen) < 15000 && int32_t(millis() - guard) >= 0; }
+      uint32_t(millis() - seen) < 15000; }
+  bool guarded(const String& name) const {
+    return int32_t(millis() - guard) < 0 && !digits.length() && (frame["keys"][name]["acts"] | true);
+  }
+  bool screenChanged(JsonVariantConst next) const {
+    if (!fresh || token() != String(next["view_token"] | "")) return true;
+    String before, after; serializeJson(frame["keys"], before); serializeJson(next["keys"], after);
+    return before != after;
+  }
   bool hasEntry() const { return frame["entry"].is<JsonObjectConst>(); }
   String token() const { return frame["view_token"] | ""; }
   String context() const { return frame["entry"]["context"] | ""; }
@@ -98,10 +112,9 @@ class ServerTerminal {
       const String status = doc["status"] | "";
       if (status == "accepted" || status == "duplicate") digits = "";
       pending = ""; waitingDrawn = false; message = doc["message"] | "";
-      guard = millis() + 500;
     }
     if (context() != String(doc["frame"]["entry"]["context"] | "")) digits = "";
-    if (!digits.length() && String(frame["keys"]["#"]["label"] | "") != String(doc["frame"]["keys"]["#"]["label"] | "")) guard = millis() + 500;
+    if (screenChanged(doc["frame"])) guard = millis() + GUARD_MS;
     frame.set(doc["frame"]); seen = millis(); fresh = true; dirty = true;
   }
   bool replaceDigits(const String& entryContext, const String& number) {
@@ -115,13 +128,14 @@ class ServerTerminal {
       if (!hasEntry() || digits.length() >= 5) return false;
       digits += key; dirty = true; return true;
     }
+    String name(key);
+    if (guarded(name)) return false;
     if (digits.length()) {
       if (key == '*') { digits = ""; dirty = true; return true; }
       if (key == 'B') { digits.remove(digits.length()-1); dirty = true; return true; }
       if (key == 'A') digits = "";
       else if (key != '#') return false;
     }
-    String name(key);
     if (!digits.length() && !frame["keys"][name].is<JsonObjectConst>()) return false;
     JsonDocument command;
     pending = boot + "-" + String(++sequence);
@@ -141,7 +155,7 @@ class ServerTerminal {
       const uint32_t age = uint32_t(now - sent);
       if (age >= COMMAND_GIVE_UP_MS) {
         pending = ""; waitingDrawn = false; unanswered = true; unansweredAt = now;
-        guard = now + 500; dirty = true;
+        dirty = true;
       } else if (age >= WAITING_SHOWN_MS && !waitingDrawn) {
         waitingDrawn = true; dirty = true;
       }

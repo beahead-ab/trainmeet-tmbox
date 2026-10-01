@@ -247,8 +247,11 @@ Teckenuppsättningen är antingen ASCII-translitterering (`SPAR`, `BEGAR`,
 annonserar `display: {rows, cols, charset}` så servern vet vad boxen klarar
 och formaterar därefter.
 
-Efter varje skärmbyte spärras inmatning i cirka 500 ms, så ett tryck avsett
-för föregående skärm inte råkar tolkas mot den nya.
+Efter varje skärmbyte väntar tangenter som utför en trafikåtgärd i cirka
+500 ms, så ett tryck avsett för föregående skärm inte råkar tolkas mot den nya.
+Servern märker dem med `acts` i bilden; en tangent utan märkning räknas som
+handlande. Bläddring, siffror och tågsökning svarar direkt. (Till och med 0.7.2
+spärrades alla tangenter efter varje svar, vilket gjorde bläddring seg.)
 
 ## 6. Knappmodell
 

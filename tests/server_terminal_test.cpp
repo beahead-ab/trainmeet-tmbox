@@ -145,13 +145,67 @@ void changed_station_meet_or_reset_clears_input() {
     CHECK(f.terminal.digits.empty()); CHECK(!f.terminal.replaceDigits(old, "93")); CHECK(f.commands() == 0);
   }
 }
+// The keys as the server marks them: '#' offers a traffic action, the rest
+// only change what is shown.
+JsonDocument marked(int view = 1) {
+  auto frame = screen("meet-1:station-MUN:reset-1", 1, view);
+  for (const char* key : {"*", "A", "B", "C", "D"}) frame["keys"][key]["acts"] = false;
+  frame["keys"]["#"]["acts"] = true;
+  return frame;
+}
 void accepted_and_duplicate_ack_clear_input_and_guard_double_press() {
   for (const char* status : {"accepted", "duplicate"}) {
     Fixture f; CHECK(f.terminal.press('9')); CHECK(f.terminal.press('#'));
-    f.receive(screen(), "ack", f.terminal.pending, status);
+    f.receive(screen("meet-1:station-MUN:reset-1", 1, 2), "ack", f.terminal.pending, status);
     CHECK(f.terminal.pending.empty()); CHECK(f.terminal.digits.empty()); CHECK(!f.terminal.press('#'));
     hostMillis += 501; CHECK(f.terminal.press('#')); CHECK(f.commands() == 2);
   }
+}
+// Until 0.7.2 every key waited half a second after every answer, so browsing
+// with C and D cost the round trip plus 500 ms per press.
+void browsing_answers_at_once() {
+  Fixture f; f.receive(marked(1)); hostMillis += 600;
+  for (int view = 2; view <= 4; ++view) {
+    CHECK(f.terminal.press('D'));
+    f.receive(marked(view), "ack", f.terminal.pending, "accepted");
+  }
+  CHECK(f.terminal.press('C')); CHECK(f.commands() == 4);
+}
+void a_new_screen_guards_only_acting_keys() {
+  Fixture f; f.receive(marked(1)); hostMillis += 600;
+  CHECK(f.terminal.press('D')); f.receive(marked(2), "ack", f.terminal.pending, "accepted");
+  CHECK(!f.terminal.press('#')); CHECK(f.commands() == 1);
+  hostMillis += 499; CHECK(!f.terminal.press('#'));
+  hostMillis += 1; CHECK(f.terminal.press('#')); CHECK(f.commands() == 2);
+}
+// An incoming request opens on its own, and '#' suddenly means "give
+// clearance". That push is a screen change like any other.
+void a_pushed_screen_change_guards_too() {
+  Fixture f; f.receive(marked(1)); hostMillis += 600;
+  auto request = marked(1); request["view_token"] = "token-request"; f.receive(request);
+  CHECK(!f.terminal.press('#')); CHECK(f.terminal.press('D')); CHECK(f.commands() == 1);
+  auto meanings = marked(5); meanings["view_token"] = "same"; f.receive(meanings, "ack", f.terminal.pending, "accepted");
+  hostMillis += 600;
+  auto relabelled = marked(5); relabelled["view_token"] = "same"; relabelled["keys"]["#"]["label"] = "Ge klart";
+  f.receive(relabelled); CHECK(!f.terminal.press('#'));
+}
+void an_unchanged_screen_or_a_new_minute_does_not_guard() {
+  Fixture f; f.receive(marked(1)); hostMillis += 600;
+  CHECK(f.terminal.press('#')); f.receive(marked(1), "ack", f.terminal.pending, "rejected");
+  CHECK(f.terminal.press('#')); f.receive(marked(1), "ack", f.terminal.pending, "rejected");
+  auto minute = marked(1); minute["lcd"]["cells"][1][15] = static_cast<int>('5'); f.receive(minute);
+  CHECK(f.terminal.press('#')); CHECK(f.commands() == 3);
+}
+void digits_and_search_are_never_guarded() {
+  Fixture f; f.receive(marked(1)); hostMillis += 600;
+  f.receive(marked(2));
+  CHECK(f.terminal.press('9')); CHECK(f.terminal.press('3')); CHECK(f.terminal.press('#'));
+  CHECK(f.last()["train_number"] == "93"); CHECK(f.commands() == 1);
+}
+void a_key_without_the_flag_counts_as_acting() {
+  Fixture f; f.receive(screen("meet-1:station-MUN:reset-1", 1, 2));
+  CHECK(!f.terminal.press('D')); CHECK(!f.terminal.press('#'));
+  CHECK(f.terminal.press('9')); CHECK(f.terminal.press('A')); CHECK(f.commands() == 1);
 }
 void rejected_ack_retains_correctable_input() {
   Fixture f; CHECK(f.terminal.press('9')); CHECK(f.terminal.press('#'));
@@ -222,7 +276,8 @@ void publish_failure_disables_input() {
 }
 void no_entry_no_digits_and_only_server_keys() {
   Fixture f; auto frame = screen(); frame.remove("entry"); frame["keys"].remove("A");
-  f.receive(frame); CHECK(!f.terminal.press('9')); CHECK(!f.terminal.press('A')); CHECK(!f.terminal.press('Z'));
+  f.receive(frame); hostMillis += ServerTerminal::GUARD_MS;  // new keys: a screen change
+  CHECK(!f.terminal.press('9')); CHECK(!f.terminal.press('A')); CHECK(!f.terminal.press('Z'));
   CHECK(f.terminal.press('D')); CHECK(f.last()["key"] == "D"); CHECK(f.last()["action"].isNull());
 }
 void malformed_frames_cannot_replace_display() {
@@ -303,7 +358,10 @@ int main() {
   const Test tests[] = {hello_and_presence_are_not_assignments, digits_stay_local_until_confirm,
     local_edit_cancel_and_queue, length_and_entry_context_are_checked, placement_refresh_keeps_unsubmitted_digits,
     older_views_and_revisions_do_not_roll_back, changed_station_meet_or_reset_clears_input,
-    accepted_and_duplicate_ack_clear_input_and_guard_double_press, rejected_ack_retains_correctable_input,
+    accepted_and_duplicate_ack_clear_input_and_guard_double_press, browsing_answers_at_once,
+    a_new_screen_guards_only_acting_keys, a_pushed_screen_change_guards_too,
+    an_unchanged_screen_or_a_new_minute_does_not_guard, digits_and_search_are_never_guarded,
+    a_key_without_the_flag_counts_as_acting, rejected_ack_retains_correctable_input,
     unrelated_ack_boot_and_retained_frame_are_ignored, disconnect_and_reconnect_never_replay_commands,
     a_slow_answer_keeps_the_session, silence_still_ends_the_session_while_waiting,
     a_lost_answer_gives_up_the_command_not_the_session, waiting_is_shown_until_the_answer, no_text_no_overlay,
