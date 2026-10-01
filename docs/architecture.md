@@ -1,11 +1,10 @@
 # TMBox local-first architecture (v1)
 
-This describes the original MQTT v1 protocol (`tambox/v1/...`), still served
-by `trainmeet-server` for the Swift app and the local web client. The
-physical ESP32 firmware in this repo no longer speaks v1 — it was rewritten
-to protocol v2 (`tmbox/v2/...`); see [`docs/tmbox.md`](tmbox.md) for the
-current, canonical spec. This document stays as the reference for the parts
-of the stack that still run on v1.
+This describes the original MQTT v1 protocol (`tambox/v1/...`). **It is no
+longer served:** TrainMeet Server 2.0.0 removed it (and `tmbox/v2/...`), and
+firmware 0.7.4 removed the last v1 code. Since 0.7.0 the boxes speak the 16×2
+terminal profile, specified in the server's `docs/protocol/terminal16`. This
+document is kept as history.
 
 ## Product decisions
 

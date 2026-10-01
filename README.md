@@ -2,6 +2,9 @@
 
 ESP8266 och ESP32 kör samma serverstyrda TMBox-funktioner. **Från firmware
 0.7.0 krävs TrainMeet Server 1.10.0 eller senare. Uppdatera servern först.**
+Sedan TrainMeet Server 2.0.0 talar servern bara 16×2-profilen över MQTT: en box
+med firmware äldre än 0.7.0 behöver flashas om. Firmware 0.7.4 tar bort den
+sista koden för de äldre protokollen; 0.7.0–0.7.3 fungerar också mot 2.0.0.
 Vi börjar med 16 tecken × 2 rader även på en större fysisk display.
 
 Servern äger trafikbeslut, skärmar, språk och tangenternas betydelse.

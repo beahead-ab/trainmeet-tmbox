@@ -27,7 +27,7 @@ class KeysTheFirmwareActuallyHandlesTest(unittest.TestCase):
         source = NAVIGATION.read_text(encoding="utf-8")
         return set(re.findall(r"key == '([A-D0-9*#])'", source))
 
-    def test_d_is_not_a_traffic_key_but_opens_the_language_menu(self) -> None:
+    def test_d_is_not_a_traffic_key_in_the_local_navigation(self) -> None:
         """The premise of the test below.
 
         If somebody implements D, this fails first and says so, instead of the
@@ -42,9 +42,12 @@ class KeysTheFirmwareActuallyHandlesTest(unittest.TestCase):
             "D hanteras nu i firmware - ta bort den här spärren och låt "
             "dokumentationen beskriva vad tangenten gör",
         )
+        # Since 0.7.4 the sketch handles no key itself: every key goes to the
+        # server through the terminal, which draws what D does (if anything).
         firmware = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
-        self.assertIn("key == 'D'", firmware)
-        self.assertIn("languageMenu.begin(deviceLanguage)", firmware)
+        self.assertNotIn("key == 'D'", firmware)
+        self.assertNotIn("languageMenu", firmware)
+        self.assertIn("terminal.press(key)", firmware)
 
     def test_a_document_showing_the_d_key_says_it_is_not_built(self) -> None:
         """The spec may specify D. It may not imply a box does it.

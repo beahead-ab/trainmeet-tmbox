@@ -1,5 +1,11 @@
 # TMBox
 
+> **Transporten här är borttagen.** Sedan firmware 0.7.0 talar boxarna
+> 16×2-profilen (`tmbox/terminal/...`, serverns `docs/protocol/terminal16`), där
+> servern ritar varje bild. TrainMeet Server 2.0.0 och firmware 0.7.4 tog bort
+> `tmbox/v2/...` över MQTT. Produktbeskrivningen och trafikreglerna nedan
+> gäller; avsnitten om topics och retained-meddelanden är historik.
+
 TMBox är en fysisk terminal för tågrörelser och klarering mellan
 trafikplatser, byggd för modelljärnvägsträffar. Den är inte ett ställverk.
 LocoNet, JMRI, digital ställverkspanel och förseningstjänster ligger utanför

@@ -1,12 +1,12 @@
 /*
- * TrainMeet physical TMBox — local-first ESP32 firmware, protocol v2
+ * TrainMeet physical TMBox — ESP32 firmware, 16x2 terminal profile
  *
- * The Raspberry Pi / TrainMeet Server is the traffic authority. This box
- * holds its assigned station's config and live snapshot in RAM (retained
- * MQTT topics tmbox/v2/device/{id}/config and .../snapshot, each replaced
- * wholesale on every publish — no delta logic), browses that cache locally,
- * and only speaks on the wire to send a complete command. See
- * trainmeet-tmbox docs/tmbox.md §2.4/§2.5 for the design this implements.
+ * The Raspberry Pi / TrainMeet Server is the traffic authority and draws
+ * every screen: the box speaks tmbox/terminal/device/{id}/... (see
+ * common/server_terminal.h and the server's docs/protocol/terminal16),
+ * shows the frames it is sent and sends back key presses. Before it is
+ * connected it shows its own status screens. Since 0.7.4 the old local
+ * renderer and its v2 protocol are gone; Server 2.0.0 does not speak it.
  * Wi-Fi and MQTT are deliberately self-healing: a lost connection never
  * leaves the firmware in a dead loop.
  */
@@ -31,8 +31,6 @@
 #include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
-#include "meet_scope.h"
-#include "language_menu.h"
 #include "../common/server_terminal.h"
 #include "../common/server_discovery_arduino.h"
 
@@ -45,11 +43,6 @@ constexpr unsigned long DISCOVERY_RETRY_MS = 4000;
 constexpr unsigned long MQTT_RETRY_MIN_MS = 1000;
 constexpr unsigned long MQTT_RETRY_MAX_MS = 8000;
 constexpr unsigned long DEVICE_CODE_SCREEN_MS = 3000;
-constexpr unsigned long ACK_MESSAGE_MS = 1500;
-// A guard against a malformed payload rather than a working limit: a real
-// station can have seventy movements in a day, and the cache is a vector now
-// rather than the fixed array this number was sized for.
-constexpr size_t MAX_CACHED_MOVEMENTS = 96;
 
 const byte ROWS = 4;
 const byte COLS = 4;
@@ -73,11 +66,8 @@ WiFiClient networkClient;
 MqttClient mqttClient(networkClient);
 ServerTerminal terminal;
 Preferences preferences;
-tmbox::LanguageMenu languageMenu;
 std::map<std::string, std::string> deviceMessages;
 std::string deviceLanguage = "sv";
-bool languageReady = false;
-uint32_t languageSequence = 0;
 
 bool loadDeviceUI(JsonVariantConst ui) {
   if (ui["version"] != 1 || !ui["language"].is<const char*>() || !ui["messages"].is<JsonObjectConst>()) return false;
@@ -94,9 +84,6 @@ bool loadDeviceUI(JsonVariantConst ui) {
   deviceMessages.clear();
   for (JsonPairConst item : ui["messages"].as<JsonObjectConst>())
     if (item.value().is<const char*>()) deviceMessages[item.key().c_str()] = item.value().as<const char*>();
-  languageMenu.options.clear();
-  for (JsonObjectConst option : ui["languages"].as<JsonArrayConst>())
-    languageMenu.options.push_back({option["code"] | "", option["name"] | ""});
   return true;
 }
 
@@ -109,28 +96,10 @@ String rememberedServerId, discoveredServerId;
 String gatewayHost;
 uint16_t gatewayPort = DEFAULT_MQTT_PORT;
 
-String helloTopic;
-String assignmentTopic;
-String configTopic;
-String snapshotTopic;
-String presenceTopic;
-String commandTopic;
-String ackTopic;
-
-String assignedStationId;
-String stationCode;
-String stationName;
-String configPublicationId;
-bool hasConfig = false;
-bool hasSnapshot = false;
-
 tmbox::StationConfig stationConfig;
 tmbox::Snapshot stationSnapshot;
 tmbox::LocalNavigationState navigation;
 tmbox::AttentionController attention;
-tmbox::MeetScope meetScope;
-bool scopeRefreshRequested = false;
-unsigned long scopeRefreshAt = 0;
 
 // What this box can physically show, announced in `hello` so the server knows
 // what it is formatting for.
@@ -148,12 +117,6 @@ unsigned long nextDiscoveryAt = 0;
 unsigned long nextMqttAttemptAt = 0;
 unsigned long mqttRetryDelay = MQTT_RETRY_MIN_MS;
 unsigned int failedMqttAttempts = 0;
-unsigned long ackMessageUntil = 0;
-// Which action is in flight, so its acknowledgement can be read correctly,
-// and the screen to come back to when the flash is over.
-String pendingAction;
-String pendingMessageId;
-tmbox::Screen flashReturnScreen = tmbox::Screen::StationOverview;
 // What is on the glass right now, so an unchanged line is not rewritten.
 static const uint8_t MAX_DISPLAY_ROWS = 4;
 String drawnLines[MAX_DISPLAY_ROWS];
@@ -171,19 +134,9 @@ void resetNetworkConfiguration();
 bool discoverGateway();
 bool connectMqtt();
 void disconnectMqtt();
-void publishHello();
-void publishPresence(const char* status);
-void sendCommand(const tmbox::Command& command);
 void onMqttMessage(int messageSize);
-void handleAssignment(const String& payload);
-void handleConfig(const String& payload);
-void handleSnapshot(const String& payload);
 void signalAttention(const std::vector<tmbox::AttentionEvent>& events);
 const char* attentionName(tmbox::Attention kind);
-void handleAck(const String& payload);
-void invalidateStationCache();
-bool acceptScope(JsonDocument& document, tmbox::ScopePart part, const char* station);
-void showStationWhenReady();
 void keypadEvent(KeypadEvent key);
 void buildIdentity();
 String codeFromChipId(uint64_t chipId);
@@ -249,57 +202,10 @@ void loop() {
     delay(10);
     return;
   }
-  if (scopeRefreshRequested && mqttClient.connected() && millis() >= scopeRefreshAt) {
-    scopeRefreshRequested = false;
-    scopeRefreshAt = millis() + 2000;
-    publishPresence("online");  // Ask for a complete fresh authoritative triplet.
-  }
-
-  if (ackMessageUntil != 0 && millis() >= ackMessageUntil) {
-    ackMessageUntil = 0;
-    navigation.show(flashReturnScreen, millis());
-    drawScreen();
-  }
-
-  char key = keypad.getKey();
-  languageMenu.tick(millis());
-  if (key && ackMessageUntil == 0 && mqttClient.connected() && languageReady
-      && (languageMenu.open || (key == 'D' &&
-          (navigation.view().screen == tmbox::Screen::StationOverview ||
-           navigation.view().screen == tmbox::Screen::AwaitingAssignment)))) {
-    if (!languageMenu.open) languageMenu.begin(deviceLanguage);
-    else {
-      const std::string chosen = languageMenu.press(key);
-      if (!chosen.empty()) {
-        JsonDocument request;
-        String id = deviceId + "-language-" + String(millis()) + "-" + String(++languageSequence);
-        request["request_id"] = id; request["language"] = chosen.c_str();
-        languageMenu.sent(id.c_str(), millis());
-        String body; serializeJson(request, body);
-        mqttClient.beginMessage(("tmbox/v2/device/" + deviceId + "/preferences/set").c_str(), body.length(), false, 1);
-        mqttClient.print(body); mqttClient.endMessage();
-      }
-    }
-    key = 0; drawScreen();
-  }
-  if (languageMenu.open) { key = 0; drawScreen(); }
-  // No write is accepted until a fresh, authoritative config and snapshot have
-  // arrived: acting on a stale cache is how a box sends a decision about a
-  // train that is no longer there.
-  if (key && ackMessageUntil == 0 && mqttClient.connected()
-      && !assignedStationId.isEmpty() && hasConfig && hasSnapshot && meetScope.ready()) {
-    const tmbox::KeyResult result =
-        navigation.press(key, millis(), stationConfig, stationSnapshot);
-    if (result.outcome == tmbox::Outcome::Redraw) {
-      drawScreen();
-    } else if (result.outcome == tmbox::Outcome::Send) {
-      sendCommand(result.command);
-    }
-  }
-
-  if (mqttClient.connected()) {
-    mqttClient.poll();
-  }
+  // Without a terminal session there is nothing to send (since 0.7.4 there
+  // is no v2 protocol): the box shows its own status screens. The keypad is
+  // still read, so holding * opens setup.
+  keypad.getKey();
   delay(10);
 }
 
@@ -416,11 +322,6 @@ bool connectMqtt() {
     return false;
   }
 
-  // A dropped connection may already report disconnected before the Wi-Fi
-  // handler sees it. Never carry that connection's selections into a new one.
-  meetScope.reset();
-  invalidateStationCache();
-
   const auto text = [](const char* key) {
     const auto found = deviceMessages.find(key);
     return String(found == deviceMessages.end() ? key : found->second.c_str());
@@ -428,139 +329,13 @@ bool connectMqtt() {
   terminal.waitingText = text("VANTAR PA SVAR"); terminal.unansweredText = text("INGET SVAR");
   terminal.begin(mqttClient, deviceId, deviceCode, "ESP32 TMBox 16x2", FIRMWARE_VERSION,
                  deviceId + "-" + String(esp_random(), HEX) + "-" + String(millis()));
-  return true; // Legacy v2 local renderer below is deprecated for normal operation.
-  mqttClient.subscribe(assignmentTopic, 1);
-  mqttClient.subscribe(configTopic, 1);
-  mqttClient.subscribe(snapshotTopic, 1);
-  mqttClient.subscribe(ackTopic, 1);
-  mqttClient.subscribe("tmbox/v2/device/" + deviceId + "/preferences", 1);
-  publishHello();
-  publishPresence("online");
-  signalAttention(attention.observe_link(true));
-  showScreen(tmbox::Screen::AwaitingAssignment);
   return true;
 }
 
 void disconnectMqtt() {
   terminal.reset();
-  languageReady = false;
-  languageMenu.open = languageMenu.saving = false;
   if (!mqttClient.connected()) return;
-  publishPresence("offline");
   mqttClient.stop();
-  meetScope.reset();
-  invalidateStationCache();
-}
-
-void invalidateStationCache() {
-  assignedStationId = "";
-  hasConfig = false;
-  hasSnapshot = false;
-  stationConfig = tmbox::StationConfig();
-  stationSnapshot = tmbox::Snapshot();
-  navigation = tmbox::LocalNavigationState();
-  attention.forget();
-  pendingAction = "";
-  pendingMessageId = "";
-  ackMessageUntil = 0;
-  flashReturnScreen = tmbox::Screen::StationOverview;
-}
-
-bool acceptScope(JsonDocument& document, tmbox::ScopePart part, const char* station) {
-  tmbox::WireScope incoming;
-  incoming.present = !document["meet_generation"].isNull() || !document["publication_id"].isNull();
-  if (incoming.present) {
-    incoming.valid = document["meet_generation"].is<uint64_t>()
-        && document["publication_id"].is<const char*>();
-    incoming.generation = document["meet_generation"] | uint64_t(0);
-    incoming.publication = document["publication_id"] | "";
-  }
-  const bool accepted = meetScope.accept(part, incoming, station ? station : "");
-  if (meetScope.reset_seen()) {
-    invalidateStationCache();
-    showScreen(tmbox::Screen::LoadingStation);
-  }
-  if (!accepted) scopeRefreshRequested = true;
-  return accepted;
-}
-
-void showStationWhenReady() {
-  if (hasConfig && hasSnapshot && meetScope.ready()
-      && (navigation.view().screen == tmbox::Screen::LoadingStation
-          || navigation.view().screen == tmbox::Screen::AwaitingAssignment)) {
-    navigation.show(tmbox::Screen::StationOverview, millis());
-  }
-  drawScreen();
-}
-
-void publishHello() {
-  JsonDocument document;
-  document["device_code"] = deviceCode;
-  document["model"] = TMBOX_MODEL_NAME;
-  document["firmware_version"] = FIRMWARE_VERSION;
-  // §5: the box says what it can render so the server formats for it rather
-  // than assuming the smallest display we support.
-  JsonObject display = document["display"].to<JsonObject>();
-  display["rows"] = displayGeometry.rows;
-  display["cols"] = displayGeometry.cols;
-  display["charset"] = displayGeometry.supports_swedish ? "cgram" : "ascii";
-  String payload;
-  serializeJson(document, payload);
-  mqttClient.beginMessage(helloTopic.c_str(), payload.length(), false, 1);
-  mqttClient.print(payload);
-  mqttClient.endMessage();
-}
-
-void publishPresence(const char* status) {
-  JsonDocument document;
-  document["status"] = status;
-  document["device_code"] = deviceCode;
-  document["uptime_ms"] = millis();
-  String payload;
-  serializeJson(document, payload);
-  mqttClient.beginMessage(presenceTopic.c_str(), payload.length(), false, 1);
-  mqttClient.print(payload);
-  mqttClient.endMessage();
-}
-
-void sendCommand(const tmbox::Command& command) {
-  if (!mqttClient.connected() || !meetScope.ready() || !hasConfig || !hasSnapshot) {
-    showScreen(tmbox::Screen::LoadingStation);
-    return;
-  }
-  // One id per command, reused on replay, so a reconnect cannot turn one
-  // decision into two.
-  JsonDocument document;
-  document["protocol_version"] = 2;
-  pendingMessageId = deviceId + "-" + String((uint32_t)esp_random(), HEX);
-  document["message_id"] = pendingMessageId;
-  document["device_id"] = deviceId;
-  document["station_id"] = assignedStationId;
-  document["action"] = command.action.c_str();
-  if (meetScope.value().present) {
-    document["meet_generation"] = meetScope.value().generation;
-    document["publication_id"] = meetScope.value().publication.c_str();
-  }
-  JsonObject payloadObject = document["payload"].to<JsonObject>();
-  // Every id the state machine put on the command travels. A field it sets
-  // and nobody packs is a command that will be refused on arrival.
-  if (!command.movement_id.empty()) payloadObject["movement_id"] = command.movement_id.c_str();
-  if (!command.track_id.empty()) payloadObject["track_id"] = command.track_id.c_str();
-  if (!command.connection_id.empty()) payloadObject["connection_id"] = command.connection_id.c_str();
-  if (!command.clearance_id.empty()) payloadObject["clearance_id"] = command.clearance_id.c_str();
-  if (!command.message_id.empty()) payloadObject["message_id"] = command.message_id.c_str();
-  if (!command.train_number.empty()) payloadObject["train_number"] = command.train_number.c_str();
-  if (command.has_approved) payloadObject["approved"] = command.approved;
-
-  String payload;
-  serializeJson(document, payload);
-  mqttClient.beginMessage(commandTopic.c_str(), payload.length(), false, 1);
-  mqttClient.print(payload);
-  mqttClient.endMessage();
-
-  pendingAction = command.action.c_str();
-  flashReturnScreen = navigation.view().screen;
-  showScreen(tmbox::Screen::Sending);
 }
 
 void onMqttMessage(int messageSize) {
@@ -578,180 +353,8 @@ void onMqttMessage(int messageSize) {
   if (terminal.started) {
     terminal.receive(topic, payload, mqttClient.messageRetain());
     terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
-    return;
-  }
-
-  if (topic.endsWith("/preferences")) {
-    if (mqttClient.messageRetain()) return;
-    JsonDocument document;
-    if (deserializeJson(document, payload)) return;
-    if (loadDeviceUI(document["ui"])) {
-      languageReady = true;
-      String cached; serializeJson(document["ui"], cached);
-      if (preferences.getString("device-ui", "") != cached) preferences.putString("device-ui", cached);
-    }
-    languageMenu.reply(document["request_id"] | "", String(document["status"] | "") == "accepted");
-    drawScreen();
-  } else if (topic.endsWith("/assignment")) {
-    handleAssignment(payload);
-  } else if (topic.endsWith("/config")) {
-    handleConfig(payload);
-  } else if (topic.endsWith("/snapshot")) {
-    handleSnapshot(payload);
-  } else if (topic.endsWith("/ack")) {
-    handleAck(payload);
   }
 }
-
-void handleAssignment(const String& payload) {
-  JsonDocument document;
-  if (deserializeJson(document, payload)) return;
-  const String status = document["status"] | "";
-  if (status != "assigned") {
-    acceptScope(document, tmbox::ScopePart::Assignment, "");
-    meetScope.invalidate();
-    invalidateStationCache();
-    scopeRefreshRequested = false;  // Waiting for the administrator, not a retry loop.
-    showScreen(tmbox::Screen::AwaitingAssignment);
-    return;
-  }
-  if (!acceptScope(document, tmbox::ScopePart::Assignment, document["station_id"] | "")) return;
-  assignedStationId = document["station_id"] | "";
-  if (!meetScope.ready()) showScreen(tmbox::Screen::LoadingStation);
-  showStationWhenReady();
-}
-
-void handleConfig(const String& payload) {
-  JsonDocument document;
-  if (deserializeJson(document, payload)) return;
-  if (!acceptScope(document, tmbox::ScopePart::Config, document["station"]["id"] | "")) return;
-  configPublicationId = document["config_version"] | "";
-  stationConfig = tmbox::StationConfig();
-  stationConfig.station_id = document["station"]["id"] | "";
-  stationConfig.code = document["station"]["code"] | "";
-  stationConfig.name = document["station"]["name"] | "";
-  // The pickers are built from these; without them a track change or a
-  // clearance request has nothing to offer and nothing to name.
-  for (JsonObject item : document["tracks"].as<JsonArray>()) {
-    tmbox::Track track;
-    track.id = item["id"] | "";
-    track.display_label = item["display_label"] | "";
-    stationConfig.tracks.push_back(track);
-  }
-  for (JsonObject item : document["connections"].as<JsonArray>()) {
-    tmbox::Connection connection;
-    connection.connection_id = item["connection_id"] | "";
-    connection.other_station_code = item["other_station_code"] | "";
-    connection.track_type = item["track_type"] | "";
-    connection.display_side = item["display_side"] | "";
-    stationConfig.connections.push_back(connection);
-  }
-  hasConfig = true;
-  showStationWhenReady();
-}
-
-void handleSnapshot(const String& payload) {
-  JsonDocument document;
-  if (deserializeJson(document, payload)) return;
-  if (!acceptScope(document, tmbox::ScopePart::Snapshot, document["station_id"] | "")) return;
-  stationSnapshot = tmbox::Snapshot();
-  stationSnapshot.station_id = document["station_id"] | "";
-  stationSnapshot.clock.time = document["clock"]["time"] | "";
-  stationSnapshot.clock.running = document["clock"]["running"] | false;
-  for (JsonObject item : document["movements"].as<JsonArray>()) {
-    if (stationSnapshot.movements.size() >= MAX_CACHED_MOVEMENTS) break;
-    tmbox::Movement movement;
-    movement.id = item["id"] | "";
-    movement.train_number = item["train_number"] | "";
-    movement.arrival_time = item["arrival_time"] | "";
-    movement.departure_time = item["departure_time"] | "";
-    movement.departure = item["departure"] | "none";
-    movement.arrival = item["arrival"] | "none";
-    movement.assigned_track_id = item["assignedTrackId"] | "";
-    movement.crew_ready = item["crewReady"] | false;
-    // What the box may offer is the server's answer, never the box's guess.
-    for (JsonVariant action : item["allowed_actions"].as<JsonArray>()) {
-      // A null in the array would hand std::string a null pointer, which is
-      // undefined behaviour rather than an empty action.
-      const char* name = action.as<const char*>();
-      if (name != nullptr && name[0] != '\0') movement.allowed_actions.push_back(name);
-    }
-    stationSnapshot.movements.push_back(movement);
-  }
-  for (JsonObject item : document["active_clearances"].as<JsonArray>()) {
-    tmbox::Clearance clearance;
-    clearance.clearance_id = item["clearance_id"] | "";
-    clearance.movement_id = item["movement_id"] | "";
-    clearance.connection_id = item["connection_id"] | "";
-    clearance.status = item["status"] | "";
-    clearance.from_station_id = item["from_station_id"] | "";
-    clearance.to_station_id = item["to_station_id"] | "";
-    stationSnapshot.clearances.push_back(clearance);
-  }
-  for (JsonObject item : document["line_messages"].as<JsonArray>()) {
-    tmbox::LineMessage message;
-    message.message_id = item["message_id"] | "";
-    message.connection_id = item["connection_id"] | "";
-    message.status = item["status"] | "";
-    message.from_station_id = item["from_station_id"] | "";
-    stationSnapshot.line_messages.push_back(message);
-  }
-  hasSnapshot = true;
-  signalAttention(attention.observe(stationSnapshot));
-  // A snapshot replaces the cache whole, so a selection that no longer exists
-  // must not survive it.
-  navigation.reconcile(stationConfig, stationSnapshot, millis());
-  showStationWhenReady();
-}
-
-void handleAck(const String& payload) {
-  JsonDocument document;
-  if (deserializeJson(document, payload)) return;
-  if (pendingMessageId.isEmpty() || pendingMessageId != (document["message_id"] | "") || !meetScope.ready()) return;
-  pendingMessageId = "";
-  if (String(document["reason"] | "") == "stale_meet_context") {
-    meetScope.invalidate();
-    invalidateStationCache();
-    scopeRefreshRequested = true;
-    showScreen(tmbox::Screen::LoadingStation);
-    return;
-  }
-  const String status = document["status"] | "";
-  const bool refused = status != "accepted" && status != "duplicate";
-
-  // A lookup answers rather than changes anything, so it lands on a screen
-  // instead of flashing past the operator.
-  if (!refused && pendingAction == "train.lookup") {
-    std::vector<tmbox::LookupMatch> matches;
-    for (JsonObject item : document["result"]["matches"].as<JsonArray>()) {
-      tmbox::LookupMatch match;
-      match.movement_id = item["movement_id"] | "";
-      match.train_number = item["train_number"] | "";
-      match.arrival_time = item["arrival_time"] | "";
-      match.departure_time = item["departure_time"] | "";
-      match.track_id = item["track_id"] | "";
-      matches.push_back(match);
-    }
-    pendingAction = "";
-    navigation.apply_lookup(stationSnapshot, matches, millis());
-    drawScreen();
-    return;
-  }
-  pendingAction = "";
-
-  if (refused) {
-    navigation.view().reason = String(document["reason"] | "").c_str();
-    showScreen(tmbox::Screen::CommandRejected);
-  } else {
-    showScreen(tmbox::Screen::CommandAccepted);
-  }
-  // A fresh snapshot always follows an accepted command and redraws the
-  // real view; this is only a brief flash so a rejection reason is visible
-  // before that happens.
-  ackMessageUntil = millis() + ACK_MESSAGE_MS;
-}
-
-
 
 void processSavedParameters() {
   if (forgetServerRequested) {
@@ -790,14 +393,6 @@ void drawScreen() {
   if (stationConfig.messages != deviceMessages) stationConfig.messages = deviceMessages;
   tmbox::Frame frame =
       tmbox::render(displayGeometry, navigation.view(), stationConfig, stationSnapshot);
-  if (languageMenu.open) {
-    const std::string key = languageMenu.saving ? "SAVING..." : languageMenu.failed ? "NOT SAVED #=TRY" : "C=NEXT *=BACK";
-    const auto found = deviceMessages.find(key);
-    const std::string name = languageMenu.name().substr(0, displayGeometry.cols - 6);
-    const std::string clock = stationSnapshot.clock.time.empty() ? "--:--" : stationSnapshot.clock.time.substr(0, 5);
-    const std::string choice = name + std::string(displayGeometry.cols - name.size() - clock.size(), ' ') + clock;
-    frame = tmbox::frame_of(displayGeometry, {found == deviceMessages.end() ? key : found->second, choice, "LANGUAGE", stationSnapshot.clock.time});
-  }
   for (uint8_t row = 0; row < displayGeometry.rows; ++row) {
     // Only write a line that actually changed. An I2C display is slow enough
     // that redrawing an unchanged frame is visible as a flicker.
@@ -828,14 +423,6 @@ void buildIdentity() {
   deviceCode = codeFromChipId(chipId);
   // "TMBOX-" is 6 characters; the AP name carries just the 6-character code.
   accessPointName = "TrainMeet-" + deviceCode.substring(6);
-
-  helloTopic = "tmbox/v2/device/" + deviceId + "/hello";
-  assignmentTopic = "tmbox/v2/device/" + deviceId + "/assignment";
-  configTopic = "tmbox/v2/device/" + deviceId + "/config";
-  snapshotTopic = "tmbox/v2/device/" + deviceId + "/snapshot";
-  presenceTopic = "tmbox/v2/device/" + deviceId + "/presence";
-  commandTopic = "tmbox/v2/device/" + deviceId + "/command";
-  ackTopic = "tmbox/v2/device/" + deviceId + "/ack";
 }
 
 String codeFromChipId(uint64_t chipId) {

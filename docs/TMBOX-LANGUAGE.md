@@ -1,6 +1,11 @@
 # Språk på TMBox
 Uppdaterat 2026-09-20.
 
+> **Från firmware 0.7.4 (TrainMeet Server 2.0.0):** boxen har ingen egen
+> språkmeny. Administratören väljer varje box språk under Drift → Klienter →
+> **Språk**, och boxen får en ny bild direkt. Avsnitten Användning och
+> Ansvar nedan beskriver de äldre protokollen.
+
 ## Användning
 - ESP32: tryck D från översikten (eller när boxen väntar på station).
 - ESP8266: tryck # från viloläget. A–D behåller den äldre trafikfunktionen.
@@ -34,11 +39,10 @@ firmwareuppdatering. Virtualiserad TMBox uppdateras tillsammans med Server.
 
 ## Tekniskt kontrakt
 - Språkkoder: sv, da, nb, en, de. ui.version = 1.
-- MQTT: tambox/v1/device/{id}/preferences/set respektive
-  tmbox/v2/device/{id}/preferences/set, med language och request_id.
-- Svar på motsvarande /preferences: status, request_id och ui.
-- Adminpush/anslutning skickar ui utan request_id. Meddelanden sparas inte
-  som retained i brokern; persistent källa är Server-databasen.
+- 16×2-box (MQTT): språket följer med i varje bild från servern. Ändras det
+  under Klienter skickar servern en ny bild direkt. Persistent källa är
+  Server-databasen. (`preferences/set` på `tambox/v1` och `tmbox/v2` är
+  borttaget sedan Server 2.0.0 och firmware 0.7.4.)
 - Virtuell box: GET/POST /v1/tmbox/preferences med boxens egen identitet.
 - Admin: POST /v1/devices/language med device_id och language.
 - Ett språkpaket innehåller version, language, languages (kod/namn), messages.
