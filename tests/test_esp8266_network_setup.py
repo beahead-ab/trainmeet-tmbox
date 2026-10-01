@@ -28,8 +28,8 @@ class NetworkSetupTest(unittest.TestCase):
         self.assertNotIn("settings.host", source)
         self.assertNotIn("gatewayParameter", source)
         self.assertIn("TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str())", source)
-        # Service-name repair must never rename the existing wire protocol.
-        self.assertIn('"tambox/v1/device/"', source)
+        # Since 0.7.4 the 16x2 terminal is the only wire protocol.
+        self.assertNotIn("tambox/v1", source)
         self.assertNotIn("tmbox/v1/", source)
         self.assertNotIn("wifiManager.stopConfigPortal()", source)
         self.assertIn("TrainMeetNetwork::finishSavedPortal(", source)
@@ -50,38 +50,49 @@ class NetworkSetupTest(unittest.TestCase):
         self.assertIn("_tmbox._tcp", readme)
         self.assertNotIn("_tambox._tcp", readme)
 
-    def test_assignment_is_not_a_periodic_heartbeat(self):
-        source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
-        self.assertNotIn("lastHello", source)
-        self.assertIn("serverSync.next(current, refreshRequested)", source)
-        self.assertIn("if (request == ServerSync::Assignment) hello()", source)
-        self.assertIn("else if (request == ServerSync::State) requestState()", source)
-        request = source.split("void requestState()", 1)[1].split("void receiveMessage", 1)[0]
-        self.assertIn('"/presence"', request)
-        self.assertNotIn("/hello", request)
-        self.assertIn('message["state_token"] = stateToken', request)
-        self.assertLess(request.index("serverSync.sent("), request.index("publish("))
-        hello = source.split("void hello()", 1)[1].split("void requestState()", 1)[0]
-        self.assertLess(hello.index("serverSync.sent("), hello.index("publish("))
-        self.assertIn('"/state", 1)', source)
-        self.assertIn('stateRequestId != (message["request_id"] | "")', source)
-        self.assertIn('stateToken == (message["state_token"] | "")', source)
-        self.assertIn("lease.heartbeat(millis())", source)
-        self.assertIn("serverSync.assignmentReceived(millis())", source)
-        self.assertIn("serverSync.reset(); invalidate()", source)
-        # ESP32 already requests registration only when MQTT reconnects.
-        esp32 = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
-        self.assertEqual(2, esp32.count("publishHello();")) # declaration + connect
+    def test_only_the_terminal_speaks(self):
+        """0.7.4: Server 2.0.0 answers only tmbox/terminal/... The v1 (ESP8266)
+        and v2 (ESP32) paths, their last will and their offline message are gone,
+        so nothing a box sends can land on a topic nobody reads."""
+        sources = {path: path.read_text() for path in (
+            SKETCH / "TrainMeetTambox8266.ino", SKETCH / "web_test.h", ROOT / "firmware/esp32/TrainMeetTMBox.ino")}
+        for path, source in sources.items():
+            with self.subTest(path=path.name):
+                for old in ("tambox/v1", "tmbox/v2", "beginWill", "publishPresence", "protocol_version"):
+                    self.assertNotIn(old, source)
+        esp8266 = sources[SKETCH / "TrainMeetTambox8266.ino"]
+        connect = esp8266.split("void connectServer() {", 1)[1].split("\n}\n", 1)[0]
+        self.assertTrue(connect.rstrip().endswith("String(++commandSequence));"), "nothing after terminal.begin")
+        # Connected without a session is not a state to stay in.
+        self.assertIn("Start over.\n          disconnectServer(); nextConnection = current + 1000;", esp8266)
+        esp32 = sources[ROOT / "firmware/esp32/TrainMeetTMBox.ino"]
+        connect = esp32.split("bool connectMqtt() {", 1)[1].split("\n}\n", 1)[0]
+        self.assertTrue(connect.rstrip().endswith("return true;"))
+        self.assertEqual(1, connect.count("return true;"), "nothing after terminal.begin")
+        disconnect = esp32.split("void disconnectMqtt() {", 1)[1].split("\n}\n", 1)[0]
+        self.assertNotIn("publish", disconnect)
+
+    def test_the_language_is_chosen_on_the_server(self):
+        """0.7.4: neither box nor its phone page has a language menu. The
+        language comes with every frame; the administrator picks it."""
+        page = (SKETCH / "web_test_page.h").read_text()
+        self.assertNotIn('id="language"', page)
+        self.assertNotIn("languageAvailable", (SKETCH / "web_test.h").read_text())
+        for path in (SKETCH / "TrainMeetTambox8266.ino", ROOT / "firmware/esp32/TrainMeetTMBox.ino"):
+            with self.subTest(path=path.name):
+                source = path.read_text()
+                self.assertNotIn("language_menu.h", source)
+                self.assertNotIn("languageMenu", source)
+        self.assertFalse((SKETCH / "language_menu.h").exists())
 
     def test_web_keys_share_server_command_safety(self):
         backend = (SKETCH / "web_test.h").read_text()
         firmware = (SKETCH / "TrainMeetTambox8266.ino").read_text()
         self.assertIn("sendKey(key[0], true)", backend)
-        self.assertIn('data["revision"].as<long>() != revision', backend)
-        self.assertIn('sessionId != data["session"].as<String>()', backend)
-        self.assertIn("webSession.permits(virtualKey, keypadOK && lcdFound", firmware)
-        self.assertIn("lease.allowed(millis())", firmware)
-        self.assertIn("allowedKeys.indexOf(key) < 0", firmware)
+        self.assertIn('String(data["session"] | "") != terminal.token()', backend)
+        self.assertIn("webSession.permits(true, false, millis())", backend)
+        self.assertIn("if (!terminal.started || !webSession.permits(virtualKey, keypadOK && lcdFound", firmware)
+        self.assertIn("terminal.press(key)", firmware)
         self.assertIn("sendKey(event.pressed, false)", firmware)
         self.assertIn("SameSite=Strict", backend)
         self.assertIn('origin != "http://" + host', backend)
@@ -100,13 +111,13 @@ class NetworkSetupTest(unittest.TestCase):
                        capture_output=True, check=True, timeout=30)
 
     def test_digits_are_buffered_before_mqtt_publish(self):
-        source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
-        send = source.split("bool sendKey(char key, bool virtualKey)", 1)[1].split("#ifndef", 1)[0]
-        local = send.index("trainEntry.digit(key)")
-        self.assertLess(local, send.index('command["action"]'))
-        self.assertIn("return true;", send[local:send.index('command["action"]')])
-        self.assertIn('command["train_number"] = trainEntry.value.c_str()', send)
-        self.assertIn('message["interaction"]["local_train_entry"] == true', source)
+        """Digits stay in the box until #; the terminal buffers them, and the
+        phone page cannot send one on its own."""
+        terminal = (ROOT / "firmware/common/server_terminal.h").read_text()
+        press = terminal.split("bool press(char key) {", 1)[1].split("\n  }\n", 1)[0]
+        self.assertIn("digits += key; dirty = true; return true;", press)
+        backend = (SKETCH / "web_test.h").read_text()
+        self.assertIn("Siffror stannar i telefonen tills #.", backend)
 
     def test_native_network_and_input_regressions(self):
         compiler = shutil.which("g++")

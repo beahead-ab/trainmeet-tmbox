@@ -33,7 +33,8 @@ A–D är funktionsknappar, inte destinationer. Följ skärmens tangentbeskrivni
 `*` avbryter inmatning och `B` suddar en siffra. Ingen siffra skickas separat.
 
 Uppdatera **servern först till minst 1.10.0**. Den gemensamma transporten
-använder `tmbox/terminal/device/<id>/`, inte det äldre `tambox/v1`-flödet.
+använder `tmbox/terminal/device/<id>/`. Det äldre v1-flödet finns inte kvar
+sedan 0.7.4, och TrainMeet Server 2.0.0 svarar inte på det.
 Vid avbrott spärras trafikåtgärder; inga gamla kommandon återspelas.
 [Gemensam användning och uppgraderingsordning](../../README.md).
 Befintliga boxar måste få den nya firmwaren via USB en gång. Senare språk-
@@ -168,33 +169,14 @@ pio device monitor -b 115200
    annonserade MQTT-port (vanligen 1883). Ingen IP-adress, port eller serverkod
    anges. Äldre sparade serveradresser används inte.
 6. I **TrainMeet Servers** admin väljer du station för den upptäckta boxen.
-   En uppdaterad server kopplar då även stationens entydiga v1-panel vid
-   tilldelningen och skickar den direkt. Därefter hämtas display och tillåtna tangenter.
+   Servern skickar då direkt boxens nya bild med stationen och tangenterna.
 
-### Tilldelning vid behov, inte var tionde sekund
+### Kontakt med servern
 
-Boxen registrerar sig och begär sin tilldelning när den ansluter eller återhämtar
-sig efter serveravbrott. Därefter ligger tilldelningen kvar tills administratören
-ändrar eller tar bort den. Även en box som väntar på admin slutar fråga efter
-samma tilldelning när servern har bekräftat registreringen.
-
-En liten kontaktkontroll var tionde sekund finns kvar, men är **inte en ny
-tilldelning**. Med uppdaterad server får oförändrat tillstånd endast en kort
-kvittens; displayen och oskickat tågnummer laddas inte om. Vid ändrad trafik
-eller klocka hämtas aktuellt läge. Äldre server kan svara med en hel skärmbild
-på kontaktkontrollen, men boxen skickar inte längre periodiska registreringar.
-För hela optimeringen behövs därför både server- och firmwareuppdatering.
-
-Uteblivet svar på en begäran försöks igen efter fem sekunder. Detta gäller bara
-registrering/status, **aldrig trafikkommandon**. Adminändringar skickas direkt;
-kontaktkontrollen kan också upptäcka och återhämta en missad tilldelningsändring.
-
-**Serverkrav:** servern behöver rättningen för MQTT v1 efter stationstilldelning
-(NodeMCU-kompatibiliteten). Äldre stationbaserade versioner sparar bara
-stationen och ger ingen v1-skärmbild. Visas `V1-PANEL SAKNAS`, uppdatera
-servern och kontrollera att stationen har exakt en logisk A–D-panel. Finns
-flera paneler gissar servern inte: v1 kräver då en uttrycklig paneltilldelning
-via serverns äldre API. V2-klienters stationstilldelning ändras inte.
+Boxen hälsar när den ansluter och visar ett livstecken var femte sekund.
+Servern ritar varje bild och skickar en ny så fort något ändras: station, sida,
+språk, trafik eller klocka. Får boxen inget svar på femton sekunder ansluter den
+igen. Trafikkommandon skickas aldrig om automatiskt.
 
 Servern kan köras på Raspberry Pi, Mac, PC eller Linux. Det är samma lokala
 protokoll. Att serverns webbsida går att nå via HTTPS betyder inte att dess

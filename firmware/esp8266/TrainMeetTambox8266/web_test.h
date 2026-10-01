@@ -2,8 +2,8 @@
 #include <ESP8266WebServer.h>
 #include "web_test_page.h"
 
-// Included after the firmware's shared command path: HTTP keys must use
-// exactly the same MQTT command, lease, revision and acknowledgement rules.
+// Included after the firmware's shared command path: HTTP keys go through the
+// same terminal session as the keypad, with the same guard and acknowledgement.
 ESP8266WebServer testWeb(80);
 String webToken;
 bool testWebRunning = false;
@@ -11,8 +11,7 @@ bool testWebRunning = false;
 void stopVirtualInput() {
   terminal.digits = ""; terminal.dirty = true;
   webSession.enabled = false;
-  trainEntry.clear();
-  lease.clear(); keys.requireRelease(); refreshRequested = true;
+  keys.requireRelease();
 }
 
 void stopWebTestServer() {
@@ -79,58 +78,28 @@ bool readWebBody(JsonDocument& data) {
 }
 
 bool webSnapshotReady() {
-  if (terminal.started) return terminal.ready() && terminal.hasEntry();
-  return WiFi.status() == WL_CONNECTED && mqtt.connected() && panelId.length() &&
-         sessionId.length() && lease.allowed(millis());
+  return terminal.started && terminal.ready() && terminal.hasEntry();
 }
 
 void webStatus() {
+  // One shape whether or not the box is connected: before the server has
+  // sent a frame the page shows the box's own status lines.
   JsonDocument data;
-  if (terminal.started) {
-    data["serverDriven"] = true;
-    data["deviceCode"] = deviceCode; data["deviceId"] = deviceId;
-    data["firmware"] = TAMBOX_FIRMWARE_VERSION; data["ip"] = WiFi.localIP().toString();
-    data["connected"] = mqtt.connected(); data["panel"] = terminal.frame["station_code"] | "";
-    data["session"] = terminal.token(); data["revision"] = terminal.frame["revision"] | 0;
-    data["lcd"] = lcdFound; data["keypad"] = keypadOK;
-    data["webTest"] = webSession.enabled && webSession.valid(millis());
-    data["waiting"] = terminal.pending.length() > 0; data["fresh"] = terminal.fresh;
-    data["canStart"] = webSnapshotReady(); data["ready"] = webSnapshotReady() && webSession.enabled;
-    data["allowedKeys"] = terminal.allowed(); data["languageAvailable"] = false;
-    data["localEntry"] = terminal.hasEntry(); data["entryContext"] = terminal.context();
-    data["entryValue"] = terminal.digits; data["entryLines"] = terminal.frame["entry"]["lines"];
-    data["line1"] = terminal.line(0); data["line2"] = terminal.line(1);
-    webJson(200, data); return;
-  }
+  data["serverDriven"] = true;
   data["deviceCode"] = deviceCode; data["deviceId"] = deviceId;
-  data["firmware"] = TAMBOX_FIRMWARE_VERSION;
-  data["ip"] = WiFi.localIP().toString();
+  data["firmware"] = TAMBOX_FIRMWARE_VERSION; data["ip"] = WiFi.localIP().toString();
   data["server"] = gatewayHost.length() ? gatewayHost + ":" + gatewayPort : "";
-  data["serverHost"] = gatewayHost; data["serverPort"] = gatewayPort;
-  data["connected"] = mqtt.connected(); data["panel"] = panelId;
-  data["enrollmentReady"] = serverEnrollment.ready(mqtt.connected());
-  data["session"] = sessionId; data["revision"] = revision;
+  data["connected"] = terminal.started && mqtt.connected(); data["panel"] = terminal.frame["station_code"] | "";
+  data["session"] = terminal.token(); data["revision"] = terminal.frame["revision"] | 0;
   data["lcd"] = lcdFound; data["keypad"] = keypadOK;
   data["webTest"] = webSession.enabled && webSession.valid(millis());
-  data["waiting"] = lease.waiting;
-  data["fresh"] = lease.fresh && !lease.expired(millis());
-  data["canStart"] = webSnapshotReady();
-  data["ready"] = webSnapshotReady() && webSession.enabled;
-  String webKeys = allowedKeys;
-  if (languageReady && idleScreen && !trainEntry.active) webKeys += '#';
-  if (languageMenu.open) webKeys = languageMenu.saving ? "" : "C#*";
-  if (enteringTrain && !trainEntry.active) webKeys = "*";
-  data["allowedKeys"] = webKeys;
-  data["language"] = deviceUi["language"] | "sv";
-  data["languageMenu"] = languageMenu.open;
-  data["languageAvailable"] = languageReady && idleScreen && !trainEntry.active;
-  data["entryLabel"] = uiText("Tag: ");
-  data["localEntry"] = trainEntry.active;
-  data["entryContext"] = trainEntry.entryContext().c_str();
-  data["entryValue"] = trainEntry.value.c_str();
-  data["entryNeedsUpdate"] = enteringTrain && !trainEntry.active;
-  data["line1"] = serverLine1.length() ? inputLine1() : shownLine1;
-  data["line2"] = serverLine2.length() ? inputLine2() : shownLine2;
+  data["waiting"] = terminal.pending.length() > 0; data["fresh"] = terminal.fresh;
+  data["canStart"] = webSnapshotReady(); data["ready"] = webSnapshotReady() && webSession.enabled;
+  data["allowedKeys"] = terminal.started ? terminal.allowed() : String();
+  data["localEntry"] = terminal.hasEntry(); data["entryContext"] = terminal.context();
+  data["entryValue"] = terminal.digits; data["entryLines"] = terminal.frame["entry"]["lines"];
+  data["line1"] = terminal.fresh ? terminal.line(0) : shownLine1;
+  data["line2"] = terminal.fresh ? terminal.line(1) : shownLine2;
   webJson(200, data);
 }
 
@@ -168,8 +137,8 @@ void setupWebTest() {
       if (!webSnapshotReady()) { webError(409, "Invänta stationstilldelning och aktuell skärmbild från servern."); return; }
       webSession.enable(millis());
       TMBOX_DEBUG("Web test enabled\n");
-      // A fresh snapshot is required after changing input source.
-      trainEntry.clear(); lease.clear(); keys.requireRelease(); refreshRequested = true;
+      // A fresh frame is required after changing input source.
+      keys.requireRelease();
       terminal.digits = ""; terminal.dirty = true; terminal.guard = millis() + 500;
     } else { stopVirtualInput(); webSession.touch(millis()); TMBOX_DEBUG("Web test disabled\n"); }
     webStatus();
@@ -178,40 +147,17 @@ void setupWebTest() {
     if (!webAuthorize(true)) return;
     JsonDocument data; if (!readWebBody(data)) return;
     const String key = data["key"] | "";
-    if (terminal.started) {
-      if (key.length() != 1 || !strchr(TAMBOX_KEYS, key[0]) ||
-          String(data["session"] | "") != terminal.token() ||
-          !webSession.permits(true, false, millis())) {
-        webError(409, "Läs den aktuella displayen och försök igen."); return;
-      }
-      if (key[0] >= '0' && key[0] <= '9') { webError(400, "Siffror stannar i telefonen tills #."); return; }
-      if (data.containsKey("train_number") && (key[0] != '#' ||
-          !terminal.replaceDigits(data["entryContext"] | "", data["train_number"] | ""))) {
-        webError(409, "Inmatningen är inte aktuell."); return;
-      }
-      if (!sendKey(key[0], true)) { webError(409, "Invänta aktuell skärmbild."); return; }
-      webSession.touch(millis()); webStatus(); return;
+    if (!terminal.started || key.length() != 1 || !strchr(TAMBOX_KEYS, key[0]) ||
+        String(data["session"] | "") != terminal.token() ||
+        !webSession.permits(true, false, millis())) {
+      webError(409, "Läs den aktuella displayen och försök igen."); return;
     }
-    if (key.length() != 1 || !strchr(TAMBOX_KEYS, key[0]) ||
-        !data["session"].is<const char*>() || sessionId != data["session"].as<String>() ||
-        !data["revision"].is<long>() || data["revision"].as<long>() != revision) {
-      webError(409, "Skärmbilden har ändrats. Läs aktuellt läge och försök igen."); return;
+    if (key[0] >= '0' && key[0] <= '9') { webError(400, "Siffror stannar i telefonen tills #."); return; }
+    if (data.containsKey("train_number") && (key[0] != '#' ||
+        !terminal.replaceDigits(data["entryContext"] | "", data["train_number"] | ""))) {
+      webError(409, "Inmatningen är inte aktuell."); return;
     }
-    if (trainEntry.active && key[0] >= '0' && key[0] <= '9') {
-      webError(400, "Siffror skrivs lokalt. Bekräfta hela tågnumret med #."); return;
-    }
-    if (trainEntry.active && key[0] == '#') {
-      if (!webSnapshotReady() || !webSession.permits(true, false, millis()) ||
-          !data["entryContext"].is<const char*>() || !data["train_number"].is<const char*>() ||
-          !trainEntry.replace(data["entryContext"].as<const char*>(), data["train_number"].as<const char*>())) {
-        webError(409, "Inmatningen har ändrats. Läs aktuellt läge och ange tåget igen."); return;
-      }
-    } else if (data.containsKey("train_number")) {
-      webError(409, "Tåginmatningen är inte längre aktiv."); return;
-    }
-    if (!sendKey(key[0], true)) {
-      webError(409, "Tangenten är spärrad eller ett kommando väntar på serversvar."); return;
-    }
+    if (!sendKey(key[0], true)) { webError(409, "Invänta aktuell skärmbild."); return; }
     webSession.touch(millis()); webStatus();
   });
   testWeb.on("/api/logout", HTTP_POST, []() {

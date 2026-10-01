@@ -10,7 +10,6 @@ test: run-renderer run-navigation run-attention run-firmware-calls run-meet-scop
 
 run-language-menu: build/test_language_menu
 	./build/test_language_menu
-	diff -u $(CORE)/language_menu.h ../../esp8266/TrainMeetTambox8266/language_menu.h
 
 run-renderer: build/test_renderer
 	./build/test_renderer

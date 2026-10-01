@@ -22,7 +22,6 @@ input{width:100%;background:white;margin:8px 0}section{margin:18px 0}.panel{back
 <div id="controls" hidden><section class="panel"><div id="identity"></div><div id="link" class="muted"></div>
 <p id="mode" class="mode">Webbtest avstängt</p><p class="warning">Knapparna påverkar den anslutna träffen på riktigt. Använd en testträff. Stationen tilldelas i TrainMeet Server.</p>
 <div class="row"><button id="start" class="primary">Aktivera webbtest</button><button id="stop">Avsluta webbtest</button></div></section>
-<button id="language" type="button">Språk / Language (#)</button>
 <section class="box" aria-label="Virtuell TMBox"><div class="bezel"><div class="lcd" role="status" aria-live="polite"><div id="line1">                </div><div id="line2">                </div></div></div>
 <div id="keys" class="keys" aria-label="Knappsats"></div><div class="brand">TRAINMEET · TMBOX</div></section>
 <p id="status" class="status"></p><p id="hardware" class="status muted"></p>
@@ -37,8 +36,7 @@ function drawKeys(){for(const b of buttons)b.disabled=busy||!online||!state||!st
 function clearEntry(){entryContext=null;entryValue='';}
 function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null){if(state.serverDriven){const lines=entryValue?state.entryLines:[state.line1,state.line2];$('line1').textContent=entryValue?[...lines[0]].slice(0,5).join('')+entryValue.padEnd(5,'_')+[...lines[0]].slice(10).join(''):lines[0];$('line2').textContent=lines[1];}else $('line2').textContent=((state.entryLabel||'Tag: ')+entryValue).padEnd(16,' ').slice(0,16);}}
 function drawControls(){for(const el of document.querySelectorAll('input,button'))el.disabled=busy;
- $('start').disabled=busy||!online||!state||state.webTest||!state.canStart;$('stop').disabled=busy||!online||!state||!state.webTest;
- $('language').disabled=busy||!online||!state||!state.webTest||!state.ready||!state.languageAvailable||state.languageMenu;drawKeys();}
+ $('start').disabled=busy||!online||!state||state.webTest||!state.canStart;$('stop').disabled=busy||!online||!state||!state.webTest;drawKeys();}
 function show(s){
  if(!s.connected||!s.webTest||!s.localEntry)clearEntry();
  else if(entryContext!==s.entryContext){entryContext=s.entryContext;entryValue=s.entryValue||'';}
@@ -72,7 +70,6 @@ async function press(key){if(!state||!state.ready||!state.webTest||!online||busy
  if(result&&command.train_number!==undefined&&result.serverDriven){clearEntry();entryContext=result.entryContext;drawEntry();drawKeys();}}
 $('start').onclick=()=>action('/api/test',{enabled:true});$('stop').onclick=()=>action('/api/test',{enabled:false});
 $('logout').onclick=()=>action('/api/logout',{});
-$('language').onclick=()=>press('#');
 // No overlapping polling or retries of commands. A timer only reads status.
 async function poll(){if(!closed&&!busy&&!document.hidden)await refresh();setTimeout(poll,1000);}poll();
 setInterval(()=>{if(!busy&&online&&Date.now()-lastReply>3000)lost();},500);
