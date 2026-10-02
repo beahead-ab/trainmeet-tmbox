@@ -34,7 +34,7 @@
 #include "../common/server_terminal.h"
 #include "../common/server_discovery_arduino.h"
 
-constexpr char FIRMWARE_VERSION[] = "0.7.3";
+constexpr char FIRMWARE_VERSION[] = "0.7.4";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
 constexpr unsigned long SAVED_WIFI_WINDOW_MS = 15000;
 constexpr unsigned long LOST_WIFI_PORTAL_DELAY_MS = 30000;
