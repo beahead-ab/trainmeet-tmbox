@@ -17,6 +17,7 @@
 #include "pcf_keypad.h"
 #include "network_setup.h"
 #include "web_test_state.h"
+#include "../../common/lcd_text.h"
 #include "../../common/server_terminal.h"
 #include "../../common/server_discovery_arduino.h"
 
@@ -32,8 +33,15 @@ WiFiManager wifiManager;
 KeyState keys;
 WebTestSession webSession;
 // Local status texts in the box's language, cached by firmware before 0.7.0.
+// The catalog is keyed on the Swedish folded to ASCII (FORSOKER IGEN), and a
+// message equal to its key is that same Swedish: the box keeps its own
+// spelling with the dots (FÖRSÖKER IGEN).
 JsonDocument deviceUi;
-String uiText(const char* key) { return deviceUi["messages"][key] | key; }
+String uiText(const char* text) {
+  char key[48]; TrainMeetLcd::foldText(text, key, sizeof key);
+  const char* message = deviceUi["messages"][(const char*)key].as<const char*>();
+  return message && strcmp(message, key) ? String(message) : String(text);
+}
 
 // The old connection settings occupied the beginning of EEPROM. Reserve a
 // separate bounded cache at the end; never overwrite those settings.
@@ -69,32 +77,26 @@ void stopWebTestServer();
 
 bool due(uint32_t now, uint32_t when) { return int32_t(now - when) >= 0; }
 
-String lcdLine(String value) {
-  // The usual HD44780 ROM is not UTF-8. Keep cell alignment for Swedish text.
-  value.replace("å", "a"); value.replace("ä", "a"); value.replace("ö", "o");
-  value.replace("Å", "A"); value.replace("Ä", "A"); value.replace("Ö", "O");
-  String line;
-  for (size_t i = 0; i < value.length() && line.length() < 16; ++i) {
-    const uint8_t c = value[i];
-    if (c >= 32 && c < 127) line += char(c);
-    else if (c >= 192) line += '?'; // One placeholder per other UTF-8 character.
-  }
-  while (line.length() < 16) line += ' ';
-  return line;
-}
-
+// The box's own two lines. Å, Ä and Ö are drawn in CGRAM with the server's
+// glyphs (lcd_text.h); until 0.7.4 they were folded to A and O here.
 void showFrame(const String& one, const String& two) {
-  const String first = lcdLine(one), second = lcdLine(two);
-  if (first == shownLine1 && second == shownLine2) return;
+  char first[64], second[64];
+  TrainMeetLcd::fitText(one.c_str(), 16, first, sizeof first);
+  TrainMeetLcd::fitText(two.c_str(), 16, second, sizeof second);
+  if (shownLine1 == first && shownLine2 == second) return;
   shownLine1 = first; shownLine2 = second;
-  TMBOX_LOG("LCD |%s|%s|\n", first.c_str(), second.c_str());
+  TMBOX_LOG("LCD |%s|%s|\n", first, second);
   if (lcdFound) {
-    lcd.setCursor(0, 0); lcd.print(first);
-    lcd.setCursor(0, 1); lcd.print(second);
+    TrainMeetLcd::Screen screen(2, 16);
+    screen.line(0, first); screen.line(1, second);
+    screen.draw(lcd);
   }
 }
 
 void disconnectServer() {
+  // The display showed the server's frame and its glyphs: the next local
+  // text is written even if it is the one shown before the session.
+  shownLine1 = ""; shownLine2 = "";
   terminal.reset(); keys.requireRelease();
   mqtt.stop(); connectedBefore = false;
   webSession.enabled = false;
@@ -148,8 +150,8 @@ bool resolveServer() {
   const auto servers = TrainMeetNetwork::discoverServers();
   const auto selected = TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str());
   if (selected.index < 0) {
-    showFrame(selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "FLERA SERVRAR" : "SOKER SERVER",
-              selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "BE ADMIN HJALPA" : deviceCode);
+    showFrame(selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "FLERA SERVRAR" : "SÖKER SERVER",
+              selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous ? "BE ADMIN HJÄLPA" : deviceCode);
     return false;
   }
   const auto& server = servers[selected.index];
@@ -167,7 +169,7 @@ void connectServer() {
   }
   TMBOX_LOG("TrainMeet Server connected; assignment is managed by the server administrator.\n");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
-  terminal.waitingText = uiText("VANTAR PA SVAR"); terminal.unansweredText = uiText("INGET SVAR");
+  terminal.waitingText = uiText("VÄNTAR PÅ SVAR"); terminal.unansweredText = uiText("INGET SVAR");
   terminal.begin(mqtt, deviceId, deviceCode, "NodeMCU ESP8266 16x2", TAMBOX_FIRMWARE_VERSION,
                  bootId + "-" + String(++commandSequence));
 }
@@ -217,7 +219,7 @@ void setup() {
   showFrame("TRAINMEET TMBOX", deviceCode);
 #ifdef TAMBOX_HARDWARE_CHECK
   WiFi.mode(WIFI_OFF);
-  showFrame("HARDVARUTEST", keypadOK ? "TRYCK ALLA 16" : "KNAPPSATS SAKNAS");
+  showFrame("HÅRDVARUTEST", keypadOK ? "TRYCK ALLA 16" : "KNAPPSATS SAKNAS");
 #else
   // Use our bounded USB diagnostics; the library can expose network settings.
   wifiManager.setDebugOutput(false);
@@ -287,7 +289,7 @@ void loop() {
       if (mdnsStarted) MDNS.close();
       mdnsStarted = false;
     }
-    if (!portalActive) showFrame(uiText("NAT SAKNAS"), uiText("FORSOKER IGEN"));
+    if (!portalActive) showFrame(uiText("NÄT SAKNAS"), uiText("FÖRSÖKER IGEN"));
     if (!portalActive && uint32_t(now - wifiLostAt) >= 30000) startPortal();
   } else {
     if (!wifiWasConnected) TMBOX_LOG("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
@@ -295,7 +297,7 @@ void loop() {
     if (mdnsStarted) MDNS.update();
     if (!portalActive) {
       if (!mqtt.connected()) {
-        if (connectedBefore) { disconnectServer(); showFrame(uiText("SERVER BORTA"), uiText("FORSOKER IGEN")); }
+        if (connectedBefore) { disconnectServer(); showFrame(uiText("SERVER BORTA"), uiText("FÖRSÖKER IGEN")); }
         if (due(now, nextConnection)) {
           connectServer();
           connectionFailures = min(connectionFailures + 1, 4u);
@@ -306,7 +308,7 @@ void loop() {
         // A callback may just have set lastSnapshot later than the loop's `now`.
         const uint32_t current = millis();
         if (terminal.started) {
-          if (!terminal.tick()) { disconnectServer(); showFrame("SERVER SAKNAS", "FORSOKER IGEN"); nextConnection = current + 1000; }
+          if (!terminal.tick()) { disconnectServer(); showFrame("SERVER SAKNAS", "FÖRSÖKER IGEN"); nextConnection = current + 1000; }
           else {
             if (terminal.fresh && String(terminal.frame["station_code"] | "").length() &&
                 rememberedServerId != discoveredServerId) saveServerBinding(discoveredServerId);

@@ -47,8 +47,17 @@ std::string transliterate(const std::string& value) {
 }
 
 std::string fit(const std::string& value, std::uint8_t width) {
-  std::string result = value.substr(0, width);
-  result.append(width - result.size(), ' ');
+  // Characters, not bytes: Å is two bytes in UTF-8 but one cell on the display.
+  std::string result;
+  std::uint8_t cells = 0;
+  for (std::size_t index = 0; index < value.size(); ++index) {
+    const auto byte = static_cast<unsigned char>(value[index]);
+    const bool starts = (byte & 0xC0) != 0x80;
+    if (starts && cells == width) break;
+    if (starts) ++cells;
+    result.push_back(value[index]);
+  }
+  result.append(width - cells, ' ');
   return result;
 }
 

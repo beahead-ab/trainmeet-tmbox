@@ -121,8 +121,9 @@ på `0x3F`. Beställ T-varianten. Firmwaren har `0x27` som förval och tar
 
 **ÅÄÖ.** Standardteckenuppsättningen saknar dem. HD44780 tar åtta
 egendefinierade tecken i CGRAM; Å, Ä och Ö som versaler tar tre och lämnar fem
-över. Det räcker, och firmwaren kan sluta skriva `SPAR`, `BEGAR` och `FORARE`
-utan prickar. Se öppen punkt Ö6.
+över. Det räcker. Sedan firmware 0.7.5 ritar boxen Å, Ä och Ö även i sina
+egna texter (`SÖKER SERVER`, `VÄNTAR PÅ SVAR`), med samma glyfer som servern
+använder i sina bilder (`firmware/common/lcd_text.h`). Se punkt Ö6.
 
 ---
 
@@ -449,7 +450,7 @@ Måste besvaras innan konstruktionen kan beställas.
 | Ö3 | Vilken knappsatsmodell exakt? | Panelurtaget måste matcha. Membrantangentbord limmas; mekaniska skruvas. Vi vill ha mekaniska, men modellen bestämmer måtten. |
 | Ö4 | Räcker DevKitens kortantenn i den låda vi väljer? | DevKitC-1 bär en ESP32-S3-WROOM-1 med antenn på kretskortet, och modulen går inte att byta på ett färdigt DevKit. Visar sig en aluminiumfront dämpa för mycket är svaret ett eget kretskort med en WROOM-1**U** och extern antenn — vilket i så fall river hela DevKit-valet i avsnitt 2. Mät på en prototyp innan panelmaterialet bestäms. Hänger ihop med Ö5. |
 | Ö5 | Frontpanel i akryl eller aluminium? | Aluminium är starkare och snyggare men kan störa Wi-Fi och kräver isolering runt knappsatsen. Akryl är enklare. |
-| Ö6 | Ska ÅÄÖ visas, eller behåller vi translitterering? | Tre CGRAM-tecken av åtta. Påverkar renderaren och guldfilerna — de måste skrivas om ifall svaret är ja. |
+| Ö6 | ~~Ska ÅÄÖ visas, eller behåller vi translitterering?~~ | Besvarad i 0.7.5: de visas. Serverns bilder har haft dem sedan 16×2-profilen; boxens egna texter ritas nu med samma glyfer. Guldfilerna är oförändrade, eftersom de gäller en display utan prickar. |
 | Ö7 | Vilka statuslägen ska lysdioden ha? | Förslaget i avsnitt 8 är ännu inte beslutat. Färgvalen bör stämma med hur användarna tolkar signalfärger. |
 | Ö8 | Ska boxen fungera utan accesspunkt på träffen? | Om ja behövs ett AP-läge i firmwaren och det är inte byggt. Om nej måste varje träff ha nät, vilket är ett driftkrav och inte ett hårdvarukrav. |
 | Ö9 | Vem bygger, och var? | Påverkar om stycklistan ska peka på svenska leverantörer eller på ett samlat beställningsunderlag. |

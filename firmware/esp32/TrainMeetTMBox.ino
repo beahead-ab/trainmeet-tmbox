@@ -31,6 +31,7 @@
 #include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
+#include "../common/lcd_text.h"
 #include "../common/server_terminal.h"
 #include "../common/server_discovery_arduino.h"
 
@@ -101,9 +102,9 @@ tmbox::Snapshot stationSnapshot;
 tmbox::LocalNavigationState navigation;
 tmbox::AttentionController attention;
 
-// What this box can physically show, announced in `hello` so the server knows
-// what it is formatting for.
-const tmbox::Geometry displayGeometry(TMBOX_LCD_ROWS, TMBOX_LCD_COLUMNS, false);
+// What this box can physically show. Since 0.7.5 Å, Ä and Ö are drawn in
+// CGRAM with the server's glyphs (lcd_text.h), so the renderer keeps them.
+const tmbox::Geometry displayGeometry(TMBOX_LCD_ROWS, TMBOX_LCD_COLUMNS, true);
 
 bool portalActive = false;
 bool saveParametersRequested = false;
@@ -117,11 +118,12 @@ unsigned long nextDiscoveryAt = 0;
 unsigned long nextMqttAttemptAt = 0;
 unsigned long mqttRetryDelay = MQTT_RETRY_MIN_MS;
 unsigned int failedMqttAttempts = 0;
-// What is on the glass right now, so an unchanged line is not rewritten.
-static const uint8_t MAX_DISPLAY_ROWS = 4;
-String drawnLines[MAX_DISPLAY_ROWS];
+// What is on the glass right now, so an unchanged screen is not rewritten.
+TrainMeetLcd::Screen drawn(TMBOX_LCD_ROWS, TMBOX_LCD_COLUMNS);
+bool drawnValid = false;
 
 void drawScreen();
+void drawLocal(const std::vector<std::string>& lines);
 void showScreen(tmbox::Screen screen);
 void showNetworkState();
 void beginSavedWiFiAttempt();
@@ -305,9 +307,7 @@ bool discoverGateway() {
   if (selected.index < 0) {
     showScreen(tmbox::Screen::SeekingServer);
     if (selected.status == TrainMeetNetwork::DiscoveryStatus::Ambiguous) {
-      lcd.clear(); lcd.setCursor(0, 0); lcd.print("FLERA SERVRAR");
-      lcd.setCursor(0, 1); lcd.print("BE ADMIN HJALPA");
-      for (auto& line : drawnLines) line = "";
+      drawLocal({"FLERA SERVRAR", "BE ADMIN HJÄLPA"});
     }
     return false;
   }
@@ -322,11 +322,14 @@ bool connectMqtt() {
     return false;
   }
 
-  const auto text = [](const char* key) {
+  // The cached catalog is keyed on the Swedish folded to ASCII; a message
+  // equal to its key is that Swedish, and the box keeps its own spelling.
+  const auto text = [](const char* source) {
+    char key[48]; TrainMeetLcd::foldText(source, key, sizeof key);
     const auto found = deviceMessages.find(key);
-    return String(found == deviceMessages.end() ? key : found->second.c_str());
+    return String(found == deviceMessages.end() || found->second == key ? source : found->second.c_str());
   };
-  terminal.waitingText = text("VANTAR PA SVAR"); terminal.unansweredText = text("INGET SVAR");
+  terminal.waitingText = text("VÄNTAR PÅ SVAR"); terminal.unansweredText = text("INGET SVAR");
   terminal.begin(mqttClient, deviceId, deviceCode, "ESP32 TMBox 16x2", FIRMWARE_VERSION,
                  deviceId + "-" + String(esp_random(), HEX) + "-" + String(millis()));
   return true;
@@ -387,20 +390,28 @@ void showNetworkState() {
   showScreen(tmbox::Screen::NoNetwork);
 }
 
+// The box's own screen, with Å, Ä and Ö in CGRAM (lcd_text.h). Only a
+// changed screen is written: an I2C display is slow enough that redrawing an
+// unchanged one is visible as a flicker.
+void drawLocal(const std::vector<std::string>& lines) {
+  TrainMeetLcd::Screen screen(TMBOX_LCD_ROWS, TMBOX_LCD_COLUMNS);
+  for (uint8_t row = 0; row < screen.rows && row < lines.size(); ++row) screen.line(row, lines[row].c_str());
+  if (drawnValid && screen == drawn) return;
+  drawn = screen; drawnValid = true;
+  screen.draw(lcd);
+}
+
 void drawScreen() {
-  if (terminal.started && terminal.fresh) { terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS); return; }
+  if (terminal.started && terminal.fresh) {
+    terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
+    // The server's frame and glyphs are on the glass now: the next local
+    // screen is written even if it is the one shown before the session.
+    drawnValid = false;
+    return;
+  }
   stationConfig.language = deviceLanguage;
   if (stationConfig.messages != deviceMessages) stationConfig.messages = deviceMessages;
-  tmbox::Frame frame =
-      tmbox::render(displayGeometry, navigation.view(), stationConfig, stationSnapshot);
-  for (uint8_t row = 0; row < displayGeometry.rows; ++row) {
-    // Only write a line that actually changed. An I2C display is slow enough
-    // that redrawing an unchanged frame is visible as a flicker.
-    if (row < MAX_DISPLAY_ROWS && drawnLines[row] == frame[row].c_str()) continue;
-    if (row < MAX_DISPLAY_ROWS) drawnLines[row] = frame[row].c_str();
-    lcd.setCursor(0, row);
-    lcd.print(frame[row].c_str());
-  }
+  drawLocal(tmbox::render(displayGeometry, navigation.view(), stationConfig, stationSnapshot));
 }
 
 void showScreen(tmbox::Screen screen) {

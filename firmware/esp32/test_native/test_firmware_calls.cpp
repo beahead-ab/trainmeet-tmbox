@@ -16,8 +16,9 @@ using namespace tmbox;
 
 namespace {
 
-/// Mirrors the geometry the firmware builds from its hardware profile.
-const Geometry FIRMWARE_GEOMETRY(2, 16, false);
+/// Mirrors the geometry the firmware builds from its hardware profile: Å, Ä
+/// and Ö are drawn in CGRAM (common/lcd_text.h) since 0.7.5.
+const Geometry FIRMWARE_GEOMETRY(2, 16, true);
 
 void the_attention_call_sites_still_compile() {
   AttentionController attention;

@@ -11,8 +11,8 @@ namespace tmbox {
 /// Input is UTF-8; output is one byte per character.
 std::string transliterate(const std::string& value);
 
-/// Cut or pad to exactly `width` characters, so a frame never inherits
-/// leftovers from the frame before it.
+/// Cut or pad to exactly `width` characters (not bytes: UTF-8 Å is one), so
+/// a frame never inherits leftovers from the frame before it.
 std::string fit(const std::string& value, std::uint8_t width);
 
 /// `421>[1A]` for a departure, `[2A]<428` for an arrival. The arrow points
