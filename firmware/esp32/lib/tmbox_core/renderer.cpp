@@ -109,9 +109,13 @@ Frame render(const Geometry& geometry,
              const ViewState& view,
              const StationConfig& config,
              const Snapshot& snapshot) {
-  const auto tr = [&config](const std::string& key) -> std::string {
+  // The catalog is keyed on the Swedish folded to ASCII (FORSOKER IGEN). A
+  // message equal to its key is that same Swedish, so the source spelling
+  // with the dots is kept; a display without them folds it in frame_of.
+  const auto tr = [&config](const std::string& source) -> std::string {
+    const std::string key = transliterate(source);
     const auto item = config.messages.find(key);
-    return item == config.messages.end() ? key : item->second;
+    return item == config.messages.end() || item->second == key ? source : item->second;
   };
   std::vector<std::string> lines;
 
@@ -120,16 +124,16 @@ Frame render(const Geometry& geometry,
       lines = {"TRAINMEET TMBOX", view.device_code};
       break;
     case Screen::NoNetwork:
-      lines = {tr("NAT SAKNAS"), tr("FORSOKER IGEN")};
+      lines = {tr("NÄT SAKNAS"), tr("FÖRSÖKER IGEN")};
       break;
     case Screen::SetupPortal:
       lines = {tr("INSTALLERA WIFI"), view.access_point_name};
       break;
     case Screen::SeekingServer:
-      lines = {tr("SOKER SERVER"), view.device_code};
+      lines = {tr("SÖKER SERVER"), view.device_code};
       break;
     case Screen::ServerGone:
-      lines = {tr("SERVER BORTA"), tr("FORSOKER IGEN")};
+      lines = {tr("SERVER BORTA"), tr("FÖRSÖKER IGEN")};
       break;
     case Screen::AwaitingAssignment:
       // The firmware says KOPPLA BOXEN for any assignment status but assigned,

@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ArduinoMqttClient.h>
+#include "lcd_text.h"
 
 // Shared by ESP8266 and ESP32. No routes, train states or action names.
 // The server supplies pixels, text and key meanings; only digits stay here.
@@ -179,16 +180,22 @@ class ServerTerminal {
     if (!fresh || !dirty) return;
     JsonVariantConst view = digits.length() ? frame["entry"].as<JsonVariantConst>() : frame.as<JsonVariantConst>();
     const String& overlay = waiting() ? waitingText : (unanswered ? unansweredText : empty());
+    // The overlay is the box's own text (VÄNTAR PÅ SVAR). Its letters get
+    // CGRAM slots the frame leaves free, or share an identical glyph, so the
+    // frame's first row still shows what the server sent.
+    TrainMeetLcd::Screen text(1, 16);
     for (JsonObjectConst glyph : view["lcd"]["glyphs"].as<JsonArrayConst>()) {
       uint8_t bits[8]; for (uint8_t i=0;i<8;++i) bits[i]=glyph["rows"][i].as<uint8_t>();
       lcd.createChar(glyph["slot"].as<uint8_t>(), bits);
+      text.reserve(glyph["slot"].as<uint8_t>(), bits);
     }
+    if (overlay.length()) { text.line(0, overlay.c_str()); text.defineGlyphs(lcd); }
     for (uint8_t r=0;r<rows;++r) {
       lcd.setCursor(0,r);
       for (uint8_t c=0;c<cols;++c) {
         uint8_t value = (r<2 && c<16) ? view["lcd"]["cells"][r][c].as<uint8_t>() : ' ';
         if (digits.length() && r==0 && c>=5 && c<10) value = (c-5<digits.length()) ? digits[c-5] : '_';
-        if (r == 1 && c < 16 && overlay.length()) value = c < overlay.length() ? uint8_t(overlay[c]) : ' ';
+        if (r == 1 && c < 16 && overlay.length()) value = text.cells[0][c];
         lcd.write(value);
       }
     }

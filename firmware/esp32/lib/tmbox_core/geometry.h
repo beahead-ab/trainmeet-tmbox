@@ -9,7 +9,8 @@ namespace tmbox {
 struct Geometry {
   std::uint8_t rows;
   std::uint8_t cols;
-  /// True when the display carries ÅÄÖ in CGRAM. False means the renderer
+  /// True when the display carries ÅÄÖ in CGRAM, as the ESP32 firmware does
+  /// since 0.7.5 (common/lcd_text.h). False means the renderer
   /// transliterates: SPAR, BEGAR, FORARE.
   bool supports_swedish;
 

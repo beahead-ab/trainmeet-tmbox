@@ -50,7 +50,9 @@ lämnat kan avsändaren inte återta det. Mottagaren kan ange avvikande spår
 i samband med ankomst. Admin kan också skicka ett språkval till boxen.
 
 Klockan visas till höger på rad två. Endast aktuella texter och nödvändiga
-specialtecken laddas från servern, inklusive ÅÄÖ. En tom översta rad är tom.
+specialtecken laddas från servern, inklusive ÅÄÖ. Boxens egna texter, innan
+servern svarat och `VÄNTAR PÅ SVAR`, ritar ÅÄÖ med samma tecken sedan 0.7.5.
+En tom översta rad är tom.
 Språk eller trafikregler behöver därför normalt ingen ny firmware efter
 denna engångsuppgradering till den serverstyrda profilen.
 
