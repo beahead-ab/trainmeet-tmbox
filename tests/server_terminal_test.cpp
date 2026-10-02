@@ -353,6 +353,78 @@ void a_given_up_command_is_said_briefly() {
   CHECK(row(lcd, 1) == "Nr# C/D    12:34");
 }
 
+// The box's own text uses the server's 5x8 glyphs (terminal16_glyphs.py).
+const std::array<uint8_t, 8> RING_A{4, 10, 4, 14, 17, 31, 17, 17};      // Å
+const std::array<uint8_t, 8> DOTS_A{10, 0, 14, 17, 31, 17, 17, 0};      // Ä
+const std::array<uint8_t, 8> DOTS_O{10, 0, 14, 17, 17, 17, 14, 0};      // Ö
+const std::array<uint8_t, 8> RIGHT{16, 24, 28, 30, 28, 24, 16, 0};      // ▶
+std::string cells(std::initializer_list<std::string> parts) {
+  std::string out; for (const auto& part : parts) out += part; return out;
+}
+const std::string SLOT0(1, '\0'), SLOT1(1, '\1'), SLOT2(1, '\2');
+
+void own_text_is_drawn_with_the_servers_glyphs() {
+  // Until 0.7.4 the box folded Ö to O itself. One glyph, defined once, in
+  // the first free slot; the line is sixteen characters, not bytes.
+  TrainMeetLcd::Screen screen(2, 16);
+  screen.line(0, "SÖKER SERVER"); screen.line(1, "FÖRSÖKER IGEN");
+  LCD lcd; screen.draw(lcd);
+  CHECK(row(lcd, 0) == cells({"S", SLOT0, "KER SERVER    "}));
+  CHECK(row(lcd, 1) == cells({"F", SLOT0, "RS", SLOT0, "KER IGEN   "}));
+  CHECK(lcd.glyphWrites == 1); CHECK(lcd.glyphs[0] == DOTS_O);
+  screen.line(1, "BE ADMIN HJÄLPA");
+  CHECK(screen.cells[0][1] == 0);  // the first row keeps its slot
+  LCD again; screen.draw(again); CHECK(again.glyphs[1] == DOTS_A);
+  CHECK(row(again, 1) == cells({"BE ADMIN HJ", SLOT1, "LPA "}));
+}
+void own_text_never_redefines_a_slot_in_use() {
+  TrainMeetLcd::Screen full(1, 16);
+  for (uint8_t slot = 0; slot < 8; ++slot) { const uint8_t bits[8] = {slot}; full.reserve(slot, bits); }
+  full.line(0, "NÄT SAKNAS");
+  CHECK(std::string(full.cells[0], full.cells[0] + 16) == "NAT SAKNAS      ");  // folded, not drawn over
+  TrainMeetLcd::Screen many(1, 16);
+  many.line(0, "ÅÄÖåäöÆØÜ");                       // nine different glyphs, eight slots
+  CHECK(many.cells[0][7] == 7); CHECK(many.cells[0][8] == 'U');
+  TrainMeetLcd::Screen broken(1, 4);
+  broken.line(0, "A\xC3");                        // a cut UTF-8 sequence is one cell
+  CHECK(std::string(broken.cells[0], broken.cells[0] + 4) == "A?  ");
+  TrainMeetLcd::Screen decomposed(1, 4);
+  decomposed.line(0, "A\xCC\x8A" "B");                // A + combining ring: never a cell of its own
+  CHECK(std::string(decomposed.cells[0], decomposed.cells[0] + 4) == "AB  ");
+}
+void folded_keys_and_fitted_lines() {
+  // The server's catalog is keyed on the folded Swedish.
+  char key[48];
+  TrainMeetLcd::foldText("FÖRSÖKER IGEN", key, sizeof key); CHECK(std::string(key) == "FORSOKER IGEN");
+  TrainMeetLcd::foldText("VÄNTAR PÅ SVAR", key, sizeof key); CHECK(std::string(key) == "VANTAR PA SVAR");
+  char line[64];
+  TrainMeetLcd::fitText("SÖKER SERVER", 16, line, sizeof line);
+  CHECK(std::string(line) == "SÖKER SERVER    ");   // sixteen characters, seventeen bytes
+  TrainMeetLcd::fitText("HÅRDVARUTEST OCH MER", 16, line, sizeof line);
+  CHECK(std::string(line) == "HÅRDVARUTEST OCH");
+}
+void the_waiting_overlay_draws_its_own_letters() {
+  // Before 0.7.5 the overlay's UTF-8 bytes went straight to the display:
+  // VÄNTAR PÅ SVAR became V, 0xC3, 0x84, NTAR P, 0xC3, 0x85, SVAR.
+  Fixture f; f.terminal.waitingText = "VÄNTAR PÅ SVAR"; LCD lcd;
+  auto frame = screen("meet-1:station-MUN:reset-1", 1, 2);
+  for (JsonObject object : {frame.as<JsonObject>(), frame["entry"].as<JsonObject>()}) {
+    int slot = 0;
+    for (const auto& bitmap : {RIGHT, DOTS_A}) {
+      auto glyph = object["lcd"]["glyphs"].add<JsonObject>(); glyph["slot"] = slot;
+      auto rows = glyph["rows"].to<JsonArray>(); for (uint8_t bits : bitmap) rows.add(bits);
+      object["lcd"]["cells"][0][slot] = slot; ++slot;
+    }
+  }
+  f.receive(frame); CHECK(f.wait(600)); f.terminal.draw(lcd);  // past the guard after a new screen
+  CHECK(f.terminal.press('#')); CHECK(f.wait(1750)); f.terminal.draw(lcd);
+  // Ä shares the frame's identical slot 1, Å takes the first free one; the
+  // frame's first row and glyphs are untouched.
+  CHECK(row(lcd, 1) == cells({"V", SLOT1, "NTAR P", SLOT2, " SVAR  "}));
+  CHECK(lcd.glyphs[0] == RIGHT); CHECK(lcd.glyphs[1] == DOTS_A); CHECK(lcd.glyphs[2] == RING_A);
+  CHECK(lcd.cells[0][0] == 0 && lcd.cells[0][1] == 1);
+}
+
 int main() {
   using Test = void (*)();
   const Test tests[] = {hello_and_presence_are_not_assignments, digits_stay_local_until_confirm,
@@ -367,7 +439,9 @@ int main() {
     a_lost_answer_gives_up_the_command_not_the_session, waiting_is_shown_until_the_answer, no_text_no_overlay,
     a_given_up_command_is_said_briefly, presence_requires_matching_nonce, publish_failure_disables_input,
     no_entry_no_digits_and_only_server_keys, malformed_frames_cannot_replace_display,
-    raw_lcd_glyphs_and_clock_survive_local_input, larger_physical_display_does_not_invent_another_profile};
+    raw_lcd_glyphs_and_clock_survive_local_input, larger_physical_display_does_not_invent_another_profile,
+    own_text_is_drawn_with_the_servers_glyphs, own_text_never_redefines_a_slot_in_use, folded_keys_and_fitted_lines,
+    the_waiting_overlay_draws_its_own_letters};
   try {
     for (const auto test : tests) test();
     std::cout << "PASS " << std::size(tests) << " shared terminal contract scenarios\n";

@@ -72,6 +72,37 @@ class NetworkSetupTest(unittest.TestCase):
         disconnect = esp32.split("void disconnectMqtt() {", 1)[1].split("\n}\n", 1)[0]
         self.assertNotIn("publish", disconnect)
 
+    def test_the_box_writes_swedish_letters_itself(self):
+        """0.7.5: the box's own text has Å, Ä and Ö, drawn with the server's
+        glyphs (common/lcd_text.h). Nothing folds them to A and O, nothing
+        writes UTF-8 bytes straight to the display, and the cached catalog is
+        still found under its folded keys. Benny asked for this in #32."""
+        esp8266 = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        esp32 = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
+        terminal = (ROOT / "firmware/common/server_terminal.h").read_text()
+        for word in ("SÖKER SERVER", "BE ADMIN HJÄLPA", "VÄNTAR PÅ SVAR", "HÅRDVARUTEST", "NÄT SAKNAS", "FÖRSÖKER IGEN"):
+            self.assertIn(f'"{word}"', esp8266)
+        for folded in ("SOKER SERVER", "HJALPA", "VANTAR PA SVAR", "HARDVARUTEST", "NAT SAKNAS", "FORSOKER IGEN"):
+            self.assertNotIn(f'"{folded}', esp8266)
+        self.assertNotIn('value.replace("', esp8266)
+        show = esp8266.split("void showFrame(", 1)[1].split("\n}\n", 1)[0]
+        self.assertIn("TrainMeetLcd::Screen", show)
+        self.assertNotIn("lcd.print", show)
+        ui = esp8266.split("String uiText(", 1)[1].split("\n}\n", 1)[0]
+        self.assertIn("foldText", ui)
+        # ESP32: its own screens go through the same drawing, and its renderer keeps the dots.
+        self.assertNotIn("lcd.print(", esp32)
+        self.assertIn("displayGeometry(TMBOX_LCD_ROWS, TMBOX_LCD_COLUMNS, true)", esp32)
+        self.assertIn('text("VÄNTAR PÅ SVAR")', esp32)
+        self.assertIn('"BE ADMIN HJÄLPA"', esp32)
+        # After a session the server's glyphs are in CGRAM: the next local
+        # text is written even if it is the one shown before.
+        self.assertIn('shownLine1 = ""', esp8266.split("void disconnectServer() {", 1)[1].split("\n}\n", 1)[0])
+        self.assertIn("drawnValid = false;", esp32.split("void drawScreen() {", 1)[1].split("\n}\n", 1)[0])
+        # The waiting overlay is encoded, not copied byte by byte.
+        self.assertIn('#include "lcd_text.h"', terminal)
+        self.assertNotIn("uint8_t(overlay[c])", terminal)
+
     def test_the_language_is_chosen_on_the_server(self):
         """0.7.4: neither box nor its phone page has a language menu. The
         language comes with every frame; the administrator picks it."""

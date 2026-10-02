@@ -322,7 +322,7 @@ anslutning, stationstilldelning eller MQTT-protokoll.
 - Inget aktuellt serversvar inom 30 sekunder spärrar också knapparna, även om
   MQTT-brokern fortfarande svarar. Serverns offline-meddelande spärrar direkt.
 - Ett skickat kommando väntar på kvittens så länge servern svarar på
-  kontaktkontrollen. Efter en och en halv sekund visas `VANTAR PA SVAR` på
+  kontaktkontrollen. Efter en och en halv sekund visas `VÄNTAR PÅ SVAR` på
   andra raden. Först om servern tystnar helt i 15 sekunder kopplar boxen ner
   och ansluter igen. Kommer ingen kvittens på 30 sekunder ges kommandot upp
   men inte anslutningen: `INGET SVAR` visas kort och inmatade siffror står kvar

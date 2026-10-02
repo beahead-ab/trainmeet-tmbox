@@ -150,6 +150,37 @@ void swedish_folds_when_the_display_cannot_show_it() {
                 "en display med CGRAM ska behalla prickarna");
 }
 
+void the_boxs_own_screens_keep_swedish_letters() {
+  // The ESP32 draws Å, Ä and Ö in CGRAM since 0.7.5; its own screens say
+  // NÄT SAKNAS, not NAT SAKNAS. A cell is a character, not a byte.
+  Geometry swedish = GEOMETRY_16X2;
+  swedish.supports_swedish = true;
+  ViewState view;
+  view.screen = Screen::NoNetwork;
+  Frame frame = render(swedish, view, StationConfig{}, Snapshot{});
+  check::equal("NÄT SAKNAS      ", frame[0], "sexton tecken med prickarna kvar");
+  check::equal("FÖRSÖKER IGEN   ", frame[1], "och utfyllt till sexton tecken, inte byte");
+  check::equal("NAT SAKNAS      ", render(GEOMETRY_16X2, view, StationConfig{}, Snapshot{})[0],
+               "en display utan prickar far samma text som forut");
+  check::equal("SPÅR  ", fit("SPÅR", 6), "fit raknar tecken");
+  check::equal("SPÅ", fit("SPÅRET", 3), "och kapar vid ett helt tecken");
+
+  // The cached catalog is keyed on the folded Swedish. Another language is
+  // used; the Swedish entry, equal to its key, leaves the dots in place.
+  StationConfig english;
+  english.messages = {{"NAT SAKNAS", "NO NETWORK"}, {"FORSOKER IGEN", "RETRYING"}};
+  frame = render(swedish, view, english, Snapshot{});
+  check::equal("NO NETWORK      ", frame[0], "oversattningen hittas med den vikta nyckeln");
+  check::equal("RETRYING        ", frame[1], "for bada raderna");
+  StationConfig svenska;
+  svenska.messages = {{"NAT SAKNAS", "NAT SAKNAS"}, {"FORSOKER IGEN", "FORSOKER IGEN"}};
+  frame = render(swedish, view, svenska, Snapshot{});
+  check::equal("NÄT SAKNAS      ", frame[0], "den svenska posten tar inte bort prickarna");
+  view.screen = Screen::SeekingServer;
+  check::truthy(render(swedish, view, StationConfig{}, Snapshot{})[0].rfind("SÖKER SERVER", 0) == 0,
+                "SOKER SERVER har ocksa fatt sitt O");
+}
+
 void a_clearance_request_names_the_neighbour() {
   // A request has to say which line the train is taking, so the screen that
   // sends it has to show the choice.
@@ -256,6 +287,7 @@ int main() {
   the_meeting_clock_sits_in_the_same_place();
   four_rows_show_what_two_rows_must_be_browsed_for();
   swedish_folds_when_the_display_cannot_show_it();
+  the_boxs_own_screens_keep_swedish_letters();
   a_clearance_request_names_the_neighbour();
   a_case_is_shown_in_operator_language();
   a_station_without_data_yet_does_not_claim_it_is_empty();
