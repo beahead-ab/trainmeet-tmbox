@@ -42,12 +42,13 @@ separat förhandsversionspaket. Ingen fysisk enhet fjärrflashas av en serverrel
 | `A` | Snabbväg till förfrågningskön där den visas |
 | Inkommande förfrågan | Öppnas automatiskt när boxen är ledig; köindikering vid flera |
 | Mottaget hos grannen | Kort besked till avsändaren, sedan försvinner det avslutade tåget |
-| `*` från översikt | Språkval, bläddra med C/D och spara med `#` |
+| `*` från översikt | Lämna stationen till automatiken medan du är borta: **AUTOMATIK?**, `#` bekräftar. Startbilden visar då **AUTOMATIK** (TrainMeet Server 4.1) |
+| `#` på AUTOMATIK | Ta tillbaka stationen: **TA TILLBAKA?**, `#` bekräftar. En trafiktangent medan automatiken sköter stationen frågar samma sak först |
 
 Följ alltid skärmens aktuella tangentbeskrivningar. Godkännande är inte
 avgång; avgång bekräftas först när tåget faktiskt lämnar. När tåget har
 lämnat kan avsändaren inte återta det. Mottagaren kan ange avvikande spår
-i samband med ankomst. Admin kan också skicka ett språkval till boxen.
+i samband med ankomst. Språket väljer administratören i TrainMeet Server; boxen har ingen språkmeny.
 
 Klockan visas till höger på rad två. Endast aktuella texter och nödvändiga
 specialtecken laddas från servern, inklusive ÅÄÖ. Boxens egna texter, innan
