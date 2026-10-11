@@ -1,4 +1,4 @@
-/* TrainMeet TMBox for NodeMCU ESP8266 + PCF8574 keypad + 16x2 I2C LCD.
+/* TrainMeet TMBox for NodeMCU ESP8266 + PCF8574 keypad + 16x2 or 20x4 I2C LCD.
  * Arduino IDE: open this entire folder, not only the .ino file.
  * The local TrainMeet Server owns every traffic decision. No Cloud runtime.
  */
@@ -15,9 +15,11 @@
 #include "debug_log.h"
 #include "input_state.h"
 #include "pcf_keypad.h"
+#include "display_setting.h"
 #include "network_setup.h"
 #include "web_test_state.h"
 #include "../../common/lcd_text.h"
+#include "../../common/box_sound.h"
 #include "../../common/server_terminal.h"
 #include "../../common/server_discovery_arduino.h"
 
@@ -32,6 +34,12 @@ ServerTerminal terminal;
 WiFiManager wifiManager;
 KeyState keys;
 WebTestSession webSession;
+// The display, chosen in the setup portal (16x2 until the operator says 20x4)
+// and told to the server in every hello. The server draws pictures this size.
+TrainMeetDisplay::Size lcdSize = TrainMeetDisplay::SMALL;
+// Losing the server, and getting it back, are the box's own news; everything
+// else the server says (box_sound.h).
+TrainMeetSound::LinkWatch serverLink;
 // Local status texts in the box's language, cached by firmware before 0.7.0.
 // The catalog is keyed on the Swedish folded to ASCII (FORSOKER IGEN), and a
 // message equal to its key is that same Swedish: the box keeps its own
@@ -56,11 +64,26 @@ void loadCachedDeviceUI() {
   }
   EEPROM.end();
 }
+void loadDisplaySetting() {
+  TrainMeetDisplay::Record saved{};
+  EEPROM.begin(4096); EEPROM.get(TrainMeetDisplay::EEPROM_OFFSET, saved); EEPROM.end();
+  lcdSize = TrainMeetDisplay::sizeOf(saved);
+}
+void saveDisplaySetting() {
+  EEPROM.begin(4096);
+  EEPROM.put(TrainMeetDisplay::EEPROM_OFFSET, TrainMeetDisplay::record(lcdSize));
+  EEPROM.commit(); EEPROM.end();
+}
 String deviceId, deviceCode, bootId, apName;
 String gatewayHost;
 String rememberedServerId, discoveredServerId;
 WiFiManagerParameter forgetServer("forgetserver", "Byt TrainMeet Server (behall Wi-Fi)", "1", 1, "type=\"checkbox\"", WFM_LABEL_AFTER);
 bool forgetServerRequested = false;
+// A text field rather than a checkbox: it shows what is set now, so saving
+// the Wi-Fi password again never changes the display by accident.
+WiFiManagerParameter displaySize("display", "Skarmstorlek: 16x2 eller 20x4", "16x2", 4,
+                                 "pattern=\"(16x2|20x4)\" autocomplete=\"off\"");
+bool displayRequested = false;
 String shownLine1, shownLine2;
 uint16_t gatewayPort = 1883;
 bool lcdFound = false, keypadOK = false;
@@ -78,19 +101,30 @@ void stopWebTestServer();
 bool due(uint32_t now, uint32_t when) { return int32_t(now - when) >= 0; }
 
 // The box's own two lines. Å, Ä and Ö are drawn in CGRAM with the server's
-// glyphs (lcd_text.h); until 0.7.4 they were folded to A and O here.
+// glyphs (lcd_text.h); until 0.7.4 they were folded to A and O here. On a 20x4
+// display they sit on the two middle rows.
 void showFrame(const String& one, const String& two) {
   char first[64], second[64];
-  TrainMeetLcd::fitText(one.c_str(), 16, first, sizeof first);
-  TrainMeetLcd::fitText(two.c_str(), 16, second, sizeof second);
+  TrainMeetLcd::fitText(one.c_str(), lcdSize.cols, first, sizeof first);
+  TrainMeetLcd::fitText(two.c_str(), lcdSize.cols, second, sizeof second);
   if (shownLine1 == first && shownLine2 == second) return;
   shownLine1 = first; shownLine2 = second;
   TMBOX_LOG("LCD |%s|%s|\n", first, second);
   if (lcdFound) {
-    TrainMeetLcd::Screen screen(2, 16);
-    screen.line(0, first); screen.line(1, second);
+    const uint8_t top = (lcdSize.rows - 2) / 2;
+    TrainMeetLcd::Screen screen(lcdSize.rows, lcdSize.cols);
+    screen.line(top, first); screen.line(top + 1, second);
     screen.draw(lcd);
   }
+}
+
+// A tone for what happened. tone() returns at once and the pin is left alone
+// when nothing is wired to it, so a box without a buzzer only logs.
+void playSound(TrainMeetSound::Kind kind) {
+  if (kind == TrainMeetSound::Kind::None) return;
+  const TrainMeetSound::Tone note = TrainMeetSound::toneFor(kind);
+  TMBOX_LOG("Sound %u: %u Hz for %u ms\n", unsigned(kind), unsigned(note.hz), unsigned(note.ms));
+  tone(TAMBOX_BUZZER_PIN, note.hz, note.ms);
 }
 
 void disconnectServer() {
@@ -107,8 +141,9 @@ void startPortal() {
 #ifndef TAMBOX_HARDWARE_CHECK
   stopWebTestServer(); // The setup portal and test page share port 80.
 #endif
-  disconnectServer();
+  disconnectServer(); serverLink.forget();  // the operator's choice, not a lost server
   forgetServer.setValue("1", 1);
+  displaySize.setValue(TrainMeetDisplay::name(lcdSize), 4);
   wifiManager.startConfigPortal(apName.c_str());
   portalActive = wifiManager.getConfigPortalActive();
   if (portalActive) showFrame(uiText("INSTALLERA WIFI"), apName);
@@ -124,12 +159,24 @@ void saveServerBinding(const String& id) {
 void savePortalSettings() {
   if (!saveRequested) return;
   saveRequested = false;
-  disconnectServer(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
+  disconnectServer(); serverLink.forget(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
   // The portal can switch networks between two loop iterations. Recreate
   // mDNS even when the main loop did not observe a disconnected Wi-Fi state.
   if (mdnsStarted) MDNS.close();
   mdnsStarted = false;
   portalActive = TrainMeetNetwork::finishSavedPortal(wifiManager, WiFi.status() == WL_CONNECTED);
+}
+
+// The portal saved the display field. A new size is kept, the display is
+// started again with it, and the server hears it in the next hello.
+void applyDisplaySetting() {
+  TrainMeetDisplay::Size wanted = lcdSize;
+  if (!TrainMeetDisplay::parse(displaySize.getValue(), wanted) || wanted == lcdSize) return;
+  lcdSize = wanted; saveDisplaySetting();
+  TMBOX_LOG("Display set to %s\n", TrainMeetDisplay::name(lcdSize));
+  disconnectServer(); serverLink.forget(); nextConnection = millis();
+  if (lcdFound) { lcd.begin(lcdSize.cols, lcdSize.rows, Wire); lcd.setBacklight(255); }
+  showFrame(uiText("INSTALLERA WIFI"), apName);
 }
 
 void receiveMessage(int size) {
@@ -140,7 +187,8 @@ void receiveMessage(int size) {
   while (mqtt.available()) body += char(mqtt.read());
   if (!terminal.started) return;
   terminal.receive(topic, body, retained);
-  if (lcdFound) terminal.draw(lcd);
+  playSound(terminal.takeSound());
+  if (lcdFound) terminal.draw(lcd, lcdSize.cols, lcdSize.rows);
 }
 
 bool resolveServer() {
@@ -170,14 +218,15 @@ void connectServer() {
   TMBOX_LOG("TrainMeet Server connected; assignment is managed by the server administrator.\n");
   connectedBefore = true; connectionFailures = 0; keys.requireRelease();
   terminal.waitingText = uiText("VÄNTAR PÅ SVAR"); terminal.unansweredText = uiText("INGET SVAR");
-  terminal.begin(mqtt, deviceId, deviceCode, "NodeMCU ESP8266 16x2", TAMBOX_FIRMWARE_VERSION,
-                 bootId + "-" + String(++commandSequence));
+  terminal.rows = lcdSize.rows; terminal.cols = lcdSize.cols;
+  terminal.begin(mqtt, deviceId, deviceCode, lcdSize == TrainMeetDisplay::LARGE ? "NodeMCU ESP8266 20x4" : "NodeMCU ESP8266 16x2",
+                 TAMBOX_FIRMWARE_VERSION, bootId + "-" + String(++commandSequence));
 }
 
 bool sendKey(char key, bool virtualKey) {
   if (!terminal.started || !webSession.permits(virtualKey, keypadOK && lcdFound, millis())) return false;
   const bool accepted = terminal.press(key);
-  if (lcdFound) terminal.draw(lcd);
+  if (lcdFound) terminal.draw(lcd, lcdSize.cols, lcdSize.rows);
   return accepted;
 }
 
@@ -194,7 +243,7 @@ void scanHardware() {
   }
   Wire.beginTransmission(TAMBOX_LCD_ADDRESS);
   lcdFound = Wire.endTransmission() == 0;
-  if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
+  if (lcdFound) { lcd.begin(lcdSize.cols, lcdSize.rows, Wire); lcd.setBacklight(255); }
   keypadOK = keypadWrite(0xff);
   if (!lcdFound) TMBOX_LOG("LCD missing: traffic input disabled.\n");
   if (!keypadOK) TMBOX_LOG("Keypad missing: traffic input disabled.\n");
@@ -204,7 +253,7 @@ void setup() {
   Serial.begin(115200);
   TMBOX_LOG("TrainMeet TMBox %s (%s)\n", TAMBOX_FIRMWARE_VERSION, TAMBOX_MODEL);
   TMBOX_LOG("USB debug: %s\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");
-  loadCachedDeviceUI();
+  loadCachedDeviceUI(); loadDisplaySetting();
   { TrainMeetNetwork::ServerBindingRecord saved{}; EEPROM.begin(4096); EEPROM.get(1024, saved); EEPROM.end();
     rememberedServerId = TrainMeetNetwork::bindingId(saved).c_str(); }
   Wire.begin(TAMBOX_SDA, TAMBOX_SCL); Wire.setClock(100000);
@@ -227,7 +276,10 @@ void setup() {
   wifiManager.setConfigPortalBlocking(false); wifiManager.setConnectTimeout(15);
   wifiManager.setSaveConfigCallback([]() { saveRequested = true; });
   wifiManager.addParameter(&forgetServer);
-  wifiManager.setSaveParamsCallback([]() { forgetServerRequested = String(forgetServer.getValue()) == "1"; });
+  wifiManager.addParameter(&displaySize);
+  wifiManager.setSaveParamsCallback([]() {
+    forgetServerRequested = String(forgetServer.getValue()) == "1"; displayRequested = true;
+  });
   mqtt.setId(deviceId); mqtt.setCleanSession(true); mqtt.setKeepAliveInterval(10000);
   mqtt.setConnectionTimeout(3000); mqtt.onMessage(receiveMessage);
   WiFi.setAutoReconnect(true); WiFi.begin();
@@ -246,7 +298,7 @@ void loop() {
       lcdFound = available; keys.requireRelease();
       terminal.digits = ""; terminal.dirty = true; terminal.guard = now + 500;
       shownLine1 = ""; shownLine2 = "";
-      if (lcdFound) { lcd.begin(16, 2, Wire); lcd.setBacklight(255); }
+      if (lcdFound) { lcd.begin(lcdSize.cols, lcdSize.rows, Wire); lcd.setBacklight(255); }
       else TMBOX_LOG("LCD disconnected: traffic input disabled.\n");
     }
   }
@@ -276,6 +328,7 @@ void loop() {
   if (portalActive) {
     wifiManager.process();
     if (forgetServerRequested) { forgetServerRequested = false; saveServerBinding(""); discoveredServerId = ""; gatewayHost = ""; }
+    if (displayRequested) { displayRequested = false; applyDisplaySetting(); }
     savePortalSettings();
     // Also handle the portal's explicit exit, even while Wi-Fi is offline.
     if (!wifiManager.getConfigPortalActive()) {
@@ -312,7 +365,7 @@ void loop() {
           else {
             if (terminal.fresh && String(terminal.frame["station_code"] | "").length() &&
                 rememberedServerId != discoveredServerId) saveServerBinding(discoveredServerId);
-            if (lcdFound) terminal.draw(lcd);
+            if (lcdFound) terminal.draw(lcd, lcdSize.cols, lcdSize.rows);
           }
         } else {
           // Connected without a terminal session: there is nothing else to
@@ -323,6 +376,8 @@ void loop() {
     }
   }
   wifiWasConnected = wifiConnected;
+  // Online means the server has sent the box a picture it can act on.
+  playSound(serverLink.observe(terminal.started && terminal.fresh));
   tickWebTest();
 #endif
   delay(2); // ESP8266 Wi-Fi + watchdog must get CPU time.

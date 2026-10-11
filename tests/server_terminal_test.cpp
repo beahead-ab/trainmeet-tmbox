@@ -29,13 +29,33 @@ JsonDocument screen(const char* context = "meet-1:station-MUN:reset-1", int revi
   return frame;
 }
 
+// What a 4x20 server draws (docs/protocol/terminal16): the same keys and
+// entry, four rows of twenty cells.
+const std::array<std::string, 4> LARGE_ROWS{
+  "CDA ? 39       1 / 1", "Charlottenburg 12:46", "Vill skicka     Sp 1", "#Ja *Nej       12:34"};
+JsonDocument screen20(const char* context = "meet-1:station-MUN:reset-1", int revision = 1, int view = 1,
+                      const std::array<std::string, 4>& rows = LARGE_ROWS) {
+  JsonDocument frame = screen(context, revision, view);
+  frame["rows"] = 4; frame["cols"] = 20;
+  for (JsonObject object : {frame.as<JsonObject>(), frame["entry"].as<JsonObject>()}) {
+    object["lcd"]["cells"].to<JsonArray>();
+    for (const auto& line : rows) {
+      auto row = object["lcd"]["cells"].add<JsonArray>();
+      for (char c : line) row.add(static_cast<int>(c));
+    }
+  }
+  return frame;
+}
+
 struct Fixture {
   MqttClient mqtt;
   ServerTerminal terminal;
-  Fixture() {
+  // A box with a 20x4 display says so in its hello and is answered in 20x4.
+  explicit Fixture(bool large = false) {
     hostMillis = 1000;
+    if (large) { terminal.rows = 4; terminal.cols = 20; }
     terminal.begin(mqtt, "device-1", "TBX-123456", "host-test", "0.7.0", "boot-1");
-    receive(screen()); hostMillis += 600;
+    receive(large ? screen20() : screen()); hostMillis += 600;
     CHECK(terminal.ready());
   }
   void receive(const JsonDocument& frame, const char* leaf = "frame", const String& command = "", const char* status = "accepted",
@@ -425,6 +445,192 @@ void the_waiting_overlay_draws_its_own_letters() {
   CHECK(lcd.cells[0][0] == 0 && lcd.cells[0][1] == 1);
 }
 
+// ---- 0.8.0: a 20x4 display, and sound ------------------------------------
+
+std::string wide(const LCD& lcd, int r) { return std::string(lcd.cells[r].begin(), lcd.cells[r].end()); }
+
+void hello_tells_the_server_the_display() {
+  for (bool large : {false, true}) {
+    Fixture f(large);
+    JsonDocument hello; CHECK(!deserializeJson(hello, f.mqtt.messages.front().body));
+    CHECK(hello["display"]["rows"] == (large ? 4 : 2)); CHECK(hello["display"]["cols"] == (large ? 20 : 16));
+  }
+}
+void a_picture_must_be_the_size_the_box_announced_or_16x2() {
+  Fixture small;                                      // announced 16x2: a 20x4 picture is not for it
+  small.receive(screen20("meet-1:station-MUN:reset-1", 2, 1));
+  CHECK(small.terminal.token() == "token-1-1"); CHECK(small.terminal.frame["rows"] == 2);
+  Fixture large(true);
+  large.receive(screen20("meet-1:station-MUN:reset-1", 2, 1)); CHECK(large.terminal.token() == "token-2-1");
+  // A server that has not heard of 20x4 answers in 16x2. The box shows it
+  // rather than showing nothing.
+  large.receive(screen("meet-1:station-MUN:reset-1", 3, 1)); CHECK(large.terminal.token() == "token-3-1");
+  CHECK(large.terminal.frame["rows"] == 2); CHECK(large.terminal.frame["cols"] == 16);
+}
+void malformed_20x4_pictures_cannot_replace_display() {
+  Fixture f(true);
+  for (int fault = 0; fault < 7; ++fault) {
+    auto frame = screen20("new-context");
+    switch (fault) {
+      case 0: frame["lcd"]["cells"].as<JsonArray>().remove(3); break;             // three rows
+      case 1: frame["lcd"]["cells"][3].as<JsonArray>().remove(19); break;         // nineteen cells
+      case 2: frame["lcd"]["cells"][0].as<JsonArray>().add(32); break;            // twenty-one
+      case 3: frame["entry"]["lcd"]["cells"][2].as<JsonArray>().remove(0); break;
+      case 4: frame["cols"] = 16; break;                                          // 4x16 is nobody's
+      case 5: frame["rows"] = 3; break;
+      case 6: frame["lcd"]["cells"][1][0] = 127; frame["entry"]["column"] = 4; break;
+    }
+    f.receive(frame); CHECK(f.terminal.context() == "meet-1:station-MUN:reset-1");
+  }
+  auto frame = screen("new-context");                  // 2x16 cells under a 4x20 claim
+  frame["rows"] = 4; frame["cols"] = 20; f.receive(frame);
+  CHECK(f.terminal.context() == "meet-1:station-MUN:reset-1");
+}
+void a_20x4_picture_is_drawn_whole_with_the_digits_on_the_first_row() {
+  Fixture f(true); LCD lcd; for (auto& line : lcd.cells) line.fill('X');
+  f.terminal.draw(lcd, 20, 4); CHECK(lcd.writes == 80);
+  for (int r = 0; r < 4; ++r) CHECK(wide(lcd, r) == LARGE_ROWS[r]);
+  CHECK(f.terminal.press('9')); CHECK(f.terminal.press('3')); f.terminal.draw(lcd, 20, 4);
+  CHECK(wide(lcd, 0) == LARGE_ROWS[0].substr(0, 5) + "93___" + LARGE_ROWS[0].substr(10));
+  for (int r = 1; r < 4; ++r) CHECK(wide(lcd, r) == LARGE_ROWS[r]);
+  CHECK(f.commands() == 0);
+}
+void a_16x2_picture_sits_in_the_corner_of_a_20x4_display() {
+  Fixture f(true); f.receive(screen("meet-1:station-MUN:reset-1", 2, 1));
+  LCD lcd; for (auto& line : lcd.cells) line.fill('X');
+  f.terminal.draw(lcd, 20, 4); CHECK(lcd.writes == 80);
+  CHECK(wide(lcd, 1) == "Nr# C/D    12:34    "); CHECK(wide(lcd, 0) == std::string(20, ' '));
+  CHECK(wide(lcd, 2) == std::string(20, ' ')); CHECK(wide(lcd, 3) == std::string(20, ' '));
+  f.terminal.waitingText = "VANTAR PA SVAR"; f.receive(screen("meet-1:station-MUN:reset-1", 2, 2));
+  CHECK(f.wait(600)); CHECK(f.terminal.press('#')); CHECK(f.wait(1750)); f.terminal.draw(lcd, 20, 4);
+  CHECK(wide(lcd, 1) == "VANTAR PA SVAR      "); CHECK(wide(lcd, 3) == std::string(20, ' '));  // the picture's last row
+}
+void the_waiting_text_goes_on_the_last_row_of_a_20x4_picture() {
+  Fixture f(true); f.terminal.waitingText = "VANTAR PA SVAR"; f.terminal.unansweredText = "INGET SVAR"; LCD lcd;
+  CHECK(f.terminal.press('#')); CHECK(f.wait(1750)); f.terminal.draw(lcd, 20, 4);
+  for (int r = 0; r < 3; ++r) CHECK(wide(lcd, r) == LARGE_ROWS[r]);
+  CHECK(wide(lcd, 3) == "VANTAR PA SVAR      ");
+  const auto writes = lcd.writes; CHECK(f.wait(2000)); f.terminal.draw(lcd, 20, 4); CHECK(lcd.writes == writes);
+  f.receive(screen20("meet-1:station-MUN:reset-1", 1, 2), "ack", f.terminal.pending, "accepted"); f.terminal.draw(lcd, 20, 4);
+  CHECK(wide(lcd, 3) == LARGE_ROWS[3]);
+  CHECK(f.wait(600)); CHECK(f.terminal.press('#'));          // past the guard after a new screen
+  CHECK(f.wait(ServerTerminal::COMMAND_GIVE_UP_MS)); f.terminal.draw(lcd, 20, 4);
+  CHECK(wide(lcd, 3) == "INGET SVAR          ");
+}
+
+// What the server says is news: epoch, a number that grows, and what it was.
+JsonDocument heard(JsonDocument frame, const char* epoch, uint32_t seq, const char* kind) {
+  frame["attention"]["epoch"] = epoch; frame["attention"]["seq"] = seq;
+  if (kind) frame["attention"]["kind"] = kind; else frame["attention"]["kind"] = nullptr;
+  return frame;
+}
+using TrainMeetSound::Kind;
+JsonDocument picture(int revision) { return screen("meet-1:station-MUN:reset-1", revision, 1); }
+
+void the_first_picture_after_hello_is_only_the_starting_point() {
+  Fixture f; f.receive(heard(picture(2), "E1", 5, "incoming_request"));
+  CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(3), "E1", 5, "incoming_request"));    // the same number again: nothing new
+  CHECK(f.terminal.takeSound() == Kind::None);
+}
+void a_changed_number_with_a_kind_is_news_once() {
+  const std::pair<const char*, Kind> names[] = {{"incoming_request", Kind::IncomingRequest},
+    {"request_denied", Kind::RequestDenied}, {"request_approved", Kind::RequestApproved},
+    {"incoming_train", Kind::IncomingTrain}};
+  for (const auto& [name, kind] : names) {
+    Fixture f; f.receive(heard(picture(2), "E1", 5, nullptr)); CHECK(f.terminal.takeSound() == Kind::None);
+    f.receive(heard(picture(3), "E1", 6, name));
+    CHECK(f.terminal.takeSound() == kind); CHECK(f.terminal.takeSound() == Kind::None);
+    f.receive(heard(picture(4), "E1", 6, name)); CHECK(f.terminal.takeSound() == Kind::None);
+  }
+}
+void no_kind_zero_or_an_unknown_kind_makes_no_sound() {
+  Fixture f; f.receive(heard(picture(2), "E1", 5, nullptr));
+  f.receive(heard(picture(3), "E1", 6, nullptr)); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(4), "E1", 7, "connection_lost")); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(5), "E1", 8, "")); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(6), "E1", 0, "incoming_request")); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(7), "E1", 9, "incoming_train")); CHECK(f.terminal.takeSound() == Kind::IncomingTrain);
+}
+void a_new_epoch_is_a_new_starting_point() {
+  Fixture f; f.receive(heard(picture(2), "E1", 5, nullptr));
+  f.receive(heard(picture(3), "E2", 1, "incoming_request"));     // the server started over
+  CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(4), "E2", 2, "request_denied")); CHECK(f.terminal.takeSound() == Kind::RequestDenied);
+  f.receive(heard(picture(5), "E1", 3, "incoming_request"));     // and back: again only a starting point
+  CHECK(f.terminal.takeSound() == Kind::None);
+}
+void a_new_session_never_plays_what_happened_before_it() {
+  Fixture f; f.receive(heard(picture(2), "E1", 5, nullptr));
+  f.receive(heard(picture(3), "E1", 6, "incoming_request")); CHECK(f.terminal.takeSound() == Kind::IncomingRequest);
+  f.receive(heard(picture(4), "E1", 7, "incoming_train"));   // heard by the library but not yet taken
+  f.mqtt.online = false; CHECK(!f.terminal.tick()); f.mqtt.online = true;
+  f.terminal.begin(f.mqtt, "device-1", "TBX-123456", "host-test", "0.7.0", "boot-2");
+  CHECK(f.terminal.takeSound() == Kind::None);                // a pending sound does not survive the session
+  f.receive(heard(picture(5), "E1", 9, "request_approved"), "frame", "", "accepted", "boot-2");
+  CHECK(f.terminal.takeSound() == Kind::None);                // 8 and 9 happened while the box was away
+  f.receive(heard(picture(6), "E1", 10, "request_denied"), "frame", "", "accepted", "boot-2");
+  CHECK(f.terminal.takeSound() == Kind::RequestDenied);
+}
+void a_burst_keeps_the_most_important_sound() {
+  Fixture f; f.receive(heard(picture(2), "E1", 5, nullptr));
+  f.receive(heard(picture(3), "E1", 6, "incoming_train"));
+  f.receive(heard(picture(4), "E1", 7, "incoming_request"));
+  f.receive(heard(picture(5), "E1", 8, "request_denied"));
+  CHECK(f.terminal.takeSound() == Kind::IncomingRequest); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(6), "E1", 9, "incoming_train")); f.receive(heard(picture(7), "E1", 10, "request_approved"));
+  CHECK(f.terminal.takeSound() == Kind::RequestApproved);
+}
+void old_foreign_and_broken_pictures_make_no_sound() {
+  Fixture f; f.receive(heard(picture(3), "E1", 5, nullptr));
+  f.receive(heard(picture(2), "E1", 6, "incoming_request"));                          // older than what the box shows
+  CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(4), "E1", 6, "incoming_request"), "frame", "", "accepted", "old-boot");
+  f.receive(heard(picture(4), "E1", 6, "incoming_request"), "frame", "", "accepted", "boot-1", true);  // retained
+  CHECK(f.terminal.takeSound() == Kind::None);
+  auto broken = heard(picture(4), "E1", 6, "incoming_request"); broken["cols"] = 15;
+  f.receive(broken); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(4), "E1", 6, "incoming_request"));                          // none of those used up number 6
+  CHECK(f.terminal.takeSound() == Kind::IncomingRequest);
+}
+void an_answer_carries_the_series_too() {
+  Fixture f; f.receive(heard(picture(2), "E1", 5, nullptr));
+  CHECK(f.wait(600)); CHECK(f.terminal.press('#'));            // past the guard after a new screen
+  f.receive(heard(picture(3), "E1", 6, "request_approved"), "ack", f.terminal.pending, "accepted");
+  CHECK(f.terminal.takeSound() == Kind::RequestApproved);
+}
+void a_server_without_attention_is_silent_and_then_a_baseline() {
+  Fixture f; f.receive(picture(2)); f.receive(picture(3)); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(4), "E1", 5, "incoming_request")); CHECK(f.terminal.takeSound() == Kind::None);
+  f.receive(heard(picture(5), "E1", 6, "incoming_request")); CHECK(f.terminal.takeSound() == Kind::IncomingRequest);
+}
+void losing_the_server_is_announced_and_getting_it_back_only_after_having_had_it() {
+  TrainMeetSound::LinkWatch link;
+  CHECK(link.observe(false) == Kind::None);
+  CHECK(link.observe(true) == Kind::None);                   // the first connection is not a return
+  CHECK(link.observe(true) == Kind::None);
+  CHECK(link.observe(false) == Kind::ConnectionLost); CHECK(link.observe(false) == Kind::None);
+  CHECK(link.observe(true) == Kind::ConnectionRestored); CHECK(link.observe(true) == Kind::None);
+  link.observe(false); link.forget();                          // the operator opened the setup portal
+  CHECK(link.observe(false) == Kind::None); CHECK(link.observe(true) == Kind::None);
+}
+void the_tones_and_their_order_are_the_esp32s() {
+  using TrainMeetSound::toneFor; using TrainMeetSound::weight; using TrainMeetSound::louder;
+  CHECK(toneFor(Kind::ConnectionLost).hz == 700 && toneFor(Kind::ConnectionLost).ms == 600);
+  CHECK(toneFor(Kind::ConnectionRestored).hz == 1400 && toneFor(Kind::ConnectionRestored).ms == 120);
+  CHECK(toneFor(Kind::IncomingRequest).hz == 2200 && toneFor(Kind::IncomingRequest).ms == 250);
+  CHECK(toneFor(Kind::RequestDenied).hz == 900 && toneFor(Kind::RequestDenied).ms == 250);
+  CHECK(toneFor(Kind::RequestApproved).hz == 2600 && toneFor(Kind::RequestApproved).ms == 150);
+  CHECK(toneFor(Kind::IncomingTrain).hz == 1800 && toneFor(Kind::IncomingTrain).ms == 150);
+  CHECK(toneFor(Kind::None).hz == 0);
+  const Kind order[] = {Kind::ConnectionLost, Kind::IncomingRequest, Kind::RequestDenied, Kind::RequestApproved,
+                        Kind::IncomingTrain, Kind::ConnectionRestored, Kind::None};
+  for (size_t i = 0; i + 1 < std::size(order); ++i) CHECK(weight(order[i]) > weight(order[i + 1]));
+  CHECK(louder(Kind::IncomingTrain, Kind::RequestDenied) == Kind::RequestDenied);
+  CHECK(louder(Kind::RequestDenied, Kind::IncomingTrain) == Kind::RequestDenied);
+  CHECK(louder(Kind::None, Kind::None) == Kind::None);
+}
+
 int main() {
   using Test = void (*)();
   const Test tests[] = {hello_and_presence_are_not_assignments, digits_stay_local_until_confirm,
@@ -441,7 +647,16 @@ int main() {
     no_entry_no_digits_and_only_server_keys, malformed_frames_cannot_replace_display,
     raw_lcd_glyphs_and_clock_survive_local_input, larger_physical_display_does_not_invent_another_profile,
     own_text_is_drawn_with_the_servers_glyphs, own_text_never_redefines_a_slot_in_use, folded_keys_and_fitted_lines,
-    the_waiting_overlay_draws_its_own_letters};
+    the_waiting_overlay_draws_its_own_letters, hello_tells_the_server_the_display,
+    a_picture_must_be_the_size_the_box_announced_or_16x2, malformed_20x4_pictures_cannot_replace_display,
+    a_20x4_picture_is_drawn_whole_with_the_digits_on_the_first_row, a_16x2_picture_sits_in_the_corner_of_a_20x4_display,
+    the_waiting_text_goes_on_the_last_row_of_a_20x4_picture, the_first_picture_after_hello_is_only_the_starting_point,
+    a_changed_number_with_a_kind_is_news_once, no_kind_zero_or_an_unknown_kind_makes_no_sound,
+    a_new_epoch_is_a_new_starting_point, a_new_session_never_plays_what_happened_before_it,
+    a_burst_keeps_the_most_important_sound, old_foreign_and_broken_pictures_make_no_sound,
+    an_answer_carries_the_series_too, a_server_without_attention_is_silent_and_then_a_baseline,
+    losing_the_server_is_announced_and_getting_it_back_only_after_having_had_it,
+    the_tones_and_their_order_are_the_esp32s};
   try {
     for (const auto test : tests) test();
     std::cout << "PASS " << std::size(tests) << " shared terminal contract scenarios\n";

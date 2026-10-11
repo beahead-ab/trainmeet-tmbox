@@ -6,8 +6,9 @@ Nedan finns koppling, hårdvarutest och utvecklarens alternativa byggvägar.
 
 Separat firmware för **NodeMCU 1.0 (ESP-12E/ESP-12F, 4 MB)** med:
 
-- 16×2 LCD med I²C-backpack, normalt adress `0x27`
+- 16×2 eller 20×4 LCD med I²C-backpack, normalt adress `0x27` (storleken väljs i portalen, se [Skärmstorlek](#skärmstorlek-16×2-eller-20×4))
 - passiv 4×4-knappsats via en **separat PCF8574/PCF8574A** på I²C, normalt `0x20`
+- valfritt: en passiv summer på D5 (se [Ljud](#ljud))
 - TrainMeet Server och dess MQTT-broker på det lokala nätverket
 
 **I²C beskriver bussen, inte vilken krets modulen använder.** Denna variant
@@ -24,6 +25,9 @@ Ett godkänt bygge är **inte ett fysiskt hårdvarutest**. Följ kontrollen neda
 på just din display, knappsatsmodul och kablage innan trafikdrift.
 
 Från 0.7.0 delar ESP8266 och ESP32 serverstyrd 16×2-logik. Server 1.10.0 eller senare krävs.
+Från 0.8.0 kan ESP8266 också ha en 20×4-skärm och en summer. **20×4 och ljud kräver
+TrainMeet Server 4.5.0 eller senare.** En 16×2-box behöver ingen ny server och
+en äldre server visar bara 16×2-bilder, även på en 20×4-skärm.
 
 ### Lokal tågnummerinmatning
 
@@ -52,6 +56,7 @@ elektriska bristen när du bygger nytt.
 |---|---:|---|
 | D2 | 4 | SDA, I²C-data |
 | D1 | 5 | SCL, I²C-klocka |
+| D5 | 14 | Passiv summer, valfri (andra benet till GND) |
 | 3V3 | – | PCF8574-knappsatsmodulens VCC och nivåomvandlarens LV |
 | GND | – | Gemensam jord inom boxens lågvoltsdel |
 | USB | – | Stabil 5 V USB-matning, lämpligen minst 1 A |
@@ -171,6 +176,47 @@ pio device monitor -b 115200
 6. I **TrainMeet Servers** admin väljer du station för den upptäckta boxen.
    Servern skickar då direkt boxens nya bild med stationen och tangenterna.
 
+### Skärmstorlek (16×2 eller 20×4)
+
+En teckendisplay bakom en I²C-adapter kan inte säga hur stor den är, så du säger
+det en gång. Skärmstorleken är ett fält i boxens installationsportal
+(`TrainMeet-12AB34`, samma sida som Wi-Fi): skriv `16x2` eller `20x4` och spara.
+Fältet visar alltid det som gäller nu, så att ett nytt Wi-Fi-lösenord aldrig
+ändrar skärmen av misstag. Boxen startar om displayen i den nya storleken direkt
+och sparar valet i flashminnet, skilt från serverval och språktexter. Samma
+firmware gäller för alla ESP8266-boxar; fabriksvärdet är 16×2.
+
+Boxen säger storleken till servern i varje `hello` (`display: {rows, cols}`) och
+servern ritar varje bild i den storleken. Administratören ser den under
+Klienter. Bildernas utseende finns i serverns
+[protokollbeskrivning](https://github.com/beahead-ab/trainmeet-server/blob/main/docs/protocol/terminal16/README.md)
+och i [20×4-förslaget](../../docs/forslag/TMBox-20x4-forslag.pdf). Boxens egna
+texter innan servern svarat står på de två mittersta raderna.
+
+### Ljud
+
+Koppla en **passiv piezosummer** mellan D5 (GPIO14) och GND. Boxen spelar samma
+toner som ESP32 med `tone()`:
+
+| Händelse | Ton |
+|---|---|
+| Servern borta | 700 Hz i 600 ms |
+| Servern tillbaka | 1400 Hz i 120 ms |
+| Begäran hit | 2200 Hz i 250 ms |
+| Din begäran nekades | 900 Hz i 250 ms |
+| Din begäran godkändes | 2600 Hz i 150 ms |
+| Tåg på väg hit | 1800 Hz i 150 ms |
+
+Reglerna är desamma som på ESP32. Bara förändringar är nyheter: den första bilden
+efter att boxen anslutit är utgångsläget och är tyst, och ett ljud från före
+anslutningen spelas aldrig. Den som själv gjorde något hör ingenting; servern
+avgör riktningen. Servern talar om *vad* (`attention` i bilden), boxen väljer
+toner. Två händelser inom två sekunder blir ett tillfälle där den viktigaste
+vinner: servern borta, begäran hit, nekad, godkänd, tåg på väg, servern tillbaka.
+Att själv öppna installationsportalen ger inget ljud. En box utan summer fungerar
+som förut. Seriell monitor visar `Sound …` för varje signal, så du kan prova
+logiken utan att höra den.
+
 ### Kontakt med servern
 
 Boxen hälsar när den ansluter och visar ett livstecken var femte sekund.
@@ -213,7 +259,7 @@ boxens tillfälliga installationsportal.
 4. Boxen upptäcker servern automatiskt och visas med sin permanenta enhetskod.
    Administratören tilldelar station på TrainMeet Server. Innan dess är
    trafikknapparna spärrade.
-5. Välj **Aktivera webbtest**. Telefonen visar 16×2-rader och alla 16 tangenter.
+5. Välj **Aktivera webbtest**. Telefonen visar 16×2-rader (fyra rader för en 20×4-box) och alla 16 tangenter.
    Fysisk knappsats spärras medan webbtestet används.
 6. Skriv tågnumret lokalt. `#` bekräftar hela numret, `*` avbryter.
    A–D och andra funktionstangenter följer serverns aktuella skärmbild.
