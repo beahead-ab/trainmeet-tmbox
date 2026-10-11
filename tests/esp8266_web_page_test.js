@@ -199,8 +199,30 @@ async function transportTimeoutIsNotARetriedPost() {
  assert.equal(e.read('entryValue'),'');
  assert.match(e.el('message').textContent,/Ingen automatisk omsändning/);
 }
+// 0.8.0: a box with a 20x4 display shows all four rows; a 16x2 box still two.
+async function aTwentyByFourBoxShowsFourRows() {
+ const rows=['CDA ? 39       1 / 1','Charlottenburg 12:46','Vill skicka     Sp 1','#Ja *Nej       12:34'];
+ const wide=extra=>snapshot({serverDriven:true,rows:4,cols:20,line1:rows[0],line2:rows[1],line3:rows[2],line4:rows[3],...extra});
+ const e=harness(null,wide());await e.flush();
+ for(const [i,id] of ['line1','line2','line3','line4'].entries()){
+  assert.equal(e.el(id).textContent,rows[i]);assert.equal(e.el(id).hidden,false);
+ }
+ // The digits go on the first row, and the rows below the entry are the server's own.
+ const entryLines=['TAG: _____         ','                    ','                    ','#Sok B:Del     12:34'];
+ const editingWide=wide({webTest:true,localEntry:true,entryContext:'entry-one',entryValue:'',
+   allowedKeys:'0123456789#*',entryLines});
+ const typing=harness(null,editingWide);await typing.flush();
+ for(const key of '93') await typing.read('press('+JSON.stringify(key)+')');
+ assert.equal(typing.el('line1').textContent,'TAG: 93___         ');
+ assert.equal(typing.el('line4').textContent,entryLines[3]);
+ assert.equal(typing.posts().length,0);
+ // And a box that says nothing about its size keeps two rows.
+ const small=harness(null,snapshot());await small.flush();
+ assert.equal(small.el('line3').hidden,true);assert.equal(small.el('line4').hidden,true);
+ assert.equal(small.el('line3').textContent,'');
+}
 (async()=>{
- for(const fn of [digitsRemainInPhoneUntilConfirm,cancelSendsNoDigits,draftIsBoundedAndInvalidatedByContext,automaticSessionNeedsNoCode,explicitDisconnectDoesNotReclaimTheBox,initialPollCannotOverwriteCompletedAction,transportTimeoutIsNotARetriedPost]){
+ for(const fn of [digitsRemainInPhoneUntilConfirm,cancelSendsNoDigits,draftIsBoundedAndInvalidatedByContext,automaticSessionNeedsNoCode,explicitDisconnectDoesNotReclaimTheBox,initialPollCannotOverwriteCompletedAction,transportTimeoutIsNotARetriedPost,aTwentyByFourBoxShowsFourRows]){
   await fn();console.log('PASS '+fn.name);
  }
 })().catch(error=>{console.error(error);process.exitCode=1;});

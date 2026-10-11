@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <ArduinoMqttClient.h>
 #include "lcd_text.h"
+#include "box_sound.h"
 
 // Shared by ESP8266 and ESP32. No routes, train states or action names.
 // The server supplies pixels, text and key meanings; only digits stay here.
@@ -30,6 +31,10 @@ class ServerTerminal {
   static constexpr uint32_t GUARD_MS = 500;
 
   JsonDocument frame;
+  // The display the box announces in its hello: 2x16 or 4x20 (the only two the
+  // server draws). A server that does not know about 4x20 answers with 2x16
+  // pictures; those are drawn in the top left corner rather than refused.
+  uint8_t rows = 2, cols = 16;
   String prefix, boot, digits, pending, nonce, message;
   // Drawn on the second row while a command waits, so an operator does not
   // take a slow answer for a missed key, and briefly after one is given up.
@@ -38,6 +43,11 @@ class ServerTerminal {
   uint32_t sequence = 0, seen = 0, ping = 0, sent = 0, guard = 0, unansweredAt = 0;
   bool started = false, fresh = false, dirty = true, waitingDrawn = false, unanswered = false;
   MqttClient* client = nullptr;
+  // What the server says is news (docs/protocol/terminal16, section 6a), as a
+  // sound the sketch takes and plays. A burst keeps the most important one.
+  TrainMeetSound::Kind sound = TrainMeetSound::Kind::None;
+  TrainMeetSound::SeriesWatch series;
+  TrainMeetSound::Kind takeSound() { const auto kind = sound; sound = TrainMeetSound::Kind::None; return kind; }
 
   bool publish(const char* leaf, JsonDocument& body) {
     if (!client || !client->connected()) return false;
@@ -49,6 +59,7 @@ class ServerTerminal {
   void reset() {
     fresh = started = false; dirty = true; digits = pending = ""; frame.clear();
     waitingDrawn = unanswered = false;
+    sound = TrainMeetSound::Kind::None; series.forget();
   }
   bool waiting() const { return pending.length() && uint32_t(millis() - sent) >= WAITING_SHOWN_MS; }
   void begin(MqttClient& mqtt, const String& id, const String& code, const char* model, const char* version, const String& connectionId) {
@@ -58,6 +69,7 @@ class ServerTerminal {
     JsonDocument hello;
     hello["device_code"] = code; hello["model"] = model; hello["firmware_version"] = version;
     hello["hardware_version"] = "server-16x2";
+    hello["display"]["rows"] = rows; hello["display"]["cols"] = cols;
     publish("hello", hello);
   }
   bool ready() const { return started && fresh && client && client->connected() && pending.length() == 0 &&
@@ -73,15 +85,21 @@ class ServerTerminal {
   bool hasEntry() const { return frame["entry"].is<JsonObjectConst>(); }
   String token() const { return frame["view_token"] | ""; }
   String context() const { return frame["entry"]["context"] | ""; }
+  // The size of a picture: the box's own, or 2x16, which every server draws.
+  bool fits(int pictureRows, int pictureCols) const {
+    return (pictureRows == 2 && pictureCols == 16) || (pictureRows == rows && pictureCols == cols);
+  }
   bool validate(JsonVariantConst next) {
-    if (String(next["profile"] | "") != "server-16x2" || next["rows"] != 2 || next["cols"] != 16) return false;
+    if (String(next["profile"] | "") != "server-16x2" || !next["rows"].is<int>() || !next["cols"].is<int>()) return false;
+    const int pictureRows = next["rows"].as<int>(), pictureCols = next["cols"].as<int>();
+    if (!fits(pictureRows, pictureCols)) return false;
     const JsonVariantConst views[] = {next, next["entry"]};
     for (JsonVariantConst view : views) {
       if (view.isNull()) continue;
       JsonArrayConst cells = view["lcd"]["cells"].as<JsonArrayConst>();
-      if (cells.size() != 2 || view["lcd"]["glyphs"].size() > 8) return false;
+      if (cells.size() != size_t(pictureRows) || view["lcd"]["glyphs"].size() > 8) return false;
       for (JsonArrayConst row : cells) {
-        if (row.size() != 16) return false;
+        if (row.size() != size_t(pictureCols)) return false;
         for (JsonVariantConst cell : row) if (!cell.is<int>() || cell.as<int>() < 0 || cell.as<int>() > 126) return false;
       }
       for (JsonObjectConst glyph : view["lcd"]["glyphs"].as<JsonArrayConst>()) {
@@ -92,6 +110,14 @@ class ServerTerminal {
     }
     if (!next["entry"].isNull() && (next["entry"]["row"] != 0 || next["entry"]["column"] != 5 || next["entry"]["max_length"] != 5)) return false;
     return true;
+  }
+  // A picture that has been accepted: is there news in it? The first one after
+  // a hello is only the starting point (rule 1 and 2 in box_sound.h).
+  void listen(JsonVariantConst picture) {
+    JsonVariantConst attention = picture["attention"];
+    if (!attention.is<JsonObjectConst>()) return;
+    const auto heard = series.observe(attention["epoch"] | "", attention["seq"] | 0UL, attention["kind"] | "");
+    sound = TrainMeetSound::louder(sound, heard);
   }
   void receive(const String& topic, const String& payload, bool retained) {
     if (!started || retained || !topic.startsWith(prefix) || payload.length() > 8192) return;
@@ -116,6 +142,7 @@ class ServerTerminal {
     }
     if (context() != String(doc["frame"]["entry"]["context"] | "")) digits = "";
     if (screenChanged(doc["frame"])) guard = millis() + GUARD_MS;
+    listen(doc["frame"]);
     frame.set(doc["frame"]); seen = millis(); fresh = true; dirty = true;
   }
   bool replaceDigits(const String& entryContext, const String& number) {
@@ -176,26 +203,31 @@ class ServerTerminal {
     if (hasEntry()) result += "0123456789";
     return result;
   }
-  template <class LCD> void draw(LCD& lcd, uint8_t cols=16, uint8_t rows=2) {
+  // `lcdCols` and `lcdRows` are the display itself; the picture is whatever size the
+  // server drew (its own `rows` and `cols`) and sits in the top left corner.
+  template <class LCD> void draw(LCD& lcd, uint8_t lcdCols=16, uint8_t lcdRows=2) {
     if (!fresh || !dirty) return;
     JsonVariantConst view = digits.length() ? frame["entry"].as<JsonVariantConst>() : frame.as<JsonVariantConst>();
+    const uint8_t pictureRows = frame["rows"] | 2, pictureCols = frame["cols"] | 16;
     const String& overlay = waiting() ? waitingText : (unanswered ? unansweredText : empty());
     // The overlay is the box's own text (VÄNTAR PÅ SVAR). Its letters get
     // CGRAM slots the frame leaves free, or share an identical glyph, so the
     // frame's first row still shows what the server sent.
-    TrainMeetLcd::Screen text(1, 16);
+    TrainMeetLcd::Screen text(1, pictureCols);
     for (JsonObjectConst glyph : view["lcd"]["glyphs"].as<JsonArrayConst>()) {
       uint8_t bits[8]; for (uint8_t i=0;i<8;++i) bits[i]=glyph["rows"][i].as<uint8_t>();
       lcd.createChar(glyph["slot"].as<uint8_t>(), bits);
       text.reserve(glyph["slot"].as<uint8_t>(), bits);
     }
     if (overlay.length()) { text.line(0, overlay.c_str()); text.defineGlyphs(lcd); }
-    for (uint8_t r=0;r<rows;++r) {
+    for (uint8_t r=0;r<lcdRows;++r) {
       lcd.setCursor(0,r);
-      for (uint8_t c=0;c<cols;++c) {
-        uint8_t value = (r<2 && c<16) ? view["lcd"]["cells"][r][c].as<uint8_t>() : ' ';
+      for (uint8_t c=0;c<lcdCols;++c) {
+        const bool inPicture = r < pictureRows && c < pictureCols;
+        uint8_t value = inPicture ? view["lcd"]["cells"][r][c].as<uint8_t>() : ' ';
         if (digits.length() && r==0 && c>=5 && c<10) value = (c-5<digits.length()) ? digits[c-5] : '_';
-        if (r == 1 && c < 16 && overlay.length()) value = text.cells[0][c];
+        // The last row of the picture: where the waiting text goes on 16x2 and on 20x4.
+        if (r == pictureRows - 1 && c < pictureCols && overlay.length()) value = text.cells[0][c];
         lcd.write(value);
       }
     }

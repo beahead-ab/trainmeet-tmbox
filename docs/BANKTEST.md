@@ -41,9 +41,11 @@ Använd rätt kopplingsguide för kortet:
 - [ESP32-profiler](../firmware/esp32/README.md) och
   [ESP32-S3 referenshårdvara](TMBOX-V2-HARDWARE.md).
 
-20×4 är en möjlig fysisk display, inte en ny trafikprofil. Den aktiva ytan
-ska tills vidare vara 16×2 och övriga celler tomma. Detta är inte ett påstående
-att alla ESP8266-kopplingar redan stöder en 20×4-display.
+Från firmware 0.8.0 kan en ESP8266-box ha en 20×4-skärm. Storleken väljs i boxens
+portal och servern ritar då bilder i 20×4. På en ESP32 och på en ESP8266 som är
+inställd på 16×2 är den aktiva ytan fortfarande 16×2 och övriga celler tomma.
+Detta är inte ett påstående att alla kopplingar redan stöder en 20×4-display;
+provet nedan visar det på just din.
 
 ## Sju acceptansprov — kör på båda kortfamiljerna
 
@@ -157,7 +159,11 @@ De avser referenslådans komponenter, inte en separat operatörslogik.
 - [ ] 5 V når aldrig ESP32-S3:s GPIO; nivåomvandlaren sitter på I2C-bussen.
 - [ ] Displayen svarar på `0x27`; separat hårdvarudiagnostik provar alla 20×4 celler.
 - [ ] Kontrast och bakgrundsbelysning fungerar i tänkt mötesmiljö.
-- [ ] Den aktiva ytan följer Serverns 16×2-bild; övriga celler är tomma.
+- [ ] Den aktiva ytan följer Serverns bild: 16×2, eller hela 20×4 på en ESP8266 som
+      är inställd på 20×4 mot Server 4.4.0 eller senare.
+- [ ] ESP8266 20×4: välj `20x4` i portalen. Displayen startar om i full storlek, rad 2 och 3
+      visar tåg och läge enligt förslaget, och Klienter i serverns admin visar 20×4.
+      Välj tillbaka `16x2` och kontrollera att bilden åter är 16×2.
 - [ ] Setup-portalen kan öppnas utan att sparat Wi-Fi raderas av misstag.
 - [ ] Antennens räckvidd provas med vald låda och frontpanel.
 
@@ -165,7 +171,10 @@ De avser referenslådans komponenter, inte en separat operatörslogik.
 
 - [ ] Summer och statuslysdiod provas separat där hårdvara/diagnostik finns.
       Detta bevisar inte ljud- eller ljusstöd i `server-16x2`-kontraktet.
-- [ ] Om ljudstöd införs ska gamla händelser inte spelas efter återanslutning.
+- [ ] ESP8266 med summer på D5: begäran hit, nekad, godkänd och tåg på väg ger var sin ton
+      (se [ESP8266-guiden](../firmware/esp8266/README.md#ljud)). Starta om boxen eller
+      servern: ingen gammal händelse spelas, bara servern borta och tillbaka.
+      Den som själv ger klart, nekar eller avgår hör ingenting.
 - [ ] Kort, display och knappsats sitter med mekaniska infästningar utan lim.
 - [ ] USB-kabelns kraft tas upp av paneluttaget och når inte utvecklingskortet.
 - [ ] Boxen klarar upprepade kabelanslutningar, omstarter och normal hantering.

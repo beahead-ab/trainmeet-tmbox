@@ -5,7 +5,10 @@ ESP8266 och ESP32 kör samma serverstyrda TMBox-funktioner. **Från firmware
 Sedan TrainMeet Server 2.0.0 talar servern bara 16×2-profilen över MQTT: en box
 med firmware äldre än 0.7.0 behöver flashas om. Firmware 0.7.4 tar bort den
 sista koden för de äldre protokollen; 0.7.0–0.7.3 fungerar också mot 2.0.0.
-Vi börjar med 16 tecken × 2 rader även på en större fysisk display.
+16 tecken × 2 rader är standard. **Från firmware 0.8.0 kan en ESP8266-box ha
+en 20×4-skärm** (kräver TrainMeet Server 4.4.0 eller senare): storleken väljs i
+boxens portal, boxen säger den till servern och servern ritar varje bild i den
+storleken. ESP8266 kan också ge ljud, se [Ljud](#ljud). ESP32 är oförändrad.
 
 Servern äger trafikbeslut, skärmar, språk och tangenternas betydelse.
 Firmwaren visar bilden, håller sifferinmatning lokalt och hanterar hårdvara,
@@ -47,6 +50,15 @@ separat förhandsversionspaket. Ingen fysisk enhet fjärrflashas av en serverrel
 | `*` från översikt | Lämna stationen till automatiken medan du är borta: **AUTOMATIK?**, `#` bekräftar. Startbilden visar då **AUTOMATIK** (TrainMeet Server 4.1) |
 | `#` på AUTOMATIK | Ta tillbaka stationen: **TA TILLBAKA?**, `#` bekräftar. En trafiktangent medan automatiken sköter stationen frågar samma sak först |
 
+## Ljud
+
+En ESP8266-box med en passiv summer på D5 ger samma ljud som ESP32: en begäran
+hit, svar på din begäran (nekat eller godkänt), ett tåg på väg hit, och när
+servern försvinner eller kommer tillbaka. Ljud ges bara för nya händelser:
+det som hände medan boxen var frånkopplad spelas aldrig i efterhand, och den
+som själv gjorde något hör ingenting. Toner och ordning finns i
+[ESP8266-guiden](firmware/esp8266/README.md#ljud). Utan summer händer inget.
+
 Följ alltid skärmens aktuella tangentbeskrivningar. Godkännande är inte
 avgång; avgång bekräftas först när tåget faktiskt lämnar. När tåget har
 lämnat kan avsändaren inte återta det. Mottagaren kan ange avvikande spår
@@ -55,7 +67,8 @@ i samband med ankomst. Språket väljer administratören i TrainMeet Server; box
 Klockan visas till höger på rad två. Endast aktuella texter och nödvändiga
 specialtecken laddas från servern, inklusive ÅÄÖ. Boxens egna texter, innan
 servern svarat och `VÄNTAR PÅ SVAR`, ritar ÅÄÖ med samma tecken sedan 0.7.5.
-En tom översta rad är tom.
+Med Server 4.4.0 står stationens namn centrerat på översta raden när boxen är ledig,
+åven på 16×2; är namnet för långt eller omöjligt att rita står stationskoden där.
 Språk eller trafikregler behöver därför normalt ingen ny firmware efter
 denna engångsuppgradering till den serverstyrda profilen.
 
