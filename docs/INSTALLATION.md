@@ -171,7 +171,7 @@ Borttagna klienter återaktiveras endast med det separata valet
 
 **Firmware 0.7.0 kräver Server 1.10.0 eller senare. Uppdatera servern först.**
 Båda korten får texter och logik från servern. **Firmware 0.8.0 på NodeMCU kan ha en
-20×4-skärm; det kräver Server 4.4.0 eller senare.** Storleken väljs i portalen
+20×4-skärm; det kräver Server 4.5.0 eller senare.** Storleken väljs i portalen
 (`16x2` eller `20x4`) och en äldre server visar 16×2. ESP32 använder tills
 vidare 16×2 yta även på 20×4-skärm. Avsluta äldre pågående klareringar före första uppgraderingen;
 servern vägrar att tappa dem. Prova den nya firmwaren på fysisk testbänk.
