@@ -160,7 +160,7 @@ De avser referenslådans komponenter, inte en separat operatörslogik.
 - [ ] Displayen svarar på `0x27`; separat hårdvarudiagnostik provar alla 20×4 celler.
 - [ ] Kontrast och bakgrundsbelysning fungerar i tänkt mötesmiljö.
 - [ ] Den aktiva ytan följer Serverns bild: 16×2, eller hela 20×4 på en ESP8266 som
-      är inställd på 20×4 mot Server 4.4.0 eller senare.
+      är inställd på 20×4 mot Server 4.5.0 eller senare.
 - [ ] ESP8266 20×4: välj `20x4` i portalen. Displayen startar om i full storlek, rad 2 och 3
       visar tåg och läge enligt förslaget, och Klienter i serverns admin visar 20×4.
       Välj tillbaka `16x2` och kontrollera att bilden åter är 16×2.
