@@ -26,7 +26,7 @@ på just din display, knappsatsmodul och kablage innan trafikdrift.
 
 Från 0.7.0 delar ESP8266 och ESP32 serverstyrd 16×2-logik. Server 1.10.0 eller senare krävs.
 Från 0.8.0 kan ESP8266 också ha en 20×4-skärm och en summer. **20×4 och ljud kräver
-TrainMeet Server 4.4.0 eller senare.** En 16×2-box behöver ingen ny server och
+TrainMeet Server 4.5.0 eller senare.** En 16×2-box behöver ingen ny server och
 en äldre server visar bara 16×2-bilder, även på en 20×4-skärm.
 
 ### Lokal tågnummerinmatning
