@@ -6,7 +6,7 @@ Sedan TrainMeet Server 2.0.0 talar servern bara 16×2-profilen över MQTT: en bo
 med firmware äldre än 0.7.0 behöver flashas om. Firmware 0.7.4 tar bort den
 sista koden för de äldre protokollen; 0.7.0–0.7.3 fungerar också mot 2.0.0.
 16 tecken × 2 rader är standard. **Från firmware 0.8.0 kan en ESP8266-box ha
-en 20×4-skärm** (kräver TrainMeet Server 4.4.0 eller senare): storleken väljs i
+en 20×4-skärm** (kräver TrainMeet Server 4.5.0 eller senare): storleken väljs i
 boxens portal, boxen säger den till servern och servern ritar varje bild i den
 storleken. ESP8266 kan också ge ljud, se [Ljud](#ljud). ESP32 är oförändrad.
 
@@ -67,7 +67,7 @@ i samband med ankomst. Språket väljer administratören i TrainMeet Server; box
 Klockan visas till höger på rad två. Endast aktuella texter och nödvändiga
 specialtecken laddas från servern, inklusive ÅÄÖ. Boxens egna texter, innan
 servern svarat och `VÄNTAR PÅ SVAR`, ritar ÅÄÖ med samma tecken sedan 0.7.5.
-Med Server 4.4.0 står stationens namn centrerat på översta raden när boxen är ledig,
+Med Server 4.5.0 står stationens namn centrerat på översta raden när boxen är ledig,
 åven på 16×2; är namnet för långt eller omöjligt att rita står stationskoden där.
 Språk eller trafikregler behöver därför normalt ingen ny firmware efter
 denna engångsuppgradering till den serverstyrda profilen.
