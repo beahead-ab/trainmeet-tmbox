@@ -28,7 +28,6 @@
 // asserted in CI without a board. What this file does is talk to the network
 // and the hardware; what a screen says and what a key means is decided there.
 #include "model.h"
-#include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
 #include "../common/lcd_text.h"
@@ -66,6 +65,10 @@ WiFiManager wifiManager;
 WiFiClient networkClient;
 MqttClient mqttClient(networkClient);
 ServerTerminal terminal;
+// Losing the server, and getting it back, are the box's own news; everything
+// else the server says in its pictures (common/box_sound.h). The same sounds,
+// tones and rules as the ESP8266.
+TrainMeetSound::LinkWatch serverLink;
 Preferences preferences;
 std::map<std::string, std::string> deviceMessages;
 std::string deviceLanguage = "sv";
@@ -100,7 +103,6 @@ uint16_t gatewayPort = DEFAULT_MQTT_PORT;
 tmbox::StationConfig stationConfig;
 tmbox::Snapshot stationSnapshot;
 tmbox::LocalNavigationState navigation;
-tmbox::AttentionController attention;
 
 // What this box can physically show. Since 0.7.5 Å, Ä and Ö are drawn in
 // CGRAM with the server's glyphs (lcd_text.h), so the renderer keeps them.
@@ -137,8 +139,7 @@ bool discoverGateway();
 bool connectMqtt();
 void disconnectMqtt();
 void onMqttMessage(int messageSize);
-void signalAttention(const std::vector<tmbox::AttentionEvent>& events);
-const char* attentionName(tmbox::Attention kind);
+void playSound(TrainMeetSound::Kind kind);
 void keypadEvent(KeypadEvent key);
 void buildIdentity();
 String codeFromChipId(uint64_t chipId);
@@ -201,13 +202,15 @@ void loop() {
       if (key) terminal.press(key);
       terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
     }
-    delay(10);
-    return;
+  } else {
+    // Without a terminal session there is nothing to send (since 0.7.4 there
+    // is no v2 protocol): the box shows its own status screens. The keypad is
+    // still read, so holding * opens setup.
+    keypad.getKey();
   }
-  // Without a terminal session there is nothing to send (since 0.7.4 there
-  // is no v2 protocol): the box shows its own status screens. The keypad is
-  // still read, so holding * opens setup.
-  keypad.getKey();
+  // Online means the server has sent the box a picture it can act on, as on
+  // the ESP8266: losing it is announced, and getting it back after having had it.
+  playSound(serverLink.observe(terminal.started && terminal.fresh));
   delay(10);
 }
 
@@ -254,7 +257,7 @@ void processWiFi() {
 
 void startSetupPortal() {
   if (portalActive) return;
-  disconnectMqtt();
+  disconnectMqtt(); serverLink.forget();  // the operator's choice, not a lost server
   forgetServer.setValue("1", 1);
   WiFi.mode(WIFI_AP_STA);
   wifiManager.startConfigPortal(accessPointName.c_str());
@@ -289,7 +292,6 @@ void processGateway() {
     return;
   }
 
-  signalAttention(attention.observe_link(false));
   failedMqttAttempts++;
   nextMqttAttemptAt = now + mqttRetryDelay;
   mqttRetryDelay = min(mqttRetryDelay * 2UL, MQTT_RETRY_MAX_MS);
@@ -355,6 +357,7 @@ void onMqttMessage(int messageSize) {
 
   if (terminal.started) {
     terminal.receive(topic, payload, mqttClient.messageRetain());
+    playSound(terminal.takeSound());
     terminal.draw(lcd, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
   }
 }
@@ -366,7 +369,7 @@ void processSavedParameters() {
   }
   if (!saveParametersRequested) return;
   saveParametersRequested = false;
-  disconnectMqtt(); gatewayHost = ""; nextMqttAttemptAt = nextDiscoveryAt = 0;
+  disconnectMqtt(); serverLink.forget(); gatewayHost = ""; nextMqttAttemptAt = nextDiscoveryAt = 0;
   if (mdnsStarted) MDNS.end();
   mdnsStarted = false;
   portalActive = TrainMeetNetwork::finishSavedPortal(wifiManager, WiFi.status() == WL_CONNECTED);
@@ -450,45 +453,15 @@ String codeFromChipId(uint64_t chipId) {
   return String(code);
 }
 
-// The attention sink. The controller decides *whether*; this decides *how*,
-// and with no buzzer defined the how is "log it and carry on" — the spec's
-// graceful degradation. The serial line is not decoration: it is how a bench
-// test sees that the box reached the right decision without any hardware to
-// hear it with.
-void signalAttention(const std::vector<tmbox::AttentionEvent>& events) {
-  const tmbox::Attention loudest = tmbox::AttentionController::loudest(events);
-  if (loudest == tmbox::Attention::None) return;
-
-  Serial.print("[uppmarksamhet] ");
-  Serial.println(attentionName(loudest));
-
+// A tone for what happened: the same table and rules as the ESP8266
+// (common/box_sound.h). Up to 0.8.0 the ESP32 had its own table and played
+// only when a connection attempt failed; the server's news (a request here,
+// an answer, a train on its way) and "the server is back" were silent.
+// The serial line lets a bench test see the decision without a buzzer.
+void playSound(TrainMeetSound::Kind kind) {
+  if (kind == TrainMeetSound::Kind::None) return;
+  const TrainMeetSound::Tone note = TrainMeetSound::toneFor(kind);
+  Serial.printf("Sound %u: %u Hz for %u ms\n", unsigned(kind), unsigned(note.hz), unsigned(note.ms));
   if (!TMBOX_HAS_BUZZER) return;
-
-  // One buzzer, one sound. Losing the server gets the long note because it is
-  // the one event that makes everything else on the display untrustworthy.
-  unsigned int frequency = 2000;
-  unsigned int duration = 120;
-  switch (loudest) {
-    case tmbox::Attention::ConnectionLost:     frequency = 700;  duration = 600; break;
-    case tmbox::Attention::ConnectionRestored: frequency = 1400; duration = 120; break;
-    case tmbox::Attention::IncomingRequest:    frequency = 2200; duration = 250; break;
-    case tmbox::Attention::RequestDenied:      frequency = 900;  duration = 250; break;
-    case tmbox::Attention::RequestApproved:    frequency = 2600; duration = 150; break;
-    case tmbox::Attention::IncomingTrain:      frequency = 1800; duration = 150; break;
-    case tmbox::Attention::None:               return;
-  }
-  tone(TMBOX_BUZZER_PIN, frequency, duration);
-}
-
-const char* attentionName(tmbox::Attention kind) {
-  switch (kind) {
-    case tmbox::Attention::None:               return "inget";
-    case tmbox::Attention::ConnectionLost:     return "servern borta";
-    case tmbox::Attention::IncomingRequest:    return "begaran hit";
-    case tmbox::Attention::RequestDenied:      return "var begaran nekad";
-    case tmbox::Attention::RequestApproved:    return "var begaran godkand";
-    case tmbox::Attention::IncomingTrain:      return "linjen ledig mot oss";
-    case tmbox::Attention::ConnectionRestored: return "servern tillbaka";
-  }
-  return "?";
+  tone(TMBOX_BUZZER_PIN, note.hz, note.ms);
 }

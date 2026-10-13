@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "check.h"
-#include "attention.h"
 #include "navigation.h"
 #include "renderer.h"
 
@@ -19,18 +18,6 @@ namespace {
 /// Mirrors the geometry the firmware builds from its hardware profile: Å, Ä
 /// and Ö are drawn in CGRAM (common/lcd_text.h) since 0.7.5.
 const Geometry FIRMWARE_GEOMETRY(2, 16, true);
-
-void the_attention_call_sites_still_compile() {
-  AttentionController attention;
-
-  // connectMqtt, when a connection attempt fails
-  const std::vector<AttentionEvent> events = attention.observe_link(false);
-
-  // signalAttention
-  const Attention loudest = AttentionController::loudest(events);
-  (void)loudest;
-  check::truthy(AttentionController::loudest({}) == Attention::None, "inga handelser ger ingen signal");
-}
 
 // Since 0.7.4 the 16x2 terminal draws everything the server sends. What is
 // left of the core is the box's own screens before and between sessions.
@@ -62,7 +49,9 @@ void the_firmware_call_sites_still_compile() {
 }  // namespace
 
 int main() {
+  // The sounds are no longer the core's: after 0.8.0 the sketch plays the
+  // shared table in common/box_sound.h, as the ESP8266 does
+  // (tests/test_box_sound_on_both_boxes.py).
   the_firmware_call_sites_still_compile();
-  the_attention_call_sites_still_compile();
   return check::report();
 }

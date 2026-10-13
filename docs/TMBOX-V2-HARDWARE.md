@@ -188,9 +188,11 @@ konflikt.
 En passiv summer måste matas med en fyrkantvåg; ESP32-S3 gör det med LEDC.
 Transistorn finns för att GPIO:n inte ska driva strömmen direkt.
 
-Uppmärksamhetspolicyn är redan byggd och testad i
-`lib/tmbox_core/attention.cpp` och hålls mot `golden_attention.txt`. Den vet
-vad som förtjänar ett ljud och — lika viktigt — vad som inte gör det:
+Boxen spelar samma ljud som ESP8266-boxen, med samma tontabell och regler i
+`firmware/common/box_sound.h`. Servern talar om i varje bild vad som är en
+nyhet (`attention` i 16×2-profilen), och boxen följer själv sin kontakt med
+servern. Tidigare hade ESP32 en egen tabell och gav bara ljud när en
+anslutning misslyckades. Tonerna:
 
 | När | Ton | Längd |
 |---|---|---|
@@ -418,7 +420,7 @@ med det här beslutet. Byggmålet heter `esp32-s3` i `platformio.ini` och är
 |---|---|
 | Display 20×4 på `0x27` | drivs |
 | Knappsatsmatris på GPIO4–7 och 15–18 | drivs |
-| Summer på GPIO10 | drivs, hela uppmärksamhetspolicyn |
+| Summer på GPIO10 | drivs, samma ljud som ESP8266 (`common/box_sound.h`) |
 | Statuslysdiod på GPIO11–13 | **pinnar namngivna, inget beteende** |
 | Provisioneringsknapp på GPIO14 | **pinne namngiven, inget beteende** |
 
