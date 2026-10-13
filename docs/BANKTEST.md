@@ -171,8 +171,10 @@ De avser referenslådans komponenter, inte en separat operatörslogik.
 
 - [ ] Summer och statuslysdiod provas separat där hårdvara/diagnostik finns.
       Detta bevisar inte ljud- eller ljusstöd i `server-16x2`-kontraktet.
-- [ ] ESP8266 med summer på D5: begäran hit, nekad, godkänd och tåg på väg ger var sin ton
-      (se [ESP8266-guiden](../firmware/esp8266/README.md#ljud)). Starta om boxen eller
+- [ ] ESP8266 med summer på D5 och TMBox v2 (ESP32) med summer på GPIO10: begäran hit,
+      nekad, godkänd och tåg på väg ger var sin ton, samma på båda boxarna
+      (se [ESP8266-guiden](../firmware/esp8266/README.md#ljud)). Seriell monitor visar
+      `Sound …` för varje signal, också utan summer. Starta om boxen eller
       servern: ingen gammal händelse spelas, bara servern borta och tillbaka.
       Den som själv ger klart, nekar eller avgår hör ingenting.
 - [ ] Kort, display och knappsats sitter med mekaniska infästningar utan lim.

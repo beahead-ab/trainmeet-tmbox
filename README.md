@@ -8,7 +8,7 @@ sista koden för de äldre protokollen; 0.7.0–0.7.3 fungerar också mot 2.0.0.
 16 tecken × 2 rader är standard. **Från firmware 0.8.0 kan en ESP8266-box ha
 en 20×4-skärm** (kräver TrainMeet Server 4.5.0 eller senare): storleken väljs i
 boxens portal, boxen säger den till servern och servern ritar varje bild i den
-storleken. ESP8266 kan också ge ljud, se [Ljud](#ljud). ESP32 är oförändrad.
+storleken. Skärmvalet finns ännu bara på ESP8266. Båda boxarna ger samma ljud, se [Ljud](#ljud).
 
 Servern äger trafikbeslut, skärmar, språk och tangenternas betydelse.
 Firmwaren visar bilden, håller sifferinmatning lokalt och hanterar hårdvara,
@@ -52,9 +52,11 @@ separat förhandsversionspaket. Ingen fysisk enhet fjärrflashas av en serverrel
 
 ## Ljud
 
-En ESP8266-box med en passiv summer på D5 ger samma ljud som ESP32: en begäran
+Med en passiv summer (D5 på ESP8266, GPIO10 på TMBox v2) ger båda boxarna samma
+ljud, med samma toner och regler (`firmware/common/box_sound.h`): en begäran
 hit, svar på din begäran (nekat eller godkänt), ett tåg på väg hit, och när
-servern försvinner eller kommer tillbaka. Ljud ges bara för nya händelser:
+servern försvinner eller kommer tillbaka. Tidigare gav ESP32 bara ljud när en
+anslutning misslyckades. Ljud ges bara för nya händelser:
 det som hände medan boxen var frånkopplad spelas aldrig i efterhand, och den
 som själv gjorde något hör ingenting. Toner och ordning finns i
 [ESP8266-guiden](firmware/esp8266/README.md#ljud). Utan summer händer inget.
