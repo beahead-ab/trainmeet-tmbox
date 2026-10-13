@@ -614,14 +614,14 @@ void losing_the_server_is_announced_and_getting_it_back_only_after_having_had_it
   link.observe(false); link.forget();                          // the operator opened the setup portal
   CHECK(link.observe(false) == Kind::None); CHECK(link.observe(true) == Kind::None);
 }
-void the_tones_and_their_order_are_the_esp32s() {
+void the_tones_and_their_order() {
   using TrainMeetSound::toneFor; using TrainMeetSound::weight; using TrainMeetSound::louder;
-  CHECK(toneFor(Kind::ConnectionLost).hz == 700 && toneFor(Kind::ConnectionLost).ms == 600);
-  CHECK(toneFor(Kind::ConnectionRestored).hz == 1400 && toneFor(Kind::ConnectionRestored).ms == 120);
-  CHECK(toneFor(Kind::IncomingRequest).hz == 2200 && toneFor(Kind::IncomingRequest).ms == 250);
-  CHECK(toneFor(Kind::RequestDenied).hz == 900 && toneFor(Kind::RequestDenied).ms == 250);
-  CHECK(toneFor(Kind::RequestApproved).hz == 2600 && toneFor(Kind::RequestApproved).ms == 150);
-  CHECK(toneFor(Kind::IncomingTrain).hz == 1800 && toneFor(Kind::IncomingTrain).ms == 150);
+  CHECK(toneFor(Kind::ConnectionLost).hz == 698 && toneFor(Kind::ConnectionLost).ms == 500);          // F5, 1/2
+  CHECK(toneFor(Kind::ConnectionRestored).hz == 1397 && toneFor(Kind::ConnectionRestored).ms == 125); // F6, 1/8
+  CHECK(toneFor(Kind::IncomingRequest).hz == 2217 && toneFor(Kind::IncomingRequest).ms == 250);       // C#7, 1/4
+  CHECK(toneFor(Kind::RequestDenied).hz == 880 && toneFor(Kind::RequestDenied).ms == 250);            // A5, 1/4
+  CHECK(toneFor(Kind::RequestApproved).hz == 2637 && toneFor(Kind::RequestApproved).ms == 125);       // E7, 1/8
+  CHECK(toneFor(Kind::IncomingTrain).hz == 1760 && toneFor(Kind::IncomingTrain).ms == 125);           // A6, 1/8
   CHECK(toneFor(Kind::None).hz == 0);
   const Kind order[] = {Kind::ConnectionLost, Kind::IncomingRequest, Kind::RequestDenied, Kind::RequestApproved,
                         Kind::IncomingTrain, Kind::ConnectionRestored, Kind::None};
@@ -656,7 +656,7 @@ int main() {
     a_burst_keeps_the_most_important_sound, old_foreign_and_broken_pictures_make_no_sound,
     an_answer_carries_the_series_too, a_server_without_attention_is_silent_and_then_a_baseline,
     losing_the_server_is_announced_and_getting_it_back_only_after_having_had_it,
-    the_tones_and_their_order_are_the_esp32s};
+    the_tones_and_their_order};
   try {
     for (const auto test : tests) test();
     std::cout << "PASS " << std::size(tests) << " shared terminal contract scenarios\n";

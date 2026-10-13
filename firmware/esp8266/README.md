@@ -200,12 +200,12 @@ toner som ESP32 med `tone()`:
 
 | Händelse | Ton |
 |---|---|
-| Servern borta | 700 Hz i 600 ms |
-| Servern tillbaka | 1400 Hz i 120 ms |
-| Begäran hit | 2200 Hz i 250 ms |
-| Din begäran nekades | 900 Hz i 250 ms |
-| Din begäran godkändes | 2600 Hz i 150 ms |
-| Tåg på väg hit | 1800 Hz i 150 ms |
+| Servern borta | F5, 698 Hz i 500 ms |
+| Servern tillbaka | F6, 1397 Hz i 125 ms |
+| Begäran hit | C#7, 2217 Hz i 250 ms |
+| Din begäran nekades | A5, 880 Hz i 250 ms |
+| Din begäran godkändes | E7, 2637 Hz i 125 ms |
+| Tåg på väg hit | A6, 1760 Hz i 125 ms |
 
 Reglerna är desamma som på ESP32. Bara förändringar är nyheter: den första bilden
 efter att boxen anslutit är utgångsläget och är tyst, och ett ljud från före
