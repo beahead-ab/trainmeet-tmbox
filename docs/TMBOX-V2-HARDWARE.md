@@ -196,12 +196,12 @@ anslutning misslyckades. Tonerna:
 
 | När | Ton | Längd |
 |---|---|---|
-| Någon begär klarering hit | 2200 Hz | 250 ms |
-| Vår begäran godkändes | 2600 Hz | 150 ms |
-| Vår begäran nekades | 900 Hz | 250 ms |
-| Linjen ledig mot oss | 1800 Hz | 150 ms |
-| Servern svarar inte | 700 Hz | 600 ms |
-| Servern svarar igen | 1400 Hz | 120 ms |
+| Någon begär klarering hit | C#7, 2217 Hz | 250 ms |
+| Vår begäran godkändes | E7, 2637 Hz | 125 ms |
+| Vår begäran nekades | A5, 880 Hz | 250 ms |
+| Tåg på väg hit | A6, 1760 Hz | 125 ms |
+| Servern svarar inte | F5, 698 Hz | 500 ms |
+| Servern svarar igen | F6, 1397 Hz | 125 ms |
 
 Tyst för det som inte är nyheter: en klarering som redan låg och väntade, allt
 som fanns när boxen startade, och det tågklareraren själv nyss gjorde.

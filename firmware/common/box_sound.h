@@ -4,19 +4,18 @@
 // What a box makes a sound for, and which tone. Shared by ESP8266 and ESP32;
 // no Arduino dependency, so the host tests compile it as it is.
 //
-// The ESP32 decides from the traffic it sees (tmbox_core AttentionController).
 // A box on the server's terminal profile sees only a picture, so the server
 // says in each picture what is news (docs/protocol/terminal16, section 6a:
 // `attention {epoch, seq, kind}`) and the box only decides when to believe it.
-// The rules are the ESP32's, and so are the tones:
+// The rules (from the old ESP32 AttentionController):
 //   1. Only a change is news. Catching up after a (re)connection is not.
 //   2. A sound from before the connection is never played afterwards.
 //   3. The box's own actions are silent; the server leaves them out.
 //   4. Losing the server outranks everything, because every other event is a
 //      claim about state the box can no longer confirm.
-// The ESP8266 follows the same policy (issue #44).
+// Both boxes follow them (issue #44) and play the same tones.
 
-// Some common frequencies.
+// Equal temperament, A4 = 440 Hz, rounded to whole Hz (Benny, PR #47).
 #define NOTE_SILENT      1
 #define NOTE_C0         16  // Octave 0
 #define NOTE_CS0        17
@@ -62,16 +61,16 @@
 #define NOTE_F3        175
 #define NOTE_FS3       185
 #define NOTE_G3        196
-#define NOTE_GS3       308
+#define NOTE_GS3       208
 #define NOTE_A3        220
 #define NOTE_AS3       233
-#define NOTE_B3        245
+#define NOTE_B3        247
 #define NOTE_C4        262  // Octave 4
 #define NOTE_CS4       277
 #define NOTE_D4        294
 #define NOTE_DS4       311
 #define NOTE_E4        330
-#define NOTE_F4        350
+#define NOTE_F4        349
 #define NOTE_FS4       370
 #define NOTE_G4        392
 #define NOTE_GS4       415
@@ -90,10 +89,10 @@
 #define NOTE_A5        880
 #define NOTE_AS5       932
 #define NOTE_B5        988
-#define NOTE_C6       1046  // Octave 6
+#define NOTE_C6       1047  // Octave 6
 #define NOTE_CS6      1109
 #define NOTE_D6       1175
-#define NOTE_DS6      1244
+#define NOTE_DS6      1245
 #define NOTE_E6       1319
 #define NOTE_F6       1397
 #define NOTE_FS6      1480
@@ -152,7 +151,7 @@ struct Tone {
   uint16_t ms;
 };
 
-// The same table as the ESP32's signalAttention.
+// The same on both boxes. Notes instead of bare frequencies (Benny, PR #47).
 inline Tone toneFor(Kind kind) {
   switch (kind) {
     case Kind::ConnectionLost:     return {NOTE_F5, DURATION_1_2};
