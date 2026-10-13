@@ -9,6 +9,11 @@
 // NodeMCU 1.0 / ESP-12E or ESP-12F, 4 MB flash. These are GPIO numbers!
 constexpr uint8_t TAMBOX_SDA = 4; // D2
 constexpr uint8_t TAMBOX_SCL = 5; // D1
+// Passive piezo buzzer between this pin and GND (D5). The box plays the same
+// tones as the ESP32 box; with nothing connected the pin is simply left alone.
+#ifndef TAMBOX_BUZZER_PIN
+#define TAMBOX_BUZZER_PIN 14 // D5
+#endif
 #ifndef TAMBOX_LCD_ADDRESS
 #define TAMBOX_LCD_ADDRESS 0x27
 #endif
@@ -21,5 +26,5 @@ constexpr uint8_t TAMBOX_KEYPAD_ROWS[4] = {4, 5, 6, 7};
 constexpr uint8_t TAMBOX_KEYPAD_COLS[4] = {0, 1, 2, 3};
 static_assert(TAMBOX_LCD_ADDRESS != TAMBOX_KEYPAD_ADDRESS, "LCD and keypad need different I2C addresses");
 constexpr char TAMBOX_KEYS[] = "123A456B789C*0#D";
-constexpr char TAMBOX_FIRMWARE_VERSION[] = "0.7.7";
+constexpr char TAMBOX_FIRMWARE_VERSION[] = "0.8.0";
 constexpr char TAMBOX_MODEL[] = "NodeMCU ESP8266 PCF8574";

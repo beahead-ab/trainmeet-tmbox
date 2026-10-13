@@ -22,7 +22,7 @@ input{width:100%;background:white;margin:8px 0}section{margin:18px 0}.panel{back
 <div id="controls" hidden><section class="panel"><div id="identity"></div><div id="link" class="muted"></div>
 <p id="mode" class="mode">Webbtest avstängt</p><p class="warning">Knapparna påverkar den anslutna träffen på riktigt. Använd en testträff. Stationen tilldelas i TrainMeet Server.</p>
 <div class="row"><button id="start" class="primary">Aktivera webbtest</button><button id="stop">Avsluta webbtest</button></div></section>
-<section class="box" aria-label="Virtuell TMBox"><div class="bezel"><div class="lcd" role="status" aria-live="polite"><div id="line1">                </div><div id="line2">                </div></div></div>
+<section class="box" aria-label="Virtuell TMBox"><div class="bezel"><div class="lcd" role="status" aria-live="polite"><div id="line1">                </div><div id="line2">                </div><div id="line3" hidden>                    </div><div id="line4" hidden>                    </div></div></div>
 <div id="keys" class="keys" aria-label="Knappsats"></div><div class="brand">TRAINMEET · TMBOX</div></section>
 <p id="status" class="status"></p><p id="hardware" class="status muted"></p>
 <p class="muted">Boxen hittar automatiskt TrainMeet Server på samma nät. Visa enhetskoden för administratören, som tilldelar stationen på servern.</p>
@@ -34,7 +34,7 @@ const buttons=[...'123A456B789C*0#D'].map(key=>{const b=document.createElement('
 function allowed(key){return !!state&&(state.allowedKeys.includes(key)||(state.serverDriven&&entryValue&&['#','*','B'].includes(key)))&&!(state.localEntry&&!state.serverDriven&&key==='#'&&!entryValue)&&!(state.localEntry&&/^[0-9]$/.test(key)&&entryValue.length>=5);}
 function drawKeys(){for(const b of buttons)b.disabled=busy||!online||!state||!state.webTest||!state.ready||!allowed(b.textContent);}
 function clearEntry(){entryContext=null;entryValue='';}
-function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null){if(state.serverDriven){const lines=entryValue?state.entryLines:[state.line1,state.line2];$('line1').textContent=entryValue?[...lines[0]].slice(0,5).join('')+entryValue.padEnd(5,'_')+[...lines[0]].slice(10).join(''):lines[0];$('line2').textContent=lines[1];}else $('line2').textContent=((state.entryLabel||'Tag: ')+entryValue).padEnd(16,' ').slice(0,16);}}
+function drawEntry(){if(state&&state.localEntry&&state.webTest&&entryContext!==null){if(state.serverDriven){const lines=entryValue?state.entryLines:[state.line1,state.line2,state.line3,state.line4];$('line1').textContent=entryValue?[...lines[0]].slice(0,5).join('')+entryValue.padEnd(5,'_')+[...lines[0]].slice(10).join(''):lines[0];$('line2').textContent=lines[1];if(state.rows===4){$('line3').textContent=lines[2]||'';$('line4').textContent=lines[3]||'';}}else $('line2').textContent=((state.entryLabel||'Tag: ')+entryValue).padEnd(16,' ').slice(0,16);}}
 function drawControls(){for(const el of document.querySelectorAll('input,button'))el.disabled=busy;
  $('start').disabled=busy||!online||!state||state.webTest||!state.canStart;$('stop').disabled=busy||!online||!state||!state.webTest;drawKeys();}
 function show(s){
@@ -42,7 +42,7 @@ function show(s){
  else if(entryContext!==s.entryContext){entryContext=s.entryContext;entryValue=s.entryValue||'';}
  state=s;online=true;lastReply=Date.now();$('login').hidden=true;$('controls').hidden=false;
  $('identity').textContent=s.deviceCode+' · '+s.firmware;$('link').textContent='Box: '+s.ip+' · Server: '+(s.server||'söker automatiskt')+' · Panel: '+(s.panel||'ej tilldelad');
- $('line1').textContent=s.line1;$('line2').textContent=s.line2;$('mode').textContent=s.webTest?'Webbtest aktivt':'Webbtest avstängt';
+ $('line1').textContent=s.line1;$('line2').textContent=s.line2;$('line3').hidden=$('line4').hidden=s.rows!==4;$('line3').textContent=s.line3||'';$('line4').textContent=s.line4||'';$('mode').textContent=s.webTest?'Webbtest aktivt':'Webbtest avstängt';
  $('status').textContent=!s.connected?'Söker eller återansluter till lokal server.':!s.panel?'Ansluten. Tilldela stationen i serverns admin.':s.waiting?'Väntar på serverkvittens…':!s.fresh?'Väntar på aktuell skärmbild från servern.':s.entryNeedsUpdate?'Uppdatera TrainMeet Server för lokal inmatning. Inga siffror skickas till servern.':s.webTest&&s.localEntry?'Skriv tågnumret. # bekräftar, * avbryter. Siffrorna stannar i telefonen tills du bekräftar.':s.webTest?'Serverns tillåtna tangenter är aktiva.':'Aktivera webbtest för att använda knapparna.';
  $('hardware').textContent='Display: '+(s.lcd?'ansluten':'saknas')+' · Knappsats: '+(s.keypad?'ansluten':'saknas');
  drawEntry();drawControls();}

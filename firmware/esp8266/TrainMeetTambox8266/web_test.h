@@ -98,8 +98,12 @@ void webStatus() {
   data["allowedKeys"] = terminal.started ? terminal.allowed() : String();
   data["localEntry"] = terminal.hasEntry(); data["entryContext"] = terminal.context();
   data["entryValue"] = terminal.digits; data["entryLines"] = terminal.frame["entry"]["lines"];
-  data["line1"] = terminal.fresh ? terminal.line(0) : shownLine1;
-  data["line2"] = terminal.fresh ? terminal.line(1) : shownLine2;
+  // The page draws as many rows as the display has (16x2 or 20x4).
+  data["rows"] = lcdSize.rows; data["cols"] = lcdSize.cols;
+  data["line1"] = terminal.fresh ? terminal.line(0) : (lcdSize.rows == 4 ? String() : shownLine1);
+  data["line2"] = terminal.fresh ? terminal.line(1) : (lcdSize.rows == 4 ? shownLine1 : shownLine2);
+  data["line3"] = terminal.fresh ? terminal.line(2) : (lcdSize.rows == 4 ? shownLine2 : String());
+  data["line4"] = terminal.fresh ? terminal.line(3) : String();
   webJson(200, data);
 }
 
