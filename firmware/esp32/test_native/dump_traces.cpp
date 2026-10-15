@@ -103,7 +103,7 @@ int main() {
 
   run("browse-and-position", "CCA*", plain, {"train.position.set"}, UNHURRIED);
   run("track-change-refused-then-allowed", "CBA", plain, {"train.position.set"}, UNHURRIED);
-  run("track-picker-picks-second", "CBCA", plain, {"train.track.change"}, UNHURRIED);
+  run("track-picker-starts-on-own-track", "CBCA", plain, {"train.track.change"}, UNHURRIED);
   run("hash-opens-clearance-and-a-settles", "#A", with_cases, {}, UNHURRIED);
   run("hash-then-b-refuses", "#B", with_cases, {}, UNHURRIED);
   run("line-message-only-acknowledges", "##AB", with_cases, {}, UNHURRIED);

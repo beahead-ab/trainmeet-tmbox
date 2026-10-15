@@ -303,6 +303,9 @@ Spår är textidentifierare (`id`, `display_label`, `station_id`,
 uppräkning. `B=ÄNDRA` öppnar en serverstyrd lista, `C` bläddrar, `#` väljer,
 `*` lämnar. `A`/`B` används aldrig som bokstavsinmatning.
 
+Väljaren börjar på rörelsens eget spår (`assigned_track_id`), så att `C`
+bläddrar vidare därifrån. Ett tåg utan spår börjar på det första i listan.
+
 Fyra spårvärden hålls isär:
 
 - `scheduled_track_id` — tidtabellens spår, skrivs aldrig över

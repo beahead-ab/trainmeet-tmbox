@@ -37,6 +37,15 @@ int index_of_movement(const Snapshot& snapshot, const std::string& movement_id) 
   return -1;
 }
 
+/// The track picker starts on the train's own track, so A keeps it and C
+/// goes on from there. A train without one starts on the first.
+int index_of_track(const StationConfig& config, const std::string& track_id) {
+  for (std::size_t index = 0; index < config.tracks.size(); ++index) {
+    if (config.tracks[index].id == track_id) return static_cast<int>(index);
+  }
+  return 0;
+}
+
 }  // namespace
 
 void LocalNavigationState::apply_lookup(const Snapshot& snapshot,
@@ -183,7 +192,7 @@ KeyResult LocalNavigationState::press(char key,
         return KeyResult(Outcome::Send, command);
       }
       if (key == 'B' && movement.allows("train.track.change")) {
-        view_.selected_track = 0;
+        view_.selected_track = index_of_track(config, movement.assigned_track_id);
         show(Screen::TrackPicker, now_ms);
         return KeyResult(Outcome::Redraw);
       }

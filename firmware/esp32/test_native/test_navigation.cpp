@@ -82,7 +82,29 @@ void the_box_never_invents_permission_for_a_track_change() {
   const KeyResult chosen = box.press('A');
   check::truthy(chosen.outcome == Outcome::Send, "A ska valja sparet");
   check::equal("train.track.change", chosen.command.action, "ratt handling");
-  check::equal("track-cda-1a", chosen.command.track_id, "forsta sparet i katalogen");
+  check::equal("track-cda-1b", chosen.command.track_id, "tagets eget spar, inte forsta i katalogen");
+}
+
+void the_track_picker_starts_on_the_trains_track() {
+  // Casper 2026-10-15: the picker starts where the train is, and C goes on
+  // from there. 421 stands on 1B, the second in the catalogue.
+  Box box;
+  box.nav.show(Screen::MovementDetail, 0);
+  box.nav.view().selected_movement = 0;
+  box.snapshot.movements[0].allowed_actions = {"train.track.change"};
+  box.press('B');
+  check::truthy(box.nav.view().selected_track == 1, "pa 1B");
+  box.press('C');
+  check::equal("track-cda-2a", box.press('A').command.track_id, "C gar vidare fran 1B");
+
+  // A train the timetable gives no track starts on the first.
+  Box without;
+  without.snapshot.movements[0].assigned_track_id.clear();
+  without.nav.show(Screen::MovementDetail, 0);
+  without.nav.view().selected_movement = 0;
+  without.snapshot.movements[0].allowed_actions = {"train.track.change"};
+  without.press('B');
+  check::equal("track-cda-1a", without.press('A').command.track_id, "utan spar: forsta");
 }
 
 void a_clearance_request_must_name_the_line() {
@@ -265,6 +287,7 @@ int main() {
   star_goes_back_from_anywhere();
   a_sends_only_what_the_server_allows();
   the_box_never_invents_permission_for_a_track_change();
+  the_track_picker_starts_on_the_trains_track();
   a_clearance_request_must_name_the_line();
   hash_opens_the_inbox_but_settles_nothing();
   a_line_message_can_only_be_acknowledged();
