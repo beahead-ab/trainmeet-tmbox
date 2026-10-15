@@ -27,7 +27,11 @@ input{width:100%;background:white;margin:8px 0}section{margin:18px 0}.panel{back
 <p id="status" class="status"></p><p id="hardware" class="status muted"></p>
 <p class="muted">Boxen hittar automatiskt TrainMeet Server på samma nät. Visa enhetskoden för administratören, som tilldelar stationen på servern.</p>
 <button id="logout">Koppla från telefonen</button><p class="muted"><small>Webbtest stängs av vid omstart, nätavbrott eller tio minuters inaktivitet. Ingen Cloud-anslutning behövs.</small></p></div>
-<p id="message" role="alert"></p></main><script>
+<p id="message" role="alert"></p>
+<section class="panel" aria-labelledby="setup-title"><h2 id="setup-title">Wi-Fi, skärmstorlek och ny firmware</h2>
+<p>Det ändras i boxens egen inställningssida, inte här.</p>
+<ol><li>Avsluta webbtest.</li><li>Håll <b>*</b> på boxens knappsats i fem sekunder. Boxen lämnar trafiken och öppnar sitt eget Wi-Fi, <b id="portal">TrainMeet-…</b>.</li><li>Anslut telefonen till det. Sidan brukar öppnas av sig själv, annars gå till <b>http://192.168.4.1</b>.</li></ol>
+<p class="muted"><small>Där finns Wi-Fi, skärmstorlek och Update för ny firmware. Inget raderas. Boxen kommer tillbaka till träffen när du sparar eller avslutar.</small></p></section></main><script>
 'use strict';
 const $=id=>document.getElementById(id);let state=null,busy=false,online=false,closed=false,lastReply=0,entryContext=null,entryValue="",generation=0,pollController=null;
 const buttons=[...'123A456B789C*0#D'].map(key=>{const b=document.createElement('button');b.textContent=key;b.type='button';b.disabled=true;b.setAttribute('aria-label','Tangent '+key);b.onclick=()=>press(key);$('keys').append(b);return b;});
@@ -41,7 +45,7 @@ function show(s){
  if(!s.connected||!s.webTest||!s.localEntry)clearEntry();
  else if(entryContext!==s.entryContext){entryContext=s.entryContext;entryValue=s.entryValue||'';}
  state=s;online=true;lastReply=Date.now();$('login').hidden=true;$('controls').hidden=false;
- $('identity').textContent=s.deviceCode+' · '+s.firmware;$('link').textContent='Box: '+s.ip+' · Server: '+(s.server||'söker automatiskt')+' · Panel: '+(s.panel||'ej tilldelad');
+ $('identity').textContent=s.deviceCode+' · '+s.firmware;if(s.deviceCode)$('portal').textContent='TrainMeet-'+s.deviceCode.slice(4);$('link').textContent='Box: '+s.ip+' · Server: '+(s.server||'söker automatiskt')+' · Panel: '+(s.panel||'ej tilldelad');
  $('line1').textContent=s.line1;$('line2').textContent=s.line2;$('line3').hidden=$('line4').hidden=s.rows!==4;$('line3').textContent=s.line3||'';$('line4').textContent=s.line4||'';$('mode').textContent=s.webTest?'Webbtest aktivt':'Webbtest avstängt';
  $('status').textContent=!s.connected?'Söker eller återansluter till lokal server.':!s.panel?'Ansluten. Tilldela stationen i serverns admin.':s.waiting?'Väntar på serverkvittens…':!s.fresh?'Väntar på aktuell skärmbild från servern.':s.entryNeedsUpdate?'Uppdatera TrainMeet Server för lokal inmatning. Inga siffror skickas till servern.':s.webTest&&s.localEntry?'Skriv tågnumret. # bekräftar, * avbryter. Siffrorna stannar i telefonen tills du bekräftar.':s.webTest?'Serverns tillåtna tangenter är aktiva.':'Aktivera webbtest för att använda knapparna.';
  $('hardware').textContent='Display: '+(s.lcd?'ansluten':'saknas')+' · Knappsats: '+(s.keypad?'ansluten':'saknas');
