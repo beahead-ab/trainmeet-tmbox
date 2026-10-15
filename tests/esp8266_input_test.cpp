@@ -1,10 +1,10 @@
 #include <cassert>
 #include <iostream>
-#include "../firmware/esp8266/TrainMeetTambox8266/input_state.h"
-#include "../firmware/esp8266/TrainMeetTambox8266/hardware_profile.h"
-#include "../firmware/esp8266/TrainMeetTambox8266/device_settings.h"
-#include "../firmware/esp8266/TrainMeetTambox8266/network_setup.h"
-#include "../firmware/esp8266/TrainMeetTambox8266/web_test_state.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/input_state.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/hardware_profile.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/device_settings.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/network_setup.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/web_test_state.h"
 
 void testWebInput() {
   WebTestSession test;

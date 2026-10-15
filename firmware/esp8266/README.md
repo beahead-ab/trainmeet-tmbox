@@ -102,7 +102,7 @@ DCC-, växel- eller körström till kortet. Använd korta I²C-ledningar.
 Ordningen på knappsatsens kontakt är inte standardiserad. Kontrollera den med
 multimeter på strömlös, frånkopplad knappsats. Om din modul använder en annan
 ordning ändras `TAMBOX_KEYPAD_ROWS` och `TAMBOX_KEYPAD_COLS` i
-[`hardware_profile.h`](TrainMeetTambox8266/hardware_profile.h).
+[`hardware_profile.h`](TrainMeetTMBox8266/hardware_profile.h).
 Det är **PCF-pinnummer 0–7**, inte NodeMCU-pinnar.
 
 ## 2. Hämta och kompilera – PlatformIO (rekommenderat)
@@ -310,7 +310,7 @@ För den som i stället arbetar direkt i repots källkod:
    - ArduinoMqttClient **0.1.8** (Arduino)
    - LiquidCrystal_PCF8574 **2.3.0** (Matthias Hertel)
    - WiFiManager **2.0.17** (tzapu)
-6. Öppna `TrainMeetTambox8266/TrainMeetTambox8266.ino`. Alla `.h`-filer i
+6. Öppna `TrainMeetTMBox8266/TrainMeetTMBox8266.ino`. Alla `.h`-filer i
    **samma mapp måste följa med**; flytta inte ut bara `.ino`-filen.
 7. Välj USB-port. Kontrollera adresser och matrisordning i `hardware_profile.h`.
 8. För hårdvarutest: skriv `#define TAMBOX_HARDWARE_CHECK 1` allra överst i
@@ -333,7 +333,7 @@ Med Arduino CLI lägger du till `--board-options dbg=Serial` i byggkommandot,
 även när du använder nedladdningspaketets isolerade `--profile build`.
 
 I **PlatformIO**, eller som ett uttryckligt manuellt val i båda byggsystemen,
-kan du i [`hardware_profile.h`](TrainMeetTambox8266/hardware_profile.h)
+kan du i [`hardware_profile.h`](TrainMeetTMBox8266/hardware_profile.h)
 ta bort `//` framför:
 
 ```cpp

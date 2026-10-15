@@ -60,8 +60,8 @@ class FirmwarePackageCompileChecks(unittest.TestCase):
                     self.assertIn('build_flags = -D TAMBOX_HARDWARE_CHECK=1',
                                   (project / 'platformio.ini').read_text())
                     self.assertIn('#ifdef DEBUG_ESP_PORT',
-                                  (project / 'TrainMeetTambox8266/debug_log.h').read_text())
-                    self.assertNotRegex((project / 'TrainMeetTambox8266/hardware_profile.h').read_text(),
+                                  (project / 'TrainMeetTMBox8266/debug_log.h').read_text())
+                    self.assertNotRegex((project / 'TrainMeetTMBox8266/hardware_profile.h').read_text(),
                                         r'(?m)^\s*#define TAMBOX_DEBUG_ENABLED')
 
         with patch.object(checker, 'run', side_effect=capture):

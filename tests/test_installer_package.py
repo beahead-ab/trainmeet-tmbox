@@ -94,7 +94,7 @@ class InstallerPackageTest(unittest.TestCase):
 
     def test_pins_in_the_guide_match_source_profiles(self):
         model = (ROOT / 'installer/model.js').read_text()
-        node = (ROOT / 'firmware/esp8266/TrainMeetTambox8266/hardware_profile.h').read_text()
+        node = (ROOT / 'firmware/esp8266/TrainMeetTMBox8266/hardware_profile.h').read_text()
         self.assertIn('D2 / GPIO4', model)
         self.assertIn('D1 / GPIO5', model)
         self.assertIn('TAMBOX_SDA = 4', node)

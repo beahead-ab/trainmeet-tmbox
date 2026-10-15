@@ -32,8 +32,8 @@ FakeSerial Serial;
 [[maybe_unused]] unsigned long millis() { ++clockReads; return fakeNow; }
 }
 
-#include "../firmware/esp8266/TrainMeetTambox8266/hardware_profile.h"
-#include "../firmware/esp8266/TrainMeetTambox8266/debug_log.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/hardware_profile.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/debug_log.h"
 
 #ifndef EXPECTED_DEBUG
 #error "The test runner must declare the expected debug mode"

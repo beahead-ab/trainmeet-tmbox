@@ -55,7 +55,7 @@ class ESP8266DebugTests(unittest.TestCase):
                 self.compile_and_run(flag, flag, port="Serial")
 
     def test_startup_uses_resolved_flag_not_the_optional_port_macro(self):
-        source = (ROOT / "firmware/esp8266/TrainMeetTambox8266/TrainMeetTambox8266.ino").read_text()
+        source = (ROOT / "firmware/esp8266/TrainMeetTMBox8266/TrainMeetTMBox8266.ino").read_text()
         self.assertIn('TMBOX_LOG("USB debug: %s\\n", TAMBOX_DEBUG_ENABLED ? "on" : "off");', source)
         self.assertNotIn("DEBUG_ESP_PORT ?", source)
 
