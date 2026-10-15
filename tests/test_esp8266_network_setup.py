@@ -141,6 +141,32 @@ class NetworkSetupTest(unittest.TestCase):
         subprocess.run([node, "--check"], input=script, text=True,
                        capture_output=True, check=True, timeout=30)
 
+    def test_the_page_says_how_settings_and_new_firmware_are_reached(self):
+        """#50: Wi-Fi, display size and new firmware are changed in the box's
+        own setup portal, not on the phone page (a web session is no proof of
+        being at the box). The page tells how: hold * for five seconds."""
+        page = (SKETCH / "web_test_page.h").read_text()
+        hint = page.split('aria-labelledby="setup-title"', 1)[1].split("</section>", 1)[0]
+        controls = page.split('<div id="controls" hidden>', 1)[1].split('<p id="message"', 1)[0]
+        self.assertNotIn("setup-title", controls, "the hint shows without a session")
+        for text in ("Avsluta webbtest", "<b>*</b>", "fem sekunder", '<b id="portal">TrainMeet-…</b>',
+                     "http://192.168.4.1", "Update för ny firmware", "Inget raderas"):
+            with self.subTest(text=text):
+                self.assertIn(text, hint)
+        firmware = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
+        # The page names the access point exactly as the firmware does.
+        self.assertIn('apName = "TrainMeet-" + deviceCode.substring(4);', firmware)
+        self.assertIn("'TrainMeet-'+s.deviceCode.slice(4)", page)
+        # The hold opens the portal only while the web test is off, and the
+        # held key is * (bit 12 in 123A456B789C*0#D) for five seconds.
+        self.assertIn("if (event.reset && !webSession.enabled) {", firmware)
+        hold = (SKETCH / "input_state.h").read_text()
+        self.assertIn("stable == (1u << 12) && !holdSent && uint32_t(now - heldAt) >= 5000", hold)
+        self.assertEqual("123A456B789C*0#D"[12], "*")
+        # The portal keeps WiFiManager's default menu, which has Update.
+        self.assertNotIn("setMenu", firmware)
+        self.assertIn("tzapu/WiFiManager@2.0.17", (ROOT / "firmware/esp8266/platformio.ini").read_text())
+
     def test_digits_are_buffered_before_mqtt_publish(self):
         """Digits stay in the box until #; the terminal buffers them, and the
         phone page cannot send one on its own."""

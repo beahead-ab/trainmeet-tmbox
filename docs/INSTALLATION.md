@@ -145,6 +145,12 @@ ID:t är hjälp för serverval på ett betrott lokalnät, inte kryptografisk aut
 
 - **Båda modellerna:** håll `*` i fem sekunder. Portalen öppnas utan att sparade
   Wi-Fi-uppgifter eller serverval raderas. Spara nya nätuppgifter eller avsluta portalen.
+- Portalen är samma sida som vid första installationen: Wi-Fi, skärmstorlek och
+  **Update** för ny firmware. Medan den är öppen är boxen inte med i trafiken. Anslut
+  telefonen till boxens eget Wi-Fi (`TrainMeet-` och enhetskodens sex tecken) och öppna
+  `http://192.168.4.1` om sidan inte öppnas av sig själv.
+- ESP8266 med webbtest: avsluta webbtest först. Webbtestsidan på träffens nät ändrar
+  aldrig Wi-Fi, skärmstorlek eller firmware, eftersom den inte vet att du står vid boxen.
 - Vill du avsiktligt byta server: markera **Byt TrainMeet Server (behall Wi-Fi)**
   i portalen och spara. Markeringen är avstängd från början. Boxens identitet,
   språkcache och trafikdata på servern raderas inte. Den nya serverns admin

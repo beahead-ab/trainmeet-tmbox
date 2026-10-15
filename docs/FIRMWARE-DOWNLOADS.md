@@ -105,6 +105,10 @@ Det innehåller nu en lokal webbtestpanel med 16×2-display och alla tangenter:
 6. Tågnumrets siffror stannar i telefonen tills `#` bekräftar; `*` avbryter.
    Ingen separat tangentbegäran görs för siffrorna under tågnummerinmatning.
 
+Wi-Fi, skärmstorlek och ny firmware ändras inte på webbtestsidan utan i boxens
+egen portal. Sidan säger hur: avsluta webbtest och håll `*` på boxens knappsats i
+fem sekunder, se [Öppna installationen igen](INSTALLATION.md#öppna-installationen-igen).
+
 Det finns inga manuella IP-, port- eller anslutningskodsfält. Befintliga
 sparade serveradresser ignoreras. Webbtest avslutas vid omstart, nätavbrott
 eller tio minuters inaktivitet. Admin på servern bestämmer stationen och

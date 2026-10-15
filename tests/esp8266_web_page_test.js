@@ -221,8 +221,19 @@ async function aTwentyByFourBoxShowsFourRows() {
  assert.equal(small.el('line3').hidden,true);assert.equal(small.el('line4').hidden,true);
  assert.equal(small.el('line3').textContent,'');
 }
+// #50: settings live in the box's own setup page. The page says how to open
+// it and names the box's Wi-Fi as the firmware does ("TrainMeet-" + code[4:]).
+async function settingsAreReachedFromTheBox() {
+ const e=harness(null,snapshot({deviceCode:'TBX-00A1B2'}));
+ assert.equal(e.el('portal').hidden,false);
+ await e.flush();
+ assert.equal(e.el('portal').textContent,'TrainMeet-00A1B2');
+ e.read('signedOut()');
+ assert.equal(e.el('controls').hidden,true);
+ assert.equal(e.el('portal').hidden,false,'the hint stays when the phone is not connected');
+}
 (async()=>{
- for(const fn of [digitsRemainInPhoneUntilConfirm,cancelSendsNoDigits,draftIsBoundedAndInvalidatedByContext,automaticSessionNeedsNoCode,explicitDisconnectDoesNotReclaimTheBox,initialPollCannotOverwriteCompletedAction,transportTimeoutIsNotARetriedPost,aTwentyByFourBoxShowsFourRows]){
+ for(const fn of [digitsRemainInPhoneUntilConfirm,cancelSendsNoDigits,draftIsBoundedAndInvalidatedByContext,automaticSessionNeedsNoCode,explicitDisconnectDoesNotReclaimTheBox,initialPollCannotOverwriteCompletedAction,transportTimeoutIsNotARetriedPost,aTwentyByFourBoxShowsFourRows,settingsAreReachedFromTheBox]){
   await fn();console.log('PASS '+fn.name);
  }
 })().catch(error=>{console.error(error);process.exitCode=1;});
