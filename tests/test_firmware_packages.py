@@ -46,7 +46,7 @@ class FirmwarePackageTests(unittest.TestCase):
             else:
                 self.assertNotIn('TAMBOX_DEBUG_ENABLED', instructions)
         instructions = package.platformio_files(ROOT, 'esp8266')['START-HERE.md'].decode()
-        self.assertIn('TrainMeetTambox8266/hardware_profile.h', instructions)
+        self.assertIn('TrainMeetTMBox8266/hardware_profile.h', instructions)
         self.assertIn('#define TAMBOX_DEBUG_ENABLED 1', instructions)
         self.assertNotIn('TAMBOX_DEBUG_ENABLED', package.platformio_files(ROOT, 'esp32')['START-HERE.md'].decode())
 

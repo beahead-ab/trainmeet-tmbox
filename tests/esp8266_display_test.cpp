@@ -3,8 +3,8 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
-#include "../firmware/esp8266/TrainMeetTambox8266/display_setting.h"
-#include "../firmware/esp8266/TrainMeetTambox8266/network_setup.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/display_setting.h"
+#include "../firmware/esp8266/TrainMeetTMBox8266/network_setup.h"
 
 using namespace TrainMeetDisplay;
 

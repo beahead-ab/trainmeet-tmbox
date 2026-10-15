@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const page = fs.readFileSync(path.join(__dirname,
-  '../firmware/esp8266/TrainMeetTambox8266/web_test_page.h'), 'utf8');
+  '../firmware/esp8266/TrainMeetTMBox8266/web_test_page.h'), 'utf8');
 const script = page.split('<script>')[1].split('</script>')[0];
 const reply = (body, status = 200) => ({ body, status });
 const deferred = () => {

@@ -12,7 +12,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-SKETCH = ROOT / "firmware/esp8266/TrainMeetTambox8266"
+SKETCH = ROOT / "firmware/esp8266/TrainMeetTMBox8266"
 
 
 class DisplaySettingTest(unittest.TestCase):
@@ -32,7 +32,7 @@ class DisplaySettingTest(unittest.TestCase):
 class SketchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        cls.source = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
 
     def function(self, signature):
         return self.source.split(signature, 1)[1].split("\n}\n", 1)[0]

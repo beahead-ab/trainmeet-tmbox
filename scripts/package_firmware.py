@@ -22,8 +22,8 @@ PROFILES = {
     "esp32-s3": ("esp32", "TrainMeetTMBox_S3", "ESP32S3 Dev Module", "esp32:esp32:esp32s3:FlashSize=8M,PSRAM=enabled", 2),
     "esp32-benny": ("esp32", "TrainMeetTMBox_Benny", "ESP32 Dev Module", "esp32:esp32:esp32", 1),
     "esp32-classic-safe": ("esp32", "TrainMeetTMBox_Classic", "ESP32 Dev Module", "esp32:esp32:esp32", 3),
-    "nodemcu-i2c": ("esp8266", "TrainMeetTambox8266", "NodeMCU 1.0 (ESP-12E Module)", "esp8266:esp8266:nodemcuv2", None),
-    "nodemcu-hardware-check": ("esp8266", "TrainMeetTambox8266_Test", "NodeMCU 1.0 (ESP-12E Module)", "esp8266:esp8266:nodemcuv2", None),
+    "nodemcu-i2c": ("esp8266", "TrainMeetTMBox8266", "NodeMCU 1.0 (ESP-12E Module)", "esp8266:esp8266:nodemcuv2", None),
+    "nodemcu-hardware-check": ("esp8266", "TrainMeetTMBox8266_Test", "NodeMCU 1.0 (ESP-12E Module)", "esp8266:esp8266:nodemcuv2", None),
 }
 CORES = {
     "esp32": ("esp32:esp32", "2.0.17", "https://espressif.github.io/arduino-esp32/package_esp32_index.json"),
@@ -55,7 +55,7 @@ def dependencies(root: Path, family: str) -> list[tuple[str, str]]:
 def source_file(root: Path, family: str) -> Path:
     if family == "esp32":
         return root / "firmware/esp32/TrainMeetTMBox.ino"
-    return root / "firmware/esp8266/TrainMeetTambox8266/TrainMeetTambox8266.ino"
+    return root / "firmware/esp8266/TrainMeetTMBox8266/TrainMeetTMBox8266.ino"
 
 
 def localize_common_includes(content: bytes) -> bytes:
@@ -289,7 +289,7 @@ Kopplingsguide:
 https://github.com/beahead-ab/trainmeet-tmbox/blob/main/firmware/{family}/README.md
 """.encode()
     if family == "esp8266":
-        files["START-HERE.md"] += esp8266_debug_instructions("TrainMeetTambox8266/hardware_profile.h")
+        files["START-HERE.md"] += esp8266_debug_instructions("TrainMeetTMBox8266/hardware_profile.h")
     return files
 
 

@@ -53,7 +53,7 @@ DERIVED: list[tuple[str, str, bool]] = [
         False,
     ),
     (
-        "firmware/esp8266/TrainMeetTambox8266/hardware_profile.h",
+        "firmware/esp8266/TrainMeetTMBox8266/hardware_profile.h",
         r'(?m)^constexpr char TAMBOX_FIRMWARE_VERSION\[\] = "([^"]+)"',
         False,
     ),

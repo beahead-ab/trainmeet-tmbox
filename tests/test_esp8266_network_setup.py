@@ -6,14 +6,14 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-SKETCH = ROOT / "firmware/esp8266/TrainMeetTambox8266"
+SKETCH = ROOT / "firmware/esp8266/TrainMeetTMBox8266"
 
 
 class NetworkSetupTest(unittest.TestCase):
     def test_same_discovery_service_as_esp32(self):
         common = (ROOT / "firmware/common/server_discovery.h").read_text()
         self.assertRegex(common, r'DISCOVERY_SERVICE\[\]\s*=\s*"tmbox"')
-        for path in (ROOT / "firmware/esp32/TrainMeetTMBox.ino", SKETCH / "TrainMeetTambox8266.ino"):
+        for path in (ROOT / "firmware/esp32/TrainMeetTMBox.ino", SKETCH / "TrainMeetTMBox8266.ino"):
             source = path.read_text()
             self.assertIn("TrainMeetNetwork::discoverServers()", source)
             self.assertIn("TrainMeetNetwork::selectServer(servers, rememberedServerId.c_str())", source)
@@ -22,7 +22,7 @@ class NetworkSetupTest(unittest.TestCase):
             self.assertIn('terminal.frame["station_code"]', source)
 
     def test_automatic_server_uses_tested_query_without_manual_override(self):
-        source = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        source = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
         self.assertEqual(source.count("TrainMeetNetwork::discoverServers()"), 1)
         self.assertNotIn("MDNS.queryService(", source)
         self.assertNotIn("settings.host", source)
@@ -41,7 +41,7 @@ class NetworkSetupTest(unittest.TestCase):
         self.assertLess(gateway.index("discoverGateway()"), gateway.index("connectMqtt()"))
         self.assertIn("|| portalActive", gateway)
         self.assertIn("MDNS.end()", source.split("void processSavedParameters() {", 1)[1])
-        esp8266 = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        esp8266 = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
         save = esp8266.split("void savePortalSettings() {", 1)[1].split("bool publish", 1)[0]
         self.assertIn("MDNS.close()", save)
 
@@ -55,12 +55,12 @@ class NetworkSetupTest(unittest.TestCase):
         and v2 (ESP32) paths, their last will and their offline message are gone,
         so nothing a box sends can land on a topic nobody reads."""
         sources = {path: path.read_text() for path in (
-            SKETCH / "TrainMeetTambox8266.ino", SKETCH / "web_test.h", ROOT / "firmware/esp32/TrainMeetTMBox.ino")}
+            SKETCH / "TrainMeetTMBox8266.ino", SKETCH / "web_test.h", ROOT / "firmware/esp32/TrainMeetTMBox.ino")}
         for path, source in sources.items():
             with self.subTest(path=path.name):
                 for old in ("tambox/v1", "tmbox/v2", "beginWill", "publishPresence", "protocol_version"):
                     self.assertNotIn(old, source)
-        esp8266 = sources[SKETCH / "TrainMeetTambox8266.ino"]
+        esp8266 = sources[SKETCH / "TrainMeetTMBox8266.ino"]
         connect = esp8266.split("void connectServer() {", 1)[1].split("\n}\n", 1)[0]
         self.assertTrue(connect.rstrip().endswith("String(++commandSequence));"), "nothing after terminal.begin")
         # Connected without a session is not a state to stay in.
@@ -77,7 +77,7 @@ class NetworkSetupTest(unittest.TestCase):
         glyphs (common/lcd_text.h). Nothing folds them to A and O, nothing
         writes UTF-8 bytes straight to the display, and the cached catalog is
         still found under its folded keys. Benny asked for this in #32."""
-        esp8266 = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        esp8266 = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
         esp32 = (ROOT / "firmware/esp32/TrainMeetTMBox.ino").read_text()
         terminal = (ROOT / "firmware/common/server_terminal.h").read_text()
         for word in ("SÖKER SERVER", "BE ADMIN HJÄLPA", "VÄNTAR PÅ SVAR", "HÅRDVARUTEST", "NÄT SAKNAS", "FÖRSÖKER IGEN"):
@@ -109,7 +109,7 @@ class NetworkSetupTest(unittest.TestCase):
         page = (SKETCH / "web_test_page.h").read_text()
         self.assertNotIn('id="language"', page)
         self.assertNotIn("languageAvailable", (SKETCH / "web_test.h").read_text())
-        for path in (SKETCH / "TrainMeetTambox8266.ino", ROOT / "firmware/esp32/TrainMeetTMBox.ino"):
+        for path in (SKETCH / "TrainMeetTMBox8266.ino", ROOT / "firmware/esp32/TrainMeetTMBox.ino"):
             with self.subTest(path=path.name):
                 source = path.read_text()
                 self.assertNotIn("language_menu.h", source)
@@ -118,7 +118,7 @@ class NetworkSetupTest(unittest.TestCase):
 
     def test_web_keys_share_server_command_safety(self):
         backend = (SKETCH / "web_test.h").read_text()
-        firmware = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        firmware = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
         self.assertIn("sendKey(key[0], true)", backend)
         self.assertIn('String(data["session"] | "") != terminal.token()', backend)
         self.assertIn("webSession.permits(true, false, millis())", backend)
