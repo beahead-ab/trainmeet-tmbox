@@ -153,7 +153,7 @@ class NetworkSetupTest(unittest.TestCase):
                      "http://192.168.4.1", "Update för ny firmware", "Inget raderas"):
             with self.subTest(text=text):
                 self.assertIn(text, hint)
-        firmware = (SKETCH / "TrainMeetTambox8266.ino").read_text()
+        firmware = (SKETCH / "TrainMeetTMBox8266.ino").read_text()
         # The page names the access point exactly as the firmware does.
         self.assertIn('apName = "TrainMeet-" + deviceCode.substring(4);', firmware)
         self.assertIn("'TrainMeet-'+s.deviceCode.slice(4)", page)
