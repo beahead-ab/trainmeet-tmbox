@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SKETCHES = {
     "ESP32": ROOT / "firmware/esp32/TrainMeetTMBox.ino",
-    "ESP8266": ROOT / "firmware/esp8266/TrainMeetTambox8266/TrainMeetTambox8266.ino",
+    "ESP8266": ROOT / "firmware/esp8266/TrainMeetTMBox8266/TrainMeetTMBox8266.ino",
 }
 
 
