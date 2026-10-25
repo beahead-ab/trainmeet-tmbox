@@ -185,14 +185,18 @@ STARTAR...
 
 ### 3.2 Wi-Fi
 
-Boxen försöker ansluta till senast sparade nätverk. Saknas ett sparat nät,
-eller går det inte att nå, öppnas ett tillfälligt setup-nätverk
+Boxen försöker ansluta till sina sparade nätverk. Saknas ett sparat nät,
+eller går inget av dem att nå, öppnas ett tillfälligt setup-nätverk
 (`TrainMeet-XXXXXX`) med en captive portal där uppgifterna matas in.
-Uppgifterna sparas i beständigt minne. Att hålla `*` i fem sekunder rensar
-sparat Wi-Fi och öppnar setup igen efter omstart.
+Uppgifterna sparas i beständigt minne. Att hålla `*` i fem sekunder öppnar
+setup igen utan att radera sparade nät.
 
-WiFiManager lagrar en profil. Fleranätsstöd (primärt + reserv) är en egen,
-senare utökning.
+Boxen lagrar upp till fem Wi-Fi-nät. Vid start och efter tappad anslutning
+provas senast fungerande nät först, även efter omstart, och sedan övriga
+i sparad ordning, högst 15 sekunder per nät; tomma platser hoppas
+över. Om inget nät fungerar öppnas setup-portalen. Ett befintligt sparat
+Wi-Fi förs över automatiskt vid uppgradering. Listan ändras under
+**Sparade wifi-nät** i portalen på både ESP8266 och ESP32.
 
 Anslutningen ska tåla verkligheten på en modelljärnvägsträff utan
 handpåläggning: en router som startar om, en box som förlorar ström mitt i,

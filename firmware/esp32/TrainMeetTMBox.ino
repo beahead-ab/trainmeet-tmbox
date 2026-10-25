@@ -33,12 +33,10 @@
 #include "../common/lcd_text.h"
 #include "../common/server_terminal.h"
 #include "../common/server_discovery_arduino.h"
+#include "../common/wifi_profiles_arduino.h"
 
 constexpr char FIRMWARE_VERSION[] = "0.8.5";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
-constexpr unsigned long SAVED_WIFI_WINDOW_MS = 15000;
-constexpr unsigned long LOST_WIFI_PORTAL_DELAY_MS = 30000;
-constexpr unsigned long WIFI_RETRY_MS = 5000;
 constexpr unsigned long DISCOVERY_RETRY_MS = 4000;
 constexpr unsigned long MQTT_RETRY_MIN_MS = 1000;
 constexpr unsigned long MQTT_RETRY_MAX_MS = 8000;
@@ -62,6 +60,7 @@ byte colPins[COLS] = {
 LiquidCrystal_I2C lcd(TMBOX_LCD_ADDRESS, TMBOX_LCD_COLUMNS, TMBOX_LCD_ROWS);
 Keypad keypad = Keypad(makeKeymap(keyMap), rowPins, colPins, ROWS, COLS);
 WiFiManager wifiManager;
+TrainMeetWiFi::SavedNetworks wifiNetworks(wifiManager);
 WiFiClient networkClient;
 MqttClient mqttClient(networkClient);
 ServerTerminal terminal;
@@ -113,9 +112,7 @@ bool saveParametersRequested = false;
 bool resetNetworkRequested = false;
 bool mdnsStarted = false;
 unsigned long bootAt = 0;
-unsigned long wifiAttemptAt = 0;
 unsigned long wifiLostAt = 0;
-unsigned long nextWifiRetryAt = 0;
 unsigned long nextDiscoveryAt = 0;
 unsigned long nextMqttAttemptAt = 0;
 unsigned long mqttRetryDelay = MQTT_RETRY_MIN_MS;
@@ -165,20 +162,19 @@ void setup() {
   wifiManager.addParameter(&forgetServer);
   wifiManager.setConfigPortalBlocking(false);
   wifiManager.setConnectTimeout(15);
-  wifiManager.setSaveConfigCallback([]() { saveParametersRequested = true; });
+  wifiManager.setSaveConfigCallback([]() { wifiNetworks.rememberCurrent(); saveParametersRequested = true; });
   wifiManager.setSaveParamsCallback([]() { forgetServerRequested = String(forgetServer.getValue()) == "1"; });
   wifiManager.setAPCallback([](WiFiManager*) { portalActive = true; });
 
   WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);
-  WiFi.persistent(true);
+  wifiNetworks.begin();
   mqttClient.onMessage(onMqttMessage);
   mqttClient.setId(deviceId);
   mqttClient.setKeepAliveInterval(10 * 1000UL);
   mqttClient.setConnectionTimeout(4 * 1000UL);
   mqttClient.setCleanSession(true);
   beginSavedWiFiAttempt();
-  if (!WiFi.SSID().length()) startSetupPortal();
+  if (wifiNetworks.process(false)) startSetupPortal();
 }
 
 void loop() {
@@ -217,21 +213,21 @@ void loop() {
 void beginSavedWiFiAttempt() {
   stopSetupPortal();
   WiFi.mode(WIFI_STA);
-  WiFi.begin();
-  wifiAttemptAt = millis();
+  wifiNetworks.restart();
   wifiLostAt = 0;
-  nextWifiRetryAt = 0;
 }
 
 void processWiFi() {
-  const unsigned long now = millis();
   if (portalActive) {
     wifiManager.process();
-    portalActive = wifiManager.getConfigPortalActive();
+    const bool stillActive = wifiManager.getConfigPortalActive();
+    if (!stillActive) wifiNetworks.restart();
+    portalActive = stillActive;
     processSavedParameters();
   }
 
   if (WiFi.status() == WL_CONNECTED) {
+    wifiNetworks.process(portalActive);
     wifiLostAt = 0;
     return;
   }
@@ -239,20 +235,11 @@ void processWiFi() {
   disconnectMqtt();
   if (mdnsStarted) { MDNS.end(); mdnsStarted = false; }
   if (wifiLostAt == 0) {
-    wifiLostAt = now;
+    wifiLostAt = millis();
     showNetworkState();
   }
 
-  if (!portalActive && now - wifiAttemptAt >= SAVED_WIFI_WINDOW_MS &&
-      now - wifiLostAt >= LOST_WIFI_PORTAL_DELAY_MS) {
-    startSetupPortal();
-    return;
-  }
-
-  if (!portalActive && now >= nextWifiRetryAt) {
-    WiFi.reconnect();
-    nextWifiRetryAt = now + WIFI_RETRY_MS;
-  }
+  if (wifiNetworks.process(portalActive)) startSetupPortal();
 }
 
 void startSetupPortal() {
@@ -363,6 +350,12 @@ void onMqttMessage(int messageSize) {
 }
 
 void processSavedParameters() {
+  if (wifiNetworks.takeSaved()) {
+    stopSetupPortal();
+    WiFi.disconnect();
+    wifiNetworks.restart();
+    saveParametersRequested = true;
+  }
   if (forgetServerRequested) {
     forgetServerRequested = false;
     preferences.remove("server-id"); rememberedServerId = ""; discoveredServerId = ""; gatewayHost = "";

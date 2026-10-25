@@ -234,6 +234,11 @@ En ny box inväntar hjälp om flera servrar hittas. Båda chipfamiljerna använd
 samma regel; se [installationsguiden](../../docs/INSTALLATION.md#3-koppla-boxen-till-wi-fi).
 
 Håll `*` i fem sekunder för att öppna installationen igen och byta Wi-Fi-nät.
+Välj **Sparade wifi-nät** för att fördefiniera upp till fem nät och deras
+ordning. Tomt lösenord behåller lösenordet för samma SSID; markera öppet nät
+för att ta bort lösenordet och töm namnet för att ta bort nätet.
+Befintligt Wi-Fi förs över vid uppgradering. Se
+[installationsguiden](../../docs/INSTALLATION.md#flera-sparade-nät).
 Det raderar inte boxens identitet eller serverns träff. Nätuppgifter sparas
 av Wi-Fi-systemet. Servern upptäcks på nytt vid återanslutning. Konfigurera det
 tillfälliga, öppna installationsnätet på en betrodd plats.
@@ -276,7 +281,9 @@ Använd bara ett betrott lokalt nät: HTTP och MQTT v1 är inte krypterade.
 Öppna inte dessa portar mot internet. Adminbehörigheten på servern är oförändrad.
 
 Wi-Fi ändras med fysisk `*` i fem sekunder när webbtestet är avstängt.
-Om Wi-Fi saknas öppnas portalen automatiskt efter 30 sekunder.
+Om Wi-Fi saknas provas senast fungerande nät först, även efter omstart,
+och sedan övriga av upp till fem sparade nät i listordning, högst 15 sekunder
+per nät. Därefter öppnas portalen automatiskt.
 
 ### Om servern inte hittas
 

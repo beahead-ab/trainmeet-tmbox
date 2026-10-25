@@ -22,6 +22,7 @@
 #include "../../common/box_sound.h"
 #include "../../common/server_terminal.h"
 #include "../../common/server_discovery_arduino.h"
+#include "../../common/wifi_profiles_arduino.h"
 
 #ifndef ESP8266
 #error "Choose NodeMCU 1.0 (ESP-12E Module), not an ESP32 board."
@@ -32,6 +33,7 @@ WiFiClient networkClient;
 MqttClient mqtt(networkClient);
 ServerTerminal terminal;
 WiFiManager wifiManager;
+TrainMeetWiFi::SavedNetworks wifiNetworks(wifiManager);
 KeyState keys;
 WebTestSession webSession;
 // The display, chosen in the setup portal (16x2 until the operator says 20x4)
@@ -89,7 +91,7 @@ uint16_t gatewayPort = 1883;
 bool lcdFound = false, keypadOK = false;
 bool portalActive = false, saveRequested = false, mdnsStarted = false;
 bool connectedBefore = false, wifiWasConnected = false;
-uint32_t nextConnection = 0, wifiLostAt = 0, lastKeyScan = 0;
+uint32_t nextConnection = 0, lastKeyScan = 0;
 uint32_t lastLcdCheck = 0;
 uint32_t commandSequence = 0;
 unsigned connectionFailures = 0;
@@ -159,7 +161,7 @@ void saveServerBinding(const String& id) {
 void savePortalSettings() {
   if (!saveRequested) return;
   saveRequested = false;
-  disconnectServer(); serverLink.forget(); gatewayHost = ""; nextConnection = millis(); wifiLostAt = millis();
+  disconnectServer(); serverLink.forget(); gatewayHost = ""; nextConnection = millis();
   // The portal can switch networks between two loop iterations. Recreate
   // mDNS even when the main loop did not observe a disconnected Wi-Fi state.
   if (mdnsStarted) MDNS.close();
@@ -274,7 +276,7 @@ void setup() {
   wifiManager.setDebugOutput(false);
   setupWebTest();
   wifiManager.setConfigPortalBlocking(false); wifiManager.setConnectTimeout(15);
-  wifiManager.setSaveConfigCallback([]() { saveRequested = true; });
+  wifiManager.setSaveConfigCallback([]() { wifiNetworks.rememberCurrent(); saveRequested = true; });
   wifiManager.addParameter(&forgetServer);
   wifiManager.addParameter(&displaySize);
   wifiManager.setSaveParamsCallback([]() {
@@ -282,9 +284,8 @@ void setup() {
   });
   mqtt.setId(deviceId); mqtt.setCleanSession(true); mqtt.setKeepAliveInterval(10000);
   mqtt.setConnectionTimeout(3000); mqtt.onMessage(receiveMessage);
-  WiFi.setAutoReconnect(true); WiFi.begin();
-  wifiLostAt = millis();
-  if (!WiFi.SSID().length()) startPortal();
+  wifiNetworks.begin();
+  if (wifiNetworks.process(false)) startPortal();
 #endif
 }
 
@@ -329,21 +330,27 @@ void loop() {
     wifiManager.process();
     if (forgetServerRequested) { forgetServerRequested = false; saveServerBinding(""); discoveredServerId = ""; gatewayHost = ""; }
     if (displayRequested) { displayRequested = false; applyDisplaySetting(); }
+    if (wifiNetworks.takeSaved()) {
+      TrainMeetNetwork::finishSavedPortal(wifiManager, true);
+      WiFi.disconnect();
+      wifiNetworks.restart();
+      saveRequested = true;
+    }
     savePortalSettings();
     // Also handle the portal's explicit exit, even while Wi-Fi is offline.
     if (!wifiManager.getConfigPortalActive()) {
-      portalActive = false; nextConnection = millis();
+      portalActive = false; nextConnection = millis(); wifiNetworks.restart();
     }
   }
+  if (wifiNetworks.process(portalActive)) startPortal();
   const bool wifiConnected = WiFi.status() == WL_CONNECTED;
   if (!wifiConnected) {
     if (wifiWasConnected) {
-      disconnectServer(); wifiLostAt = now; gatewayHost = "";
+      disconnectServer(); gatewayHost = "";
       if (mdnsStarted) MDNS.close();
       mdnsStarted = false;
     }
     if (!portalActive) showFrame(uiText("NÄT SAKNAS"), uiText("FÖRSÖKER IGEN"));
-    if (!portalActive && uint32_t(now - wifiLostAt) >= 30000) startPortal();
   } else {
     if (!wifiWasConnected) TMBOX_LOG("Wi-Fi connected; box IP: %s\n", WiFi.localIP().toString().c_str());
     if (!mdnsStarted) mdnsStarted = MDNS.begin(deviceId.c_str());

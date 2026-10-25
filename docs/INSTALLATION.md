@@ -119,6 +119,32 @@ Om verktyget anger fel chipfamilj: avbryt och kontrollera modell och vald port.
 7. Spara och anslut telefonen till det vanliga nätet igen.
 
 Gör detta på en betrodd plats; boxens tillfälliga installationsnät är öppet.
+### Flera sparade nät
+
+Både ESP8266 och ESP32 kan spara **fem nät**, till exempel hemma, på träffen
+och i verkstaden. Öppna boxens portal genom att hålla `*` i fem sekunder
+(webbtestet måste vara avstängt på ESP8266) och välj **Sparade wifi-nät**.
+
+- Ange nätens namn (SSID) i önskad reservordning, nät 1 först bland reserverna. Även nät som inte
+  är tillgängliga just nu kan sparas. Boxen använder 2,4 GHz.
+- Ett tomt lösenordsfält behåller lösenordet för samma SSID, även när nätet
+  flyttas till en annan rad. Skriv ett nytt lösenord för att ändra det.
+  Markera **Öppet nät (utan lösenord)** för ett nät utan lösenord.
+- Töm nätets namn för att ta bort det. Tomma rader hoppas över.
+- Välj **Spara och anslut**. Listan finns kvar efter omstart. Befintligt
+  Wi-Fi förs över automatiskt vid uppgradering; serverval och skärmstorlek
+  bevaras.
+
+Boxen provar senast fungerande nät först, även efter omstart, och därefter
+övriga sparade nät i listordning i högst **15 sekunder per nät**. Utan tidigare
+lyckad anslutning börjar den med nät 1. Ett fungerande nät byts inte ut. Om inget fungerar öppnas `TrainMeet-XXXXXX` igen; med fem nät kan det
+ta cirka 75 sekunder. Utan sparade nät öppnas portalen direkt.
+
+Den vanliga **Configure WiFi** fungerar fortfarande. Ett nät som sparas där
+läggs först i listan och övriga flyttas ned. Om listan redan innehåller fem
+olika nät ersätts det femte. Använd **Sparade wifi-nät** för att redigera hela
+listan. Sparade lösenord visas aldrig på den sidan.
+
 Wi-Fi sätts via boxens portal. **Improv Serial/Wi-Fi-inställning direkt via USB
 är ännu inte implementerat** och guiden låtsas inte kunna läsa anslutningsstatus.
 
