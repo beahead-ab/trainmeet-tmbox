@@ -35,7 +35,7 @@
 #include "../common/server_discovery_arduino.h"
 #include "../common/wifi_profiles_arduino.h"
 
-constexpr char FIRMWARE_VERSION[] = "0.8.5";
+constexpr char FIRMWARE_VERSION[] = "0.9.0";
 constexpr uint16_t DEFAULT_MQTT_PORT = 1883;
 constexpr unsigned long DISCOVERY_RETRY_MS = 4000;
 constexpr unsigned long MQTT_RETRY_MIN_MS = 1000;
