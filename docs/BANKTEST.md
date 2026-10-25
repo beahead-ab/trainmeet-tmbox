@@ -165,6 +165,19 @@ De avser referenslådans komponenter, inte en separat operatörslogik.
       visar tåg och läge enligt förslaget, och Klienter i serverns admin visar 20×4.
       Välj tillbaka `16x2` och kontrollera att bilden åter är 16×2.
 - [ ] Setup-portalen kan öppnas utan att sparat Wi-Fi raderas av misstag.
+- [ ] På både ESP8266 och ESP32: uppgradera med ett redan sparat nät och
+  kontrollera att det finns kvar som nät 1 efter omstart.
+- [ ] Spara fem nät; låt bara nät 2 respektive nät 5 vara tillgängligt.
+  Kontrollera att rätt nät ansluts utan AP-läge före dess tur.
+- [ ] Stäng av det anslutna nätet; kontrollera att nästa tillgängliga sparade
+  nät ansluts och att serverkontakten återställs.
+- [ ] Gör alla nät otillgängliga (även ett med fel lösenord): efter högst
+  cirka 75 sekunder öppnas portalen och kan användas.
+- [ ] Flytta nät till andra rader med tomma lösenord; starta om och verifiera
+  att lösenorden bevarats. Prova också ändrat lösenord, öppet nät, tomma rader
+  och borttagning av alla nät. Serverval och skärmstorlek ska vara kvar.
+- [ ] Kontrollera att Update, skärmstorlek (ESP8266), Byt TrainMeet Server
+  och Configure WiFi fortfarande fungerar efter att nätlistan sparats.
 - [ ] Antennens räckvidd provas med vald låda och frontpanel.
 
 ### Ljud, ljus och mekanik

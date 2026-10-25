@@ -56,6 +56,11 @@ Ingen serveradress eller port matas in. ESP32 använder samma serverval som
 ESP8266: en ensam upptäckt server före första tilldelningen, därefter sparat
 server-ID oavsett IP-adress. Flera servrar är ett tydligt vänteläge, inte ett
 slumpmässigt val. Håll `*` fem sekunder för Wi-Fi-inställningar utan radering.
+Under **Sparade wifi-nät** kan upp till fem nät fördefinieras. Boxen provar
+dem i sparad ordning, högst 15 sekunder per nät, och öppnar sedan portalen
+om inget fungerar. Befintligt Wi-Fi förs över vid uppgradering. Se
+[installationsguiden](../../docs/INSTALLATION.md#flera-sparade-nät) för
+ordning, lösenordsbyte och borttagning.
 Avsiktligt serverbyte görs med kryssrutan i portalen; se installationsguiden.
 
 Renderare, navigation, kommandon och uppmärksamhetspolicy ligger i

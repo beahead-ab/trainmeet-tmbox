@@ -163,8 +163,10 @@ class NetworkSetupTest(unittest.TestCase):
         hold = (SKETCH / "input_state.h").read_text()
         self.assertIn("stable == (1u << 12) && !holdSent && uint32_t(now - heldAt) >= 5000", hold)
         self.assertEqual("123A456B789C*0#D"[12], "*")
-        # The portal keeps WiFiManager's default menu, which has Update.
-        self.assertNotIn("setMenu", firmware)
+        # The shared menu adds saved networks and retains firmware Update.
+        profiles = (ROOT / "firmware/common/wifi_profiles_arduino.h").read_text()
+        self.assertIn('"wifi", "custom", "info", "exit", "sep", "update"', profiles)
+        self.assertIn("Sparade wifi-nät", profiles)
         self.assertIn("tzapu/WiFiManager@2.0.17", (ROOT / "firmware/esp8266/platformio.ini").read_text())
 
     def test_digits_are_buffered_before_mqtt_publish(self):
