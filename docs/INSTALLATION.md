@@ -125,7 +125,7 @@ Både ESP8266 och ESP32 kan spara **fem nät**, till exempel hemma, på träffen
 och i verkstaden. Öppna boxens portal genom att hålla `*` i fem sekunder
 (webbtestet måste vara avstängt på ESP8266) och välj **Sparade wifi-nät**.
 
-- Ange nätens namn (SSID) i önskad ordning, nät 1 först. Även nät som inte
+- Ange nätens namn (SSID) i önskad reservordning, nät 1 först bland reserverna. Även nät som inte
   är tillgängliga just nu kan sparas. Boxen använder 2,4 GHz.
 - Ett tomt lösenordsfält behåller lösenordet för samma SSID, även när nätet
   flyttas till en annan rad. Skriv ett nytt lösenord för att ändra det.
@@ -135,9 +135,9 @@ och i verkstaden. Öppna boxens portal genom att hålla `*` i fem sekunder
   Wi-Fi förs över automatiskt vid uppgradering; serverval och skärmstorlek
   bevaras.
 
-Boxen provar varje sparat nät i turordning i högst **15 sekunder per nät**.
-När ett nät fungerar stannar boxen på det. Vid avbrott börjar den om från
-nät 1. Om inget fungerar öppnas `TrainMeet-XXXXXX` igen; med fem nät kan det
+Boxen provar senast fungerande nät först, även efter omstart, och därefter
+övriga sparade nät i listordning i högst **15 sekunder per nät**. Utan tidigare
+lyckad anslutning börjar den med nät 1. Ett fungerande nät byts inte ut. Om inget fungerar öppnas `TrainMeet-XXXXXX` igen; med fem nät kan det
 ta cirka 75 sekunder. Utan sparade nät öppnas portalen direkt.
 
 Den vanliga **Configure WiFi** fungerar fortfarande. Ett nät som sparas där

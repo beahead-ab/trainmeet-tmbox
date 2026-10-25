@@ -54,14 +54,26 @@ class SavedNetworks {
   void rememberCurrent() {
     Record candidate = saved;
     const String ssid = manager.getWiFiSSID(), password = manager.getWiFiPass();
-    if (prefer(candidate, ssid.c_str(), password.c_str())) persist(candidate);
+    if (prefer(candidate, ssid.c_str(), password.c_str())) {
+      rememberSuccessful(candidate, 0);
+      persist(candidate);
+    }
     sequence.restart();
   }
   void restart() { sequence.restart(); }
   bool takeSaved() { const bool result = formSaved; formSaved = false; return result; }
   bool process(bool portalActive) {
     if (portalActive) return false;
-    const int action = sequence.tick(saved, WiFi.status() == WL_CONNECTED, millis());
+    const bool connected = WiFi.status() == WL_CONNECTED;
+    if (connected && !observedConnected) {
+      const int slot = sequence.currentSlot();
+      Record candidate = saved;
+      // Confirm the actual driver SSID before remembering the attempted slot.
+      if (slot >= 0 && WiFi.SSID() == saved.networks[slot].ssid && rememberSuccessful(candidate, slot))
+        persist(candidate);
+    }
+    observedConnected = connected;
+    const int action = sequence.tick(saved, connected, millis());
     if (action == Sequence::Portal) return true;
     if (action >= 0) {
       WiFi.persistent(false);
@@ -78,7 +90,7 @@ class SavedNetworks {
   WiFiManager& manager;
   Record saved{};
   Sequence sequence;
-  bool formSaved = false;
+  bool formSaved = false, observedConnected = false;
 
   bool persist(Record candidate) {
     seal(candidate);
@@ -100,7 +112,7 @@ class SavedNetworks {
     String page = F("<!doctype html><html lang='sv'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
       "<title>Sparade wifi-nät</title><style>body{font:18px system-ui;max-width:36em;margin:2em auto;padding:0 1em}"
       "input:not([type=checkbox]),button{box-sizing:border-box;width:100%;padding:.6em;margin:.3em 0 1em}fieldset{margin:1em 0}</style>"
-      "<h1>Sparade wifi-nät</h1><p>Boxen provar nät 1–5 i ordning, högst 15 sekunder per nät. Tomma rader hoppas över. "
+      "<h1>Sparade wifi-nät</h1><p>Boxen provar senast fungerande nät först, även efter omstart. Därefter provas övriga nät i listordning, högst 15 sekunder per nät. Tomma rader hoppas över. "
       "Om inget fungerar öppnas installationsnätet.</p><p>Tomt lösenord behåller det sparade lösenordet för samma nät, även när nätet flyttas. "
       "Markera öppet nät för att ta bort lösenordet. Töm nätets namn för att ta bort nätet.</p>"
       "<p>Vanliga Configure WiFi sparar nätet som förstaval och flyttar övriga nedåt. Är alla fem platser upptagna ersätts det femte nätet.</p>"
@@ -130,6 +142,7 @@ class SavedNetworks {
         }
       }
     }
+    carrySuccessful(candidate, saved);
     if (!persist(candidate)) {
       manager.server->send(500, "text/plain; charset=utf-8", "Kunde inte spara. Försök igen."); return;
     }

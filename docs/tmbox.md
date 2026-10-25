@@ -192,7 +192,8 @@ Uppgifterna sparas i beständigt minne. Att hålla `*` i fem sekunder öppnar
 setup igen utan att radera sparade nät.
 
 Boxen lagrar upp till fem Wi-Fi-nät. Vid start och efter tappad anslutning
-provas de i sparad ordning, högst 15 sekunder per nät; tomma platser hoppas
+provas senast fungerande nät först, även efter omstart, och sedan övriga
+i sparad ordning, högst 15 sekunder per nät; tomma platser hoppas
 över. Om inget nät fungerar öppnas setup-portalen. Ett befintligt sparat
 Wi-Fi förs över automatiskt vid uppgradering. Listan ändras under
 **Sparade wifi-nät** i portalen på både ESP8266 och ESP32.

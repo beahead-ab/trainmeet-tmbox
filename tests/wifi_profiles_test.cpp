@@ -44,12 +44,32 @@ int main() {
   assert(sequence.tick(r, false, 0) == 0);
   assert(sequence.tick(r, false, ATTEMPT_MS - 1) == Sequence::Waiting);
   assert(sequence.tick(r, false, ATTEMPT_MS) == 1);
+  assert(rememberSuccessful(r, 1));
   assert(sequence.tick(r, true, ATTEMPT_MS + 1) == Sequence::Waiting); // second network works
   assert(sequence.tick(r, true, 100000) == Sequence::Waiting); // no periodic switch while online
-  assert(sequence.tick(r, false, 100001) == 0); // lost link starts from first choice
-  for (int i = 1; i < 5; ++i) assert(sequence.tick(r, false, 100001 + i * ATTEMPT_MS) == i);
+  assert(sequence.tick(r, false, 100001) == 1); // last successful network first
+  const int remaining[] = {0, 2, 3, 4};
+  for (int i = 1; i < 5; ++i) assert(sequence.tick(r, false, 100001 + i * ATTEMPT_MS) == remaining[i - 1]);
   assert(sequence.tick(r, false, 100001 + 5 * ATTEMPT_MS) == Sequence::Portal);
   assert(sequence.tick(r, false, 999999) == Sequence::Portal);
+
+  // A fresh sequence (power cycle) honors persisted success without reordering the list.
+  Sequence powerCycle;
+  assert(powerCycle.tick(r, false, 0) == 1);
+  assert(std::string(r.networks[0].ssid) == "Six");
+  assert(!rememberSuccessful(r, 1)); // no flash write needed for the same success
+  Record moved{};
+  moved.networks[4] = r.networks[1];
+  carrySuccessful(moved, r); seal(moved);
+  assert(lastSuccessful(moved) == 4 && valid(moved));
+  assert(rememberSuccessful(moved, 4) == false);
+  moved.networks[4].password[0] = 'x';
+  carrySuccessful(moved, r); seal(moved);
+  assert(lastSuccessful(moved) == -1); // changed credentials invalidate remembered success
+  Record removed{}; carrySuccessful(removed, r); seal(removed);
+  assert(lastSuccessful(removed) == -1);
+  Record invalidSlot = r; invalidSlot.lastSuccess = 255; seal(invalidSlot);
+  Sequence invalidSequence; assert(invalidSequence.tick(invalidSlot, false, 0) == 0);
 
   r = Record{}; seal(r); sequence.restart();
   assert(sequence.tick(r, false, 0) == Sequence::Portal); // no saved networks

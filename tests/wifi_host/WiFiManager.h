@@ -16,6 +16,7 @@ struct HostWiFi {
   void disconnect() { statusValue = 0; }
   void mode(int) {}
   int status() { return statusValue; }
+  String SSID() { return ssid; }
   void begin(const char* name, const char* pass) { ssid = name; password = pass; ++attempts; }
 };
 inline HostWiFi WiFi;

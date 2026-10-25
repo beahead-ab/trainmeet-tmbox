@@ -39,9 +39,18 @@ int main() {
   hostMillis += ATTEMPT_MS;
   assert(!box.process(false) && WiFi.ssid == "Home" && WiFi.password == "home-password");
 
+  // Only a confirmed connection records success; repeated online polls do not wear flash.
+  WiFi.statusValue = WL_CONNECTED;
+  before = WiFi.attempts;
+  assert(!box.process(false) && Preferences::writes == 3);
+  assert(!box.process(false) && Preferences::writes == 3 && WiFi.attempts == before);
+  WiFi.statusValue = 0;
+  assert(!box.process(false) && WiFi.ssid == "Home");
+
   WiFiManager rebootManager; SavedNetworks reboot(rebootManager); reboot.begin();
-  assert(Preferences::writes == 2); // valid record is not rewritten or replaced by legacy SDK setting
-  assert(!reboot.process(false) && WiFi.ssid == "Meeting");
+  assert(Preferences::writes == 3); // persisted last success survives a power cycle
+  assert(!reboot.process(false) && WiFi.ssid == "Home");
+  assert(WiFi.password == "home-password");
   rebootManager.serverCallback();
   form(rebootManager); rebootManager.server->args["s0"] = "Home"; rebootManager.server->args["o0"] = "on";
   rebootManager.server->request(HTTP_POST);

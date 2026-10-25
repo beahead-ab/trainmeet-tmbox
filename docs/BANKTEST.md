@@ -169,6 +169,12 @@ De avser referenslådans komponenter, inte en separat operatörslogik.
   kontrollera att det finns kvar som nät 1 efter omstart.
 - [ ] Spara fem nät; låt bara nät 2 respektive nät 5 vara tillgängligt.
   Kontrollera att rätt nät ansluts utan AP-läge före dess tur.
+- [ ] Låt nät 5 ansluta, starta om och kontrollera att nät 5 provas först utan
+  väntan på nät 1–4. Bryt sedan anslutningen: nät 5 ska provas först igen,
+  därefter övriga i listordning utan upprepningar.
+- [ ] Flytta det senast fungerande nätet till en annan rad och verifiera att
+  dess förstaval följer med; ta bort det eller ändra lösenordet och verifiera
+  att ett föråldrat förstaval inte används.
 - [ ] Stäng av det anslutna nätet; kontrollera att nästa tillgängliga sparade
   nät ansluts och att serverkontakten återställs.
 - [ ] Gör alla nät otillgängliga (även ett med fel lösenord): efter högst
