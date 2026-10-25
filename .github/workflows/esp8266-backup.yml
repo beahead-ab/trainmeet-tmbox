@@ -1,0 +1,85 @@
+name: ESP8266 backup tool
+
+on:
+  push:
+    paths:
+      - 'tools/esp8266-backup/**'
+      - '.github/workflows/esp8266-backup.yml'
+  pull_request:
+    paths:
+      - 'tools/esp8266-backup/**'
+      - '.github/workflows/esp8266-backup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install esptool==4.11.0
+      - name: Test whole-flash verification and native launcher without USB
+        run: python -m unittest discover -s tools/esp8266-backup/tests -v
+      - name: Confirm the pinned CLI parses all read-only operations
+        run: |
+          python -m esptool read_flash --help
+          python -m esptool verify_flash --help
+          python -m esptool flash_id --help
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/esp8266-backup/package.py --output backup-package --source-commit "${{ github.sha }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esp8266-backup-tool
+          path: backup-package/*
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/tools/esp8266-full-backup'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: esp8266-backup-tool
+          path: backup-package
+      - name: Verify and publish the tested scripts without replacing existing assets
+        working-directory: backup-package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum -c trainmeet-esp8266-backup-1.0.0.zip.sha256
+          gh release view v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --json isDraft,isPrerelease --jq 'select(.isDraft == false and .isPrerelease == true)' | python3 -c 'import sys,json; assert json.load(sys.stdin)["isDraft"] is False'
+          gh release upload v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox trainmeet-esp8266-backup-1.0.0.zip trainmeet-esp8266-backup-1.0.0.zip.sha256
+          gh release view v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --json body --jq .body > release-notes.md
+          cat >> release-notes.md <<'NOTES'
+
+          ## Enkel fullständig backup före uppdatering
+
+          [Hämta backupverktyget för Mac och Windows](https://github.com/beahead-ab/trainmeet-tmbox/releases/download/v0.9.0-wifi-test.1/trainmeet-esp8266-backup-1.0.0.zip) · [Kontrollsumma](https://github.com/beahead-ab/trainmeet-tmbox/releases/download/v0.9.0-wifi-test.1/trainmeet-esp8266-backup-1.0.0.zip.sha256)
+
+          Packa upp hela ZIP-filen och dubbelklicka på **Backup-ESP8266-Mac.command** eller **Backup-ESP8266-Windows.cmd**. Python 3.10 eller senare behövs. Första gången hämtas esptool i en separat användarmapp. Välj USB-port och backupmapp; inga kommandon behöver skrivas.
+
+          Verktyget läser hela det upptäckta flashminnet och verifierar kopian mot boxen innan den godkänns. Program och lokala inställningar ingår; inga skriv-/raderingskommandon finns. Spara backupen privat eftersom den kan innehålla wifi-lösenord. Läs LAS-MIG.txt i paketet. Starta om boxen med RST/RESET efter körningen.
+
+          Skript/startfiler har testats med simulerad USB på Mac, Windows och Linux. Fysiskt boxprov återstår. Detta verktyg är separat från firmwareversionen och installerar ingen firmware.
+          NOTES
+          gh release edit v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --notes-file release-notes.md

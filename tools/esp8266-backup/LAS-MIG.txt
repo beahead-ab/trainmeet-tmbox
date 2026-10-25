@@ -1,0 +1,79 @@
+ESP8266 — FULLSTÄNDIG BACKUP FÖR MAC OCH WINDOWS
+Verktyg 1.0.0
+
+Vad det gör
+Skriptet läser hela det upptäckta flashminnet, inklusive programmet och de
+lokala inställningarna. Därefter jämför esptool hela filen med boxens minne.
+Först efter godkänd kontroll får filen namnet esp8266-full-backup.bin och
+backup-info.json får verifiedAgainstDevice=true. SHA-256 sparas separat.
+
+Verktyget har inga kommandon för att skriva eller radera flash. Boxen pausas
+och startas i USB-läge under läsningen. Inga trafikkommandon skickas.
+Serverns egna trafikdata ingår inte i boxens flashminne.
+
+Gör så här
+1. Hämta ZIP-filen och packa upp HELA mappen. Flytta inte ut startfilen ensam.
+2. Python 3.10 eller senare måste finnas på datorn. Det går att installera
+   från https://www.python.org/downloads/ . På Windows: installera även
+   Python Launcher när installationsprogrammet erbjuder det.
+3. Anslut EN box med en USB-datakabel. Stäng Arduino IDE:s seriella monitor
+   och andra program som använder boxens USB-port. Ta boxen ur trafik.
+4. Mac: dubbelklicka på Backup-ESP8266-Mac.command. Om macOS frågar om att
+   öppna den nedladdade filen, använd Finder → högerklick → Öppna.
+   Windows: dubbelklicka på Backup-ESP8266-Windows.cmd.
+5. Första gången förbereds esptool 4.11.0 i en egen användarmapp och dess
+   beroenden hämtas. Internet behövs då. Inget installeras i systemets Python
+   och ingen administratörsbehörighet behövs. Därefter kan verktyget normalt
+   användas utan internet.
+6. Välj boxens portnummer i listan. Du kan söka igen, skriva en port manuellt
+   eller avbryta. Ingen port väljs automatiskt.
+7. Välj backupmapp eller tryck Enter för TMBox-backuper i din hemmapp.
+   Varje körning får en egen tidsstämplad mapp. Äldre backuper skrivs inte över.
+8. Vänta på KLART. Vid kommunikationsfel provar skriptet en gång till med
+   lägre hastighet och läser då om hela minnet. Kontrollera att slutresultatet
+   säger att kopian är verifierad.
+9. Tryck RST/RESET på boxen eller koppla ur och anslut USB så den startar
+   normalt igen. Gör detta också efter ett avbrutet eller misslyckat försök.
+
+När backupen är klar
+Spara hela resultatmappen, gärna i två privata kopior:
+- esp8266-full-backup.bin: hela flashminnet
+- backup-info.json: tid, chip, port, MAC om tillgänglig, storlek och verifiering
+- SHA256SUMS.txt: filens SHA-256
+- flash-info.txt och backup.log: minnesuppgifter och kontrollförlopp
+- LAS-MIG.txt: kort information om säker förvaring och återställning
+
+Backupfilen kan innehålla wifi-lösenord. Den ska inte laddas upp till GitHub
+eller bifogas ett offentligt ärende. Verktyget laddar inte upp backupen.
+
+Vid fel
+Om KLART inte visas är försöket INTE godkänt. En fil med OFULLSTANDIG i namnet
+är inte en återställningskopia. Läs backup.log; EJ-GODKAND.txt markerar ett
+misslyckat försök. Stäng andra serieprogram och prova datakabel/annan USB-port.
+NodeMCU brukar gå in i USB-läge automatiskt. Vid anslutningsproblem: håll
+FLASH/BOOT, tryck och släpp RST/RESET och släpp sedan FLASH/BOOT vid anslutning.
+Om verktyget identifierar ett annat chip än ESP8266: avbryt och kontrollera
+kortet. Använd inte detta verktyg för ESP32.
+
+Återställning
+Återställ endast på samma fysiska box och kontrollera först filens SHA-256.
+Den fullständiga backupen skrivs via USB från adress 0, med ursprungliga
+flashparametrar bevarade. Den hör INTE hemma på boxens vanliga Update-sida.
+Verktyget innehåller avsiktligt ingen återställningsknapp; en felaktig full
+återställning kan ersätta hela boxens minne.
+
+Python-/verktygsmappen
+Mac: ~/Library/Caches/TrainMeet/ESP8266-backup/
+Windows: %LOCALAPPDATA%\TrainMeet\ESP8266-backup\
+Den separata verktygsmappen kan raderas när backupverktyget inte behövs.
+Backupmapparna ligger separat och måste sparas.
+
+Verifiering av verktyget
+Programlogik och startfiler testas i GitHub Actions på Mac, Windows och Linux.
+Testerna använder simulerad USB/flash; de bevisar inte genomförd provning på
+en fysisk box. Kontrollera alltid att din egen körning visar KLART och att
+rätt box/port och full minnesstorlek anges i backup-info.json.
+
+Teknisk referens:
+https://docs.espressif.com/projects/esptool/en/release-v4/esp32/esptool/basic-commands.html
+Kommandona i programmet följer den låsta esptool-versionen 4.11.0.
