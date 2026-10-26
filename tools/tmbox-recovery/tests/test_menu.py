@@ -54,7 +54,7 @@ class MenuTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="TMBox menu å spaces-")
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.manifest = minimal_bundle(self.root)
         self.calls = []
 
