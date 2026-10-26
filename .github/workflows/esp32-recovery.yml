@@ -1,0 +1,88 @@
+name: ESP32 backup and restore tools
+
+on:
+  push:
+    paths:
+      - 'tools/esp32-recovery/**'
+      - '.github/workflows/esp32-recovery.yml'
+  pull_request:
+    paths:
+      - 'tools/esp32-recovery/**'
+      - '.github/workflows/esp32-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install esptool==4.11.0
+      - name: Test both chip families, protections, whole-flash recovery and native launchers
+        run: python -m unittest discover -s tools/esp32-recovery/tests -v
+      - name: Confirm the pinned CLI and ROM API
+        run: |
+          python -m esptool read_flash --help
+          python -m esptool write_flash --help
+          python -m esptool verify_flash --help
+          python tools/esp32-recovery/device_probe.py --help
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/esp32-recovery/package.py --output recovery-package --source-commit "${{ github.sha }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esp32-recovery-tools
+          path: recovery-package/*
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/tools/esp32-backup-restore'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: esp32-recovery-tools
+          path: recovery-package
+      - name: Verify and publish without replacing existing release assets
+        working-directory: recovery-package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum -c trainmeet-esp32-backup-restore-1.0.0.zip.sha256
+          gh release view v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --json isDraft,isPrerelease --jq 'select(.isDraft == false and .isPrerelease == true)' | python3 -c 'import sys,json; assert json.load(sys.stdin)["isDraft"] is False'
+          gh release upload v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox trainmeet-esp32-backup-restore-1.0.0.zip trainmeet-esp32-backup-restore-1.0.0.zip.sha256
+          gh release view v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --json body --jq .body > release-notes.md
+          cat >> release-notes.md <<'NOTES'
+
+          ## ESP32 och ESP32-S3: enkel backup och återställning
+
+          [Hämta paketet för Mac och Windows](https://github.com/beahead-ab/trainmeet-tmbox/releases/download/v0.9.0-wifi-test.1/trainmeet-esp32-backup-restore-1.0.0.zip) · [Kontrollsumma](https://github.com/beahead-ab/trainmeet-tmbox/releases/download/v0.9.0-wifi-test.1/trainmeet-esp32-backup-restore-1.0.0.zip.sha256)
+
+          Packa upp hela ZIP-filen. För backup dubbelklickar du på **Backup-ESP32-Mac.command** eller **Backup-ESP32-Windows.cmd**. För återställning använder du **Aterstall-ESP32-Mac.command** eller **Aterstall-ESP32-Windows.cmd**. Välj USB-port och följ frågorna. Python 3.10 eller senare krävs.
+
+          Klassisk ESP32 och ESP32-S3 identifieras automatiskt. Hela det upptäckta flashminnet (1–16 MB) kopieras och verifieras. Återställning kräver en verifierad backupmapp från samma chipmodell och fysiska box, matchande MAC/minnesstorlek och SHA-256. En ny verifierad kopia av nuvarande innehåll tas före bekräftelsen **ATERSTALL**. Efter skrivningen verifieras hela minnet.
+
+          **Återställning ersätter hela boxens program och lokala inställningar.** Aktiva eller okända skydd (flashkryptering, Secure Boot eller Secure Download Mode) stoppar verktyget. Inga eFuses ändras och inga skydd kringgås. ESP8266 och andra chipmodeller som C3/S2 stöds inte av detta paket. Spara backuper privat; de kan innehålla wifi-lösenord.
+
+          Skript, ROM-kontroller, felhantering och startfiler testas med simulerad USB/flash på Mac, Windows och Linux. Ingen fysisk box har anslutits under utvecklingen. Läs LAS-MIG.txt i paketet; fysiskt boxprov återstår.
+          NOTES
+          gh release edit v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --notes-file release-notes.md
