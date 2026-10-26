@@ -1,0 +1,113 @@
+TMBOX — GEMENSAM BACKUP OCH ÅTERSTÄLLNING
+ESP8266, ESP32 och ESP32-S3 · Mac och Windows · paketversion 1.0.0
+
+BÖRJA HÄR
+1. Hämta trainmeet-tmbox-backup-restore-1.0.0.zip från GitHub.
+2. Packa upp HELA ZIP-filen i en NY mapp. Behåll undermappen verktyg.
+   Kör inte en startfil direkt inne i ZIP-filen.
+3. Python 3.10 eller senare behöver finnas. Installera vid behov med
+   installationsprogrammet från https://www.python.org/downloads/ .
+   På Windows: inkludera Python Launcher om det erbjuds.
+4. Anslut EN box med en USB-datakabel. Ta den ur trafik och stäng seriella
+   monitorer eller andra program som använder USB-porten.
+5. Mac: dubbelklicka på Starta-TMBox-Mac.command.
+   Windows/PC: dubbelklicka på Starta-TMBox-Windows.cmd.
+   Om macOS frågar: Finder → högerklick → Öppna.
+6. Välj en siffra i menyn. Inga kommandon behöver skrivas.
+
+MENYN
+1. Backup av ESP8266 / NodeMCU
+2. Återställ ESP8266 / NodeMCU
+3. Backup av ESP32 / ESP32-S3
+4. Återställ ESP32 / ESP32-S3
+0. Avsluta
+
+Välj efter chipets märkning. ESP32-valen identifierar klassisk ESP32 respektive
+ESP32-S3 automatiskt. Benny/Safe är kopplingsprofiler för klassisk ESP32;
+ESP8266/NodeMCU är en annan chipfamilj. ESP32-C3, S2 och andra modeller ingår
+inte i ESP32-verktyget. Fel chip eller fel box stoppas av respektive verktyg.
+
+Menyn kontrollerar paketets filer före start och före varje val. Om något
+saknas eller har ändrats: hämta ZIP-filen igen och packa upp i en ny mapp.
+Verktygens egna resultat visas i samma fönster. Efter en åtgärd kan du trycka
+Enter för huvudmenyn. Menyn säger inte att en backup eller återställning
+lyckats — invänta alltid KLART från det verktyg som utför själva arbetet.
+
+FÖRSTA GÅNGEN
+Verktyget förbereder esptool 4.11.0 i en separat användarmapp och hämtar dess
+beroenden. Internet behövs då. Ingen administratörsbehörighet krävs och
+systemets Python ändras inte. Samma cache som de tidigare separata verktygen
+använder återanvänds. Därefter behövs normalt inget internet.
+Ingen backup laddas upp till GitHub eller någon annan server.
+
+TA BACKUP
+Välj 1 eller 3 och därefter boxens USB-port och backupmapp.
+Hela det upptäckta flashminnet läses och verifieras mot boxen.
+Först efter godkänd kontroll visas KLART och en slutlig backupfil skapas.
+Varje körning får en ny tidsstämplad mapp; äldre backuper skrivs inte över.
+
+Standardmappar i hemmappen:
+- ESP8266: TMBox-backuper
+- ESP32 / ESP32-S3: TMBox-backuper-ESP32
+
+Spara HELA resultatmappen, inte bara .bin-filen. Den innehåller backupfil,
+backup-info.json, SHA256SUMS.txt och loggar. Spara gärna två privata kopior.
+Backupfiler kan innehålla wifi-lösenord och ska inte läggas på GitHub.
+
+ÅTERSTÄLL FRÅN BACKUP
+Återställning ERSÄTTER HELA BOXENS PROGRAM OCH LOKALA INSTÄLLNINGAR.
+Serverns egna trafikdata ändras inte.
+
+1. Välj 2 eller 4 för rätt chipfamilj.
+2. Välj hela den verifierade backupmappen från vårt motsvarande backupverktyg.
+   Äldre backuper från de separata verktygen stöds fortfarande oförändrat.
+3. Välj rätt USB-port. Samma fysiska box, MAC-adress, chipmodell och full
+   minnesstorlek måste stämma. Backupens SHA-256 kontrolleras före skrivning.
+4. En NY verifierad säkerhetskopia av boxens nuvarande innehåll tas automatiskt.
+5. Läs sammanfattningen och skriv ATERSTALL bara om rätt backup och box valts.
+   Allt annat avbryter före skrivningen.
+6. Behåll ström och USB-kabel. Hela minnet skrivs och verifieras igen.
+7. Invänta KLART. Tryck därefter RST/RESET eller återanslut USB för normal start.
+   Kontrollera förväntad firmware, wifi och server/station.
+
+En lös Update-/firmwarefil är inte en fullständig backup. Lägg ALDRIG en
+fullständig backupfil i boxens vanliga Update-sida. Inga kontroller kringgås
+och ingen skrivning återförsöks automatiskt vid fel.
+
+OM NÅGOT GÅR FEL
+- En OFULLSTANDIG-fil eller en körning utan KLART är inte en godkänd backup.
+- Vid avbrott under återställning eller fel efterkontroll kan programmet på
+  boxen vara ofullständigt. Behåll originalbackup och säkerhetskopia, läs
+  resultat.json/loggen och gör ett nytt komplett försök efter kontroll av
+  ström, kabel och port. Kör inte erase_flash först.
+- Om en återställning avbryts med Ctrl+C säger menyn inte att minnet är
+  oförändrat. Läs verktygets rapport innan nästa försök.
+- Vid USB-anslutningsproblem: stäng andra serieprogram, prova datakabel och
+  annan port. ESP32-S3: prova USB–UART-uttaget om kortet har två USB-uttag.
+  FLASH/BOOT hålls vid behov medan RST/RESET trycks och släpps; släpp sedan
+  FLASH/BOOT när verktyget ansluter.
+- ESP32/S3 med flashkryptering, Secure Boot eller Secure Download Mode, eller
+  okänd säkerhetsstatus, stöds inte. eFuses/engångsinställningar ändras inte.
+- Normala stödda storlekar: ESP8266 256 KB–16 MB, ESP32/S3 1–16 MB.
+  Hela den upptäckta storleken kopieras; minnet kapas aldrig.
+- Backup gäller flashminnet, inte RAM, eFuses eller serverns egna trafikdata.
+
+FLER INSTRUKTIONER
+verktyg/esp8266/Backup-instruktioner.txt
+verktyg/esp8266/Aterstallningsinstruktioner.txt
+verktyg/esp32/LAS-MIG.txt
+
+De ursprungliga separata startfilerna finns också i undermapparna för den
+som behöver dem. Den gemensamma menyn i huvudmappen är den vanliga starten.
+
+SPÅRBARHET OCH VERIFIERING
+Bakom menyn ligger exakt samma redan publicerade verktygsversioner 1.0.0.
+De hämtas från GitHub och kontrolleras mot låsta SHA-256 och källrevisioner
+vid paketeringen. SOURCES.json anger källorna. SHA256SUMS.txt kontrollerar
+hela paketets filer och PAKET-INNEHALL.json används av menyns startkontroll.
+Verktygen ändras inte av menyn.
+
+Menyn, paketeringen, samtliga startfiler och de oförändrade verktygens
+testsviter körs i GitHub Actions på Mac, Windows och Linux med simulerad USB.
+Inga verktyg har installerats på Caspers dator och ingen fysisk box har
+anslutits eller återställts under detta arbete. Fysisk provning återstår.
