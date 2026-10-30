@@ -1,0 +1,83 @@
+ESP8266 — ÅTERSTÄLL FRÅN VERIFIERAD BACKUP
+Mac och Windows · verktyg 1.0.0
+
+Detta gör en fullständig återställning. Boxens program och alla lokala
+inställningar ersätts med innehållet vid tidpunkten för den valda backupen.
+Serverns egna trafikdata ändras inte av detta verktyg.
+
+Vad som krävs
+- Samma fysiska ESP8266-box som backupen togs från.
+- HELA resultatmappen från TrainMeets ESP8266-backupverktyg, med:
+  esp8266-full-backup.bin, backup-info.json och SHA256SUMS.txt.
+- Backupen ska ha blivit godkänd mot boxen när den skapades.
+- Python 3.10 eller senare och en USB-datakabel.
+- Använd inte detta verktyg för ESP32 eller för lösa Update-/firmwarefiler.
+
+Gör så här
+1. Hämta ZIP-filen från GitHub och packa upp HELA verktygsmappen.
+2. Ta boxen ur trafik. Anslut EN box med USB och stäng seriella monitorer
+   och andra program som använder USB-porten.
+3. Mac: dubbelklicka på Aterstall-ESP8266-Mac.command.
+   Windows: dubbelklicka på Aterstall-ESP8266-Windows.cmd.
+4. Första gången hämtas esptool 4.11.0 i en separat användarmapp.
+   Backup- och återställningsverktygen delar denna verktygsmapp. Internet
+   behövs vid första förberedelsen; inget installeras i systemets Python.
+5. Välj backupmapp i listan. Den vanliga platsen är TMBox-backuper i hemmappen.
+   Välj M om du sparade backupen någon annanstans och ange hela mappens sökväg.
+6. Verktyget kontrollerar först backupfilens storlek och SHA-256 mot både
+   metadata och kontrollsummefil. En ändrad/skadad/ofullständig backup stoppas.
+7. Välj boxens USB-port. Chip, MAC-adress och full minnesstorlek måste stämma
+   med backupen. Annan box eller annan minnesstorlek stoppas utan skrivning.
+8. En NY verifierad säkerhetskopia av boxens nuvarande minne tas automatiskt,
+   innan något skrivs. Den sparas under TMBox-backuper/Aterstallningsskydd/
+   Fore-aterstallning/ i hemmappen. Det kan ta flera minuter.
+9. Läs sammanfattningen med backupens tid, MAC och storlek.
+   Skriv ATERSTALL och tryck Enter endast om rätt backup och box har valts.
+   Allt annat avbryter utan att skriva till boxens flashminne.
+10. Behåll ström och USB-kabel. Programmet skriver hela backupen från adress
+    0 med bibehållna flashparametrar och kontrollerar sedan HELA minnet igen.
+11. Vänta på KLART — hela återställningen är verifierad mot boxens flashminne.
+    Skrivningen ensam räcker inte för ett godkänt resultat.
+12. Tryck RST/RESET på boxen eller koppla ur och anslut USB så programmet
+    startar. Kontrollera förväntat wifi, firmware och server/station.
+
+Backupens originalfiler ändras inte. En tillfällig privat arbetskopia används
+under skrivningen. Backupen och arbetskopian laddas aldrig upp.
+
+Rapport och säkerhetskopia
+Varje försök får en egen mapp under TMBox-backuper/Aterstallningsskydd/.
+- resultat.json anger om skrivning startade och om efterkontrollen godkändes.
+- aterstallning.log innehåller förloppet.
+- Fore-aterstallning/ innehåller en verifierad kopia av läget före återställningen.
+Spara dessa mappar privat. Backupfiler kan innehålla wifi-lösenord.
+
+Om något inte godkänns
+- Fel backup, kontrollsumma, MAC eller minnesstorlek: ingen skrivning tillåts.
+  Välj rätt originalbackup och samma fysiska box. Det finns ingen knapp för
+  att kringgå dessa kontroller.
+- Ingen giltig MAC i en äldre/manuell backup: detta enkla verktyg kan inte
+  säkerställa rätt box. Det kräver en backup från vårt verifierade backupverktyg.
+- Säkerhetskopian före återställning misslyckas: skrivningen stoppas.
+- Avbrott under skrivning eller fel vid efterkontroll: återställningen är
+  INTE godkänd och boxen kan ha ett ofullständigt program. Behåll originalbackup
+  och säkerhetskopian före återställning, kontrollera kabel/ström och gör ett
+  nytt komplett försök med samma originalbackup.
+- Om firmware inte startar kan ESP8266:s USB-startläge normalt ändå användas.
+  NodeMCU brukar gå in automatiskt. Vid anslutningsproblem: håll FLASH/BOOT,
+  tryck och släpp RST/RESET och släpp sedan FLASH/BOOT när verktyget ansluter.
+- Ingen separat erase_flash eller full radering ska köras först.
+- Lägg aldrig den fullständiga backupfilen i boxens vanliga Update-sida.
+
+Python och Mac
+Python 3.10 eller senare kan installeras från https://www.python.org/downloads/ .
+Om macOS frågar om den nedladdade startfilen: Finder → högerklick → Öppna.
+Verktyget kräver ingen administratörsbehörighet. Esptool-cachen ligger på samma
+plats som backupverktygets cache. Den kan raderas separat från backupmapparna.
+
+Verifiering
+Skript, kontroller, felscenarier och startfiler testas i GitHub Actions på
+Mac, Windows och Linux med simulerad USB/flash. Ingen fysisk box har uppdaterats
+av utvecklingsarbetet. Fysisk provning på box återstår.
+
+Teknisk referens för den låsta esptool-versionens läs-/skriv-/kontrollkommandon:
+https://docs.espressif.com/projects/esptool/en/release-v4/esp32/esptool/basic-commands.html
