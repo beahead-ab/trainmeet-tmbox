@@ -1,0 +1,125 @@
+ESP32 OCH ESP32-S3 — FULLSTÄNDIG BACKUP OCH ÅTERSTÄLLNING
+Mac och Windows · verktyg 1.0.0
+
+Paketet innehåller fyra startfiler:
+  Backup-ESP32-Mac.command
+  Backup-ESP32-Windows.cmd
+  Aterstall-ESP32-Mac.command
+  Aterstall-ESP32-Windows.cmd
+
+Stödda boxar
+Klassisk ESP32 (bland annat Benny/Safe) och ESP32-S3. Chipet identifieras
+automatiskt. Du behöver inte välja kopplingsprofil för att kopiera hela minnet.
+Hela den upptäckta flashstorleken kopieras, från 1 till 16 MB; inget kapas.
+Vanliga TMBox-kort har exempelvis 4 MB (klassisk ESP32) eller 8 MB (S3).
+Andra chipfamiljer som ESP8266, ESP32-C3 och ESP32-S2 stöds inte av detta paket.
+
+Verktyget är för kort utan flashkryptering, Secure Boot eller Secure Download
+Mode. Säkerhetsstatus läses före flashoperationerna. Aktiva eller okända
+skydd stoppar verktyget; ingen kringgång erbjuds och inga eFuses ändras.
+Backupen gäller flashminnet, inte RAM, eFuses/engångsinställningar eller
+serverns egna trafikdata.
+
+Förbered en gång
+1. Hämta ZIP-filen och packa upp HELA mappen. Behåll alla .py-filer tillsammans
+   med startfilerna. Du behöver inte öppna eller ändra Python-koden.
+2. Python 3.10 eller senare behöver finnas på datorn. Installationsprogram
+   finns på https://www.python.org/downloads/ . På Windows: inkludera Python
+   Launcher om installationsprogrammet erbjuder det.
+3. Första gången hämtas esptool 4.11.0 i en separat användarmapp. Internet
+   behövs då. Ingen administratörsbehörighet eller ändring av systemets
+   Python behövs. Backup och återställning delar samma verktygscache.
+4. Anslut EN box med en USB-datakabel och ta den ur trafik. Stäng seriella
+   monitorer och andra program som använder boxens port.
+5. På kort med två USB-uttag: USB–UART-uttaget är ett bra val för backup och
+   återställning. Välj den port som hör till just boxen.
+
+Ta backup
+1. Mac: dubbelklicka på Backup-ESP32-Mac.command.
+   Windows: dubbelklicka på Backup-ESP32-Windows.cmd.
+2. Välj boxens portnummer i listan. R söker igen, M låter dig ange en port
+   manuellt och A avbryter. Ingen port väljs automatiskt.
+3. Välj backupmapp eller tryck Enter för TMBox-backuper-ESP32 i hemmappen.
+4. Verktyget läser chipmodell, MAC och säkerhetsstatus och detekterar hela
+   flashstorleken. Det läser hela minnet och verifierar hela kopian mot boxen.
+   Vid kommunikationsfel läses allt om en gång med lägre hastighet.
+5. Vänta på KLART. Först då finns en slutlig esp32-full-backup.bin och
+   backup-info.json med verifiedAgainstDevice=true.
+6. Tryck RST/RESET på boxen eller koppla ur och anslut USB för normal start.
+
+Varje körning får en egen tidsstämplad mapp; gamla backuper skrivs inte över.
+Spara HELA resultatmappen, gärna i två privata kopior. Den innehåller:
+  esp32-full-backup.bin — hela flashminnet
+  backup-info.json — modell, MAC, full storlek, säkerhetsstatus och verifiering
+  SHA256SUMS.txt — filens SHA-256
+  flash-info.txt, backup.log och LAS-MIG.txt
+Backupfilen kan innehålla wifi-lösenord och andra privata uppgifter. Ladda inte
+upp den till GitHub. Verktyget skickar aldrig backupdata till någon server.
+En godkänd bytekopia säger att filen matchar minnet, inte att det gamla
+programmet eller hårdvaran är felfri.
+
+Återställ från backup
+ÅTERSTÄLLNING ERSÄTTER HELA BOXENS PROGRAM OCH LOKALA INSTÄLLNINGAR.
+Serverns egna trafikdata berörs inte.
+
+1. Anslut samma fysiska box och stäng program som använder dess USB-port.
+2. Mac: dubbelklicka på Aterstall-ESP32-Mac.command.
+   Windows: dubbelklicka på Aterstall-ESP32-Windows.cmd.
+3. Välj HELA resultatmappen från ESP32-backupverktyget. Välj M om backupen
+   ligger någon annanstans än TMBox-backuper-ESP32. Lösa firmware-/Update-filer
+   och backuper från ESP8266 eller annan box godtas inte.
+4. Backupfilens storlek och SHA-256 måste stämma med både metadata och
+   kontrollsummefil. Bootloaderns placering och chip-ID kontrolleras också:
+   klassisk ESP32 och ESP32-S3 har olika layout. Inga adresser behöver anges.
+5. Välj boxens USB-port. Chipmodell, MAC, minnesstorlek och okrypterat,
+   oskyddat läge måste stämma. Säkerhetsläget läses på nytt före skrivningen.
+6. En NY verifierad kopia av boxens NUVARANDE minne tas automatiskt under
+   TMBox-backuper-ESP32/Aterstallningsskydd/Fore-aterstallning/.
+7. Läs sammanfattningen. Skriv ATERSTALL och tryck Enter bara om rätt backup
+   och box valts. Allt annat avbryter utan att skriva till flashminnet.
+8. Behåll ström och USB-kabel. Hela backupen skrivs från adress 0 med
+   ursprungliga flashparametrar bevarade. Därefter verifieras HELA minnet.
+   Skrivningen återförsöks inte automatiskt vid fel.
+9. Vänta på KLART — hela återställningen är verifierad mot boxens flashminne.
+10. Tryck RST/RESET eller återanslut USB. Kontrollera att förväntad firmware,
+    wifi, server och station fungerar. Innehållet är från backupens tidpunkt.
+
+Originalbackupen ändras inte. En tillfällig privat arbetskopia används under
+skrivningen. Rapporter och en säkerhetskopia av läget före återställningen
+sparas lokalt under TMBox-backuper-ESP32/Aterstallningsskydd/.
+resultat.json anger om skrivning startade och om efterkontrollen godkändes.
+
+Vid fel
+- Om KLART inte visas är försöket inte godkänt.
+- En OFULLSTANDIG-backup.bin är inte en återställningskopia.
+- Fel chip/MAC/storlek, ändrad backup eller aktiva/okända skydd stoppar
+  återställningen. Det finns inga --force-, krypterings- eller eFuse-kommandon.
+- Om säkerhetskopian före återställning misslyckas startar ingen skrivning.
+- Vid avbrott under skrivning eller fel efterkontroll kan boxen ha ett
+  ofullständigt program. Behåll originalbackup och säkerhetskopia och gör
+  ett nytt komplett försök med samma originalbackup efter kontroll av kabel,
+  ström och port. Kör inte en separat erase_flash först.
+- USB-startläget kan normalt användas även när firmware inte startar.
+  Om anslutningen misslyckas: håll BOOT, tryck/släpp RESET, släpp BOOT när
+  verktyget ansluter. Prova kortets USB–UART-uttag om det finns.
+- Den fullständiga backupfilen ska ALDRIG laddas upp i boxens vanliga Update-sida.
+- En äldre/manuell backup utan dessa metadata stöds inte av det enkla
+  återställningsverktyget. Utgå från en verifierad backupmapp från detta paket.
+
+Python och Mac
+Om macOS frågar om den nedladdade startfilen: Finder → högerklick → Öppna.
+Cache för verktyget:
+  Mac: ~/Library/Caches/TrainMeet/ESP32-recovery/
+  Windows: %LOCALAPPDATA%\TrainMeet\ESP32-recovery\
+Cachen kan raderas när verktyget inte behövs. Backupmapparna ligger separat
+och måste sparas.
+
+Verifiering av verktygen
+Programlogik, säkerhetsspärrar, felhantering, minneslayouter och startfiler
+testas på Mac, Windows och Linux i GitHub Actions med simulerad USB/flash.
+Skyddskontroller testas även mot ROM-definitionerna i den låsta esptool-
+versionen. Ingen fysisk box har anslutits eller skrivits under utvecklingen.
+Fysiskt boxprov återstår.
+
+Teknisk referens:
+https://docs.espressif.com/projects/esptool/en/release-v4/esp32/esptool/basic-commands.html
