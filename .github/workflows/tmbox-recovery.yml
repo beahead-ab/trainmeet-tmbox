@@ -1,0 +1,107 @@
+name: Unified TMBox recovery menu
+
+on:
+  push:
+    paths:
+      - 'tools/tmbox-recovery/**'
+      - '.github/workflows/tmbox-recovery.yml'
+  pull_request:
+    paths:
+      - 'tools/tmbox-recovery/**'
+      - '.github/workflows/tmbox-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test menu and packaging without USB
+        run: python -m unittest discover -s tools/tmbox-recovery/tests -p test_menu.py -v
+      - name: Assemble the real complete download from pinned public assets
+        run: python tools/tmbox-recovery/package.py --output smoke-package --source-commit "${{ github.sha }}"
+      - name: Smoke-test the native menu and all four packaged backends without USB
+        run: python tools/tmbox-recovery/tests/smoke_download.py --package-dir smoke-package
+      - uses: actions/checkout@v5
+        with:
+          ref: a90f4d9776981f051fe1f70d25dfa900dd7a8078
+          path: upstream-esp8266
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          ref: 8d897cc78825ecb9cab347f44353526f23b70c43
+          path: upstream-esp32
+          persist-credentials: false
+      - run: python -m pip install esptool==4.11.0
+      - name: Re-run the unchanged ESP8266 backend suites
+        run: |
+          python -m unittest discover -s upstream-esp8266/tools/esp8266-backup/tests -v
+          python -m unittest discover -s upstream-esp8266/tools/esp8266-restore/tests -v
+      - name: Re-run the unchanged ESP32/S3 backend suites and ROM security tests
+        run: python -m unittest discover -s upstream-esp32/tools/esp32-recovery/tests -v
+
+  package:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/tmbox-recovery/package.py --output recovery-package --source-commit "${{ github.sha }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tmbox-recovery-menu
+          path: recovery-package/*
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/tools/tmbox-recovery-menu'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tmbox-recovery-menu
+          path: recovery-package
+      - name: Publish the verified combined package without replacing existing assets
+        working-directory: recovery-package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum -c trainmeet-tmbox-backup-restore-1.0.0.zip.sha256
+          gh release view v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --json isDraft,isPrerelease --jq 'select(.isDraft == false and .isPrerelease == true)' | python3 -c 'import sys,json; assert json.load(sys.stdin)["isDraft"] is False'
+          gh release upload v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox trainmeet-tmbox-backup-restore-1.0.0.zip trainmeet-tmbox-backup-restore-1.0.0.zip.sha256
+          gh release view v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --json body --jq .body > previous-notes.md
+          cat > release-notes.md <<'NOTES'
+          ## Börja här: gemensamt paket för backup och återställning
+
+          [Hämta det gemensamma paketet för Mac och Windows](https://github.com/beahead-ab/trainmeet-tmbox/releases/download/v0.9.0-wifi-test.1/trainmeet-tmbox-backup-restore-1.0.0.zip) · [Kontrollsumma](https://github.com/beahead-ab/trainmeet-tmbox/releases/download/v0.9.0-wifi-test.1/trainmeet-tmbox-backup-restore-1.0.0.zip.sha256)
+
+          Packa upp HELA ZIP-filen i en ny mapp. **Mac:** dubbelklicka på **Starta-TMBox-Mac.command**. **Windows/PC:** dubbelklicka på **Starta-TMBox-Windows.cmd**. Python 3.10 eller senare behövs.
+
+          Menyn har fyra val: backup eller återställning för **ESP8266/NodeMCU** respektive **ESP32/ESP32-S3**, samt Avsluta. Välj USB-port och följ frågorna. Paketet innehåller alla hjälpfiler och tydliga svenska instruktioner i **LAS-MIG.txt**. Respektive verktyg förbereder esptool automatiskt första gången.
+
+          De redan publicerade verktygen ingår oförändrade och kontrolleras mot låsta SHA-256 och källrevisioner vid paketeringen. Menyn kontrollerar paketets filer innan något verktyg startas. Äldre backuper från de separata verktygen stöds.
+
+          **Återställning ersätter hela boxens program och lokala inställningar.** Kraven på verifierad backup, rätt box/MAC/chip/minnesstorlek, en extra säkerhetskopia, bekräftelsen **ATERSTALL** och full efterkontroll behålls. Inga skydd kringgås. Spara backuper privat; inga backupdata laddas upp.
+
+          Menyn, paketeringen, alla startfiler och verktygens tidigare testsviter körs med simulerad USB på Mac, Windows och Linux. Ingen fysisk box har anslutits eller återställts och inget har installerats på Caspers dator under arbetet. Fysisk provning återstår.
+
+          ---
+
+          NOTES
+          cat previous-notes.md >> release-notes.md
+          gh release edit v0.9.0-wifi-test.1 --repo beahead-ab/trainmeet-tmbox --notes-file release-notes.md
